@@ -18,6 +18,12 @@ The repository includes an interactive calculator demonstrating the method, as w
 - **Prime summary table** – lists all prime totals encountered
 - **Detailed letter breakdown** for each word
 
+- **Multi-layer sums** – units, tens (Δ9 adjustment) and hundreds (with special multipliers for ש and ת)
+- **Digital root computation** – consistent across layers via Δ9 closure
+- **Prime detection** – primes highlighted in word and line totals
+- **Line and text summaries** – breakdown by line with cumulative totals
+
+
 ## Aleph Code Calculator
 
 A browser-based React application lives in `index.html`. It can be opened directly in any modern browser or served locally.
