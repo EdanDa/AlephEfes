@@ -34,7 +34,7 @@ A browser-based React application lives in `index.html`. It can be opened direct
 2. Start a small HTTP server from the repository directory:
 
 ```bash
-python3 -m http.server
+python -m http.server
 ```
 
 3. Open [http://localhost:8000/index.html](http://localhost:8000/index.html) in your browser.
