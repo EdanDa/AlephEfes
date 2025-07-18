@@ -120,14 +120,14 @@
         // --- Render Functions ---
 
         const PrimeCell = ({ value, isPrimeFlag }) => (
-            <td className={`px-4 py-3 text-center tabular-nums ${isPrimeFlag ? 'text-emerald-500 font-bold' : 'text-gray-700'}`}>
+            <td className={`px-4 py-3 text-center tabular-nums ${isPrimeFlag ? 'text-green-600 font-bold' : 'text-gray-700'}` }>
                 {value}
-                {isPrimeFlag && <span className="ml-1 text-emerald-500" title="ראשוני">♢</span>}
+                {isPrimeFlag && <span className="ml-1 text-green-600" title="ראשוני">♢</span>}
             </td>
         );
-        
+
         const TotalNumberDisplay = ({ value, isPrimeFlag }) => (
-             <p className={`text-3xl font-bold ${isPrimeFlag ? 'text-emerald-400' : ''}`}>
+             <p className={`text-3xl font-bold ${isPrimeFlag ? 'text-green-500' : ''}`}>
                 {value}
                 {isPrimeFlag && <span className="ml-2 text-xl">♢</span>}
             </p>
@@ -219,7 +219,7 @@
                         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 mt-8">
                             <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">סיכום ראשוניים מסכומי השורות</h2>
                             <p className="text-center text-gray-600 mb-4">
-                                בסך הכל נמצאו <span className="font-bold text-emerald-600">{results.primeSummary.length}</span> ערכים ראשוניים בסכומי השורות.
+                                בסך הכל נמצאו <span className="font-bold text-green-600">{results.primeSummary.length}</span> ערכים ראשוניים בסכומי השורות.
                             </p>
                             <div className="overflow-x-auto max-w-lg mx-auto">
                                 <table className="min-w-full bg-white">
@@ -234,7 +234,7 @@
                                         {results.primeSummary.map((primeInfo, index) => (
                                             <tr key={index} className="hover:bg-gray-50">
                                                 <td className="px-4 py-3 text-center text-gray-700">{primeInfo.line}</td>
-                                                <td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td>
+                                                <td className="px-4 py-3 text-center font-bold text-green-600 tabular-nums">{primeInfo.value}</td>
                                                 <td className="px-4 py-3 text-center text-gray-700">{primeInfo.layer}</td>
                                             </tr>
                                         ))}
