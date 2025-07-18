@@ -11,10 +11,18 @@ The repository includes an interactive calculator demonstrating the method, as w
 ### Key Features
 
 - **Zero-based letter mapping** – א=0, ב=1, ג=2 … ת=21
+- **Multi-layer sums** – units, tens (Δ9 adjustment) and hundreds with special multipliers for ש and ת
+- **Digital root computation** – consistent across layers via Δ9 closure
+- **Prime detection** – primes highlighted in green with a diamond marker
+- **Line and text summaries** – breakdown by line with cumulative totals
+- **Prime summary table** – lists all prime totals encountered
+- **Detailed letter breakdown** for each word
+
 - **Multi-layer sums** – units, tens (Δ9 adjustment) and hundreds (with special multipliers for ש and ת)
 - **Digital root computation** – consistent across layers via Δ9 closure
 - **Prime detection** – primes highlighted in word and line totals
 - **Line and text summaries** – breakdown by line with cumulative totals
+
 
 ## Aleph Code Calculator
 
