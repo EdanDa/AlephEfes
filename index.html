@@ -16,7 +16,7 @@
     // Main component for the Aleph-Code Calculator
     const App = () => {
         // State for user input and calculation results
-        const [text, setText] = useState('יהוה למבול ישב וישב יהוה מלך לעולם\nיהוה עז לעמו יתן יהוה יברך את עמו בשלום');
+        const [text, setText] = useState('יהוה אלהים\nאברהם משה\nאדם דם\nאמת מת\nישראל מלכות');
         const [results, setResults] = useState(null);
 
         // --- Core Aleph-Code & Number Theory Logic ---
@@ -45,22 +45,32 @@
             const root = num % 9;
             return root === 0 ? 9 : root;
         };
+        
+        // Function to generate distinct colors for symbols
+        const generateColor = (index) => {
+            const hue = (index * 137.508) % 360; // Use golden angle for distinct hues
+            return `hsl(${hue}, 70%, 50%)`;
+        };
 
         // Main calculation handler
         const handleCalculate = () => {
             const lines = text.split('\n').filter(line => line.trim().length > 0);
             let grandTotals = { units: 0, tens: 0, hundreds: 0 };
             const primeSummary = [];
+            const allWords = new Map();
 
             const calculatedLines = lines.map((line, lineIndex) => {
                 const words = line.split(/\s+/).filter(word => word.length > 0);
                 let lineTotals = { units: 0, tens: 0, hundreds: 0 };
 
                 const calculatedWords = words.map(word => {
+                    const cleanWord = word.replace(/[.,:"']/g, '');
+                    if (cleanWord.length === 0 || !isNaN(cleanWord)) return null;
+
                     let units = 0, tens_k_sum = 0, hundreds_m_sum = 0;
                     const letterDetails = [];
 
-                    for (const char of word) {
+                    for (const char of cleanWord) {
                         const value = letterValues[char];
                         if (value !== undefined) {
                             units += value;
@@ -73,19 +83,18 @@
 
                     const tens = units + 9 * tens_k_sum;
                     const hundreds = tens + 9 * hundreds_m_sum;
+                    const dr = getDigitalRoot(units);
                     
                     lineTotals.units += units;
                     lineTotals.tens += tens;
                     lineTotals.hundreds += hundreds;
 
-                    return { 
-                        word, letterDetails, units, tens, hundreds, 
-                        dr: getDigitalRoot(units), 
-                        isPrimeU: isPrime(units),
-                        isPrimeT: isPrime(tens),
-                        isPrimeH: isPrime(hundreds),
-                    };
-                });
+                    if (!allWords.has(cleanWord)) {
+                        allWords.set(cleanWord, { word: cleanWord, units, tens, hundreds, dr });
+                    }
+
+                    return { word, letterDetails, units, tens, hundreds, dr, isPrimeU: isPrime(units), isPrimeT: isPrime(tens), isPrimeH: isPrime(hundreds) };
+                }).filter(Boolean);
                 
                 grandTotals.units += lineTotals.units;
                 grandTotals.tens += lineTotals.tens;
@@ -99,39 +108,70 @@
                 if (isPrimeTotalT) primeSummary.push({ line: lineIndex + 1, value: lineTotals.tens, layer: 'עשרות' });
                 if (isPrimeTotalH) primeSummary.push({ line: lineIndex + 1, value: lineTotals.hundreds, layer: 'מאות' });
 
-                return {
-                    lineText: line,
-                    words: calculatedWords,
-                    totals: lineTotals,
-                    totalsDR: getDigitalRoot(lineTotals.units),
-                    isPrimeTotals: { U: isPrimeTotalU, T: isPrimeTotalT, H: isPrimeTotalH }
-                };
+                return { lineText: line, words: calculatedWords, totals: lineTotals, totalsDR: getDigitalRoot(lineTotals.units), isPrimeTotals: { U: isPrimeTotalU, T: isPrimeTotalT, H: isPrimeTotalH } };
             });
             
-            const finalGrandTotals = {
-                ...grandTotals,
-                dr: getDigitalRoot(grandTotals.units),
-                isPrime: { U: isPrime(grandTotals.units), T: isPrime(grandTotals.tens), H: isPrime(grandTotals.hundreds) }
-            };
+            const finalGrandTotals = { ...grandTotals, dr: getDigitalRoot(grandTotals.units), isPrime: { U: isPrime(grandTotals.units), T: isPrime(grandTotals.tens), H: isPrime(grandTotals.hundreds) } };
 
-            setResults({ lines: calculatedLines, grandTotals: finalGrandTotals, primeSummary });
+            // --- DYNAMIC DR Cluster and Symbol Logic ---
+            const drClusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
+            const valueMaps = { units: new Map(), tens: new Map(), hundreds: new Map() };
+            
+            allWords.forEach(wordData => {
+                ['units', 'tens', 'hundreds'].forEach(layer => {
+                    const value = wordData[layer];
+                    if (!valueMaps[layer].has(value)) valueMaps[layer].set(value, []);
+                    valueMaps[layer].get(value).push(wordData.word);
+                });
+            });
+            
+            const activeSymbols = [];
+            const wordToSymbols = new Map();
+            let symbolIndex = 0;
+            const symbolShapes = ['●', '■', '▲', '◆', '★', '✚', '▼', '⬟'];
+            
+            ['units', 'tens', 'hundreds'].forEach(layer => {
+                valueMaps[layer].forEach((words, value) => {
+                    if (words.length > 1) {
+                        const symbol = {
+                            shape: symbolShapes[symbolIndex % symbolShapes.length],
+                            color: generateColor(symbolIndex),
+                            layer: layer === 'units' ? 'יחידות' : layer === 'tens' ? 'עשרות' : 'מאות',
+                            value
+                        };
+                        activeSymbols.push(symbol);
+                        words.forEach(word => {
+                            if (!wordToSymbols.has(word)) wordToSymbols.set(word, []);
+                            wordToSymbols.get(word).push(symbol);
+                        });
+                        symbolIndex++;
+                    }
+                });
+            });
+            
+            allWords.forEach(wordData => {
+                if (wordData.dr > 0) {
+                    drClusters[wordData.dr].push({
+                        ...wordData,
+                        symbols: wordToSymbols.get(wordData.word) || []
+                    });
+                }
+            });
+            
+            for (const dr in drClusters) {
+                drClusters[dr].sort((a, b) => a.word.localeCompare(b.word, 'he'));
+            }
+
+            setResults({ lines: calculatedLines, grandTotals: finalGrandTotals, primeSummary, drClusters, activeSymbols });
         };
         
         // --- Render Functions ---
-
         const PrimeCell = ({ value, isPrimeFlag }) => (
-            <td className={`px-4 py-3 text-center tabular-nums ${isPrimeFlag ? 'text-green-600 font-bold' : 'text-gray-700'}` }>
-                {value}
-                {isPrimeFlag && <span className="ml-1 text-green-600" title="ראשוני">♢</span>}
-            </td>
-        );
-
-        const TotalNumberDisplay = ({ value, isPrimeFlag }) => (
-             <p className={`text-3xl font-bold ${isPrimeFlag ? 'text-green-500' : ''}`}>
-                {value}
-                {isPrimeFlag && <span className="ml-2 text-xl">♢</span>}
-            </p>
-        );
+            <td className={`px-4 py-3 text-center tabular-nums ${isPrimeFlag ? 'text-emerald-500 font-bold' : 'text-gray-700'}`}> 
+                {value} 
+                {isPrimeFlag && <span className="ml-1 text-emerald-500" title="ראשוני">♢</span>} 
+            </td> );
+        const TotalNumberDisplay = ({ value, isPrimeFlag }) => ( <p className={`text-3xl font-bold ${isPrimeFlag ? 'text-emerald-400' : ''}`}> {value} {isPrimeFlag && <span className="ml-2 text-xl">♢</span>} </p> );
 
         return (
             <div dir="rtl" className="bg-gray-50 min-h-screen font-sans text-gray-800 p-4 sm:p-6 lg:p-8">
@@ -142,7 +182,7 @@
                     </header>
 
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-                        <label htmlFor="text-input" className="block text-lg font-semibold text-gray-700 mb-3">הזן טקסט לניתוח (כל שורה תחושב בנפרד):</label>
+                        <label htmlFor="text-input" className="block text-lg font-semibold text-gray-700 mb-3">הזן טקסט לניתוח:</label>
                         <textarea id="text-input" className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 text-lg leading-7" rows="4" value={text} onChange={(e) => setText(e.target.value)} placeholder="בראשית ברא אלהים את השמים ואת הארץ..."></textarea>
                         <div className="mt-4 flex justify-center">
                             <button onClick={handleCalculate} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">חשב</button>
@@ -191,55 +231,45 @@
                         </div>
                     ))}
 
-                    {results && results.grandTotals && (
-                        <div className="bg-blue-900 text-white p-6 rounded-xl shadow-lg mt-10">
-                            <h2 className="text-3xl font-bold mb-4 text-center">סיכום כללי</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                                <div className="bg-blue-800 p-4 rounded-lg">
-                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-יחידות (סה"כ)</p>
-                                    <TotalNumberDisplay value={results.grandTotals.units} isPrimeFlag={results.grandTotals.isPrime.U} />
-                                </div>
-                                <div className="bg-blue-800 p-4 rounded-lg">
-                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p>
-                                    <TotalNumberDisplay value={results.grandTotals.tens} isPrimeFlag={results.grandTotals.isPrime.T} />
-                                </div>
-                                <div className="bg-blue-800 p-4 rounded-lg">
-                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-מאות (סה"כ)</p>
-                                    <TotalNumberDisplay value={results.grandTotals.hundreds} isPrimeFlag={results.grandTotals.isPrime.H} />
-                                </div>
-                                <div className="bg-purple-800 p-4 rounded-lg">
-                                    <p className="text-sm text-purple-300 uppercase font-semibold">ש"ד (סה"כ)</p>
-                                    <p className="text-3xl font-bold">{results.grandTotals.dr}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {results && results.primeSummary && results.primeSummary.length > 0 && (
+                    {results && results.grandTotals && ( <div className="bg-blue-900 text-white p-6 rounded-xl shadow-lg mt-10"> <h2 className="text-3xl font-bold mb-4 text-center">סיכום כללי</h2> <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center"> <div className="bg-blue-800 p-4 rounded-lg"> <p className="text-sm text-blue-300 uppercase font-semibold">Σ-יחידות (סה"כ)</p> <TotalNumberDisplay value={results.grandTotals.units} isPrimeFlag={results.grandTotals.isPrime.U} /> </div> <div className="bg-blue-800 p-4 rounded-lg"> <p className="text-sm text-blue-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={results.grandTotals.tens} isPrimeFlag={results.grandTotals.isPrime.T} /> </div> <div className="bg-blue-800 p-4 rounded-lg"> <p className="text-sm text-blue-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={results.grandTotals.hundreds} isPrimeFlag={results.grandTotals.isPrime.H} /> </div> <div className="bg-purple-800 p-4 rounded-lg"> <p className="text-sm text-purple-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold">{results.grandTotals.dr}</p> </div> </div> </div> )}
+                    {results && results.primeSummary && results.primeSummary.length > 0 && ( <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 mt-8"> <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">סיכום ראשוניים מסכומי השורות</h2> <p className="text-center text-gray-600 mb-4"> בסך הכל נמצאו <span className="font-bold text-emerald-600">{results.primeSummary.length}</span> ערכים ראשוניים בסכומי השורות. </p> <div className="overflow-x-auto max-w-lg mx-auto"> <table className="min-w-full bg-white"> <thead className="bg-gray-100"> <tr> <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שורה</th> <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">ערך ראשוני</th> <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שכבה</th> </tr> </thead> <tbody className="divide-y divide-gray-200"> {results.primeSummary.map((primeInfo, index) => ( <tr key={index} className="hover:bg-gray-50"> <td className="px-4 py-3 text-center text-gray-700">{primeInfo.line}</td> <td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td> <td className="px-4 py-3 text-center text-gray-700">{primeInfo.layer}</td> </tr> ))} </tbody> </table> </div> </div> )}
+                    
+                    {results && results.drClusters && (
                         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 mt-8">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">סיכום ראשוניים מסכומי השורות</h2>
-                            <p className="text-center text-gray-600 mb-4">
-                                בסך הכל נמצאו <span className="font-bold text-green-600">{results.primeSummary.length}</span> ערכים ראשוניים בסכומי השורות.
-                            </p>
-                            <div className="overflow-x-auto max-w-lg mx-auto">
-                                <table className="min-w-full bg-white">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שורה</th>
-                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">ערך ראשוני</th>
-                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שכבה</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {results.primeSummary.map((primeInfo, index) => (
-                                            <tr key={index} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-center text-gray-700">{primeInfo.line}</td>
-                                                <td className="px-4 py-3 text-center font-bold text-green-600 tabular-nums">{primeInfo.value}</td>
-                                                <td className="px-4 py-3 text-center text-gray-700">{primeInfo.layer}</td>
-                                            </tr>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">סיכום מילים לפי מצבורי שורשים דיגיטליים</h2>
+                            {results.activeSymbols.length > 0 && (
+                                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                                    <h3 className="text-lg font-semibold mb-2 text-center">מקרא סמלים לקשרים מתמטיים</h3>
+                                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+                                        {results.activeSymbols.map((symbol, index) => (
+                                            <span key={index} className="flex items-center">
+                                                <span style={{ color: symbol.color, fontSize: '1.2em' }} className="mx-1">{symbol.shape}</span>
+                                                <span className="font-mono">= Σ-{symbol.layer} = {symbol.value}</span>
+                                            </span>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {Object.entries(results.drClusters).map(([dr, words]) => (
+                                    words.length > 0 && (
+                                        <div key={dr} className="p-4 bg-gray-50 rounded-lg">
+                                            <h3 className="text-xl font-bold text-purple-700 mb-3">ש"ד {dr}</h3>
+                                            <div className="space-y-1 text-gray-800">
+                                                {words.map((wordData, index) => (
+                                                    <div key={index} className="flex items-center">
+                                                        <span>{wordData.word} ({wordData.units})</span>
+                                                        <div className="mr-2 flex">
+                                                            {wordData.symbols.map((symbol, sIndex) => (
+                                                                <span key={sIndex} style={{ color: symbol.color }} className="font-mono ml-1 text-lg">{symbol.shape}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                ))}
                             </div>
                         </div>
                     )}
