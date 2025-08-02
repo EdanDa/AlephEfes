@@ -1,37 +1,53 @@
 # AlephEfes
 
-🄰🄰 Hebrew Isopsephy – reproducible code and data for numeric-semantic analysis of the Hebrew Bible (isopsephy, digital-root tools, null-model tests).
+🄰🄰 **Hebrew Isopsephy** – reproducible code and data for numeric–semantic analysis of the Hebrew Bible.
 
-## Overview
+This repository contains a React based calculator and notes around the "Aleph‑Code" (קוד‑אלף) hypothesis.  The project treats the biblical consonantal text as an engineered system where Hebrew letters are mapped to numeric values 0–21 and processed through a three layer algorithm (units, tens with Δ9 adjustment and hundreds).  The goal is to provide an open playground for testing the model, exploring its linguistic consequences and reproducing all calculations.
 
-AlephEfes provides tools for exploring **Aleph-Code** (קוד-אלף), a numerological framework where Hebrew letters map to values 0–21. The system implements a three-layer calculation (units, tens and hundreds) using Δ9 digital-root closure. This approach keeps the digital root constant across layers, enabling systematic analysis of Hebrew texts.
+## Research backdrop
 
-The repository includes an interactive calculator demonstrating the method, as well as code and data for further experiments.
+The current working model can be summarised in three intertwined pillars:
 
-### Key Features
+### 1. Engineered lexicon – the "atoms"
+* Letter mapping א=0 … ת=21 keeps the digital root consistent across layers via Δ9 closure.
+* Words with shared digital root form semantic clusters (e.g. DR 4 → יהוה, תורה, נפש, נשמה; DR 6 → אדם, דם, אמת, מת).
+* Numeric values encode astronomical knowledge (שמש 52 ↔ weeks, ירח 116 ↔ lunar cycle, מלכות 365 ↔ solar year) and trace mythological transformations (סט→שת, בעל→בל, תחות׳→ירח).
 
-- **Zero-based letter mapping** – א=0, ב=1, ג=2 … ת=21
-- **Multi-layer sums** – units, tens (Δ9 adjustment) and hundreds with special multipliers for ש and ת
-- **Digital root computation** – consistent across layers via Δ9 closure
-- **Prime detection** – primes highlighted with a green diamond marker
-- **Line and text summaries** – breakdown by line with cumulative totals
-- **Prime summary table** – lists all prime totals encountered
-- **Detailed letter breakdown** for each word
-- **Digital root clusters** – words grouped by shared digital root with symbol legend for repeated values
+### 2. Architectural layer – the "buildings"
+* Passages often display symmetric or planned totals.  Examples include the seven‑root "menorah" of Genesis 1 and the S–T ladder (ש=110, ת=120) marking lifespans of key figures.
+* Editing choices in spelling (e.g. בכר/בכור) appear to maintain numeric balance across verses, hinting at deliberate redaction.
 
-## Aleph Code Calculator
+### 3. Internal grammar – the ×10 series
+* A non‑linear correspondence links simple letters with their ×10 counterparts, producing a foundational word list:
+  - ג (2) + ל (20) → **גל**
+  - ד (3) + מ (30) → **דם**
+  - ה (4) + נ (40) → **הן**
+  - …
+  - מ (12) + ת (120) → **מת**
+* This sequence sketches a miniature creation narrative from *גל* (primordial wave) through life (*דם*) to transformation (*מת*), embedding "grammar" directly in the alphabet.
 
-A browser-based React application lives in `index.html`. It can be opened directly in any modern browser or served locally.
+Taken together the evidence supports a mindset in which the alphabet itself is a carrier of theological and cosmological design.  The aim of this repository is to document the phenomenon, provide transparent tools and invite replication rather than dogmatic acceptance.
 
-### Running Locally
-
-1. Ensure you have Python installed.
-2. Start a small HTTP server from the repository directory:
+## Running the calculator
 
 ```bash
-python -m http.server
+npm install   # install dependencies (react, vite)
+npm run dev   # start development server
 ```
 
-3. Open [http://localhost:8000/index.html](http://localhost:8000/index.html) in your browser.
+The app is served via Vite on <http://localhost:5173>.  It loads TailwindCSS from a CDN and stores the last analysed text in `localStorage` for convenience.
 
-The application loads React, ReactDOM, Babel and TailwindCSS from public CDNs, so an internet connection is required when first opening the page.
+## Structure
+
+```
+├── index.html        – Vite entry point
+├── src/
+│   ├── App.jsx       – main calculator component
+│   └── main.jsx      – React DOM bootstrap
+├── package.json      – project metadata and scripts
+└── vite.config.js    – Vite + React configuration
+```
+
+## License
+
+MIT
