@@ -262,7 +262,11 @@ const App = () => {
         <div className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 text-center relative">
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className="absolute top-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <button
+                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        className="absolute top-0 right-0 bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        aria-label="toggle dark mode"
+                    >
                         {isDarkMode ? '☀️' : '🌙'}
                     </button>
                     <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">מחשבון קוד-אלף</h1>
