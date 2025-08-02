@@ -1,13 +1,255 @@
 <!DOCTYPE html>
-<html lang="he">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aleph Code Calculator</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aleph Code Calculator</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+    // Main component for the Aleph-Code Calculator
+    const App = () => {
+        // State for user input and calculation results
+        const [text, setText] = useState('יהוה למבול ישב וישב יהוה מלך לעולם\nיהוה עז לעמו יתן יהוה יברך את עמו בשלום');
+        const [results, setResults] = useState(null);
+
+        // --- Core Aleph-Code & Number Theory Logic ---
+
+        // Memoized map for letter values
+        const letterValues = useMemo(() => ({
+            'א': 0, 'ב': 1, 'ג': 2, 'ד': 3, 'ה': 4, 'ו': 5, 'ז': 6, 'ח': 7, 'ט': 8, 'י': 9,
+            'כ': 10, 'ל': 11, 'מ': 12, 'נ': 13, 'ס': 14, 'ע': 15, 'פ': 16, 'צ': 17, 'ק': 18,
+            'ר': 19, 'ש': 20, 'ת': 21,
+            'ך': 10, 'ם': 12, 'ן': 13, 'ף': 16, 'ץ': 17
+        }), []);
+
+        // Helper functions for number properties
+        const isPrime = (num) => {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i = i + 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        };
+
+        const getDigitalRoot = (num) => {
+            if (num === 0) return 0;
+            const root = num % 9;
+            return root === 0 ? 9 : root;
+        };
+
+        // Main calculation handler
+        const handleCalculate = () => {
+            const lines = text.split('\n').filter(line => line.trim().length > 0);
+            let grandTotals = { units: 0, tens: 0, hundreds: 0 };
+            const primeSummary = [];
+
+            const calculatedLines = lines.map((line, lineIndex) => {
+                const words = line.split(/\s+/).filter(word => word.length > 0);
+                let lineTotals = { units: 0, tens: 0, hundreds: 0 };
+
+                const calculatedWords = words.map(word => {
+                    let units = 0, tens_k_sum = 0, hundreds_m_sum = 0;
+                    const letterDetails = [];
+
+                    for (const char of word) {
+                        const value = letterValues[char];
+                        if (value !== undefined) {
+                            units += value;
+                            letterDetails.push({ char, value });
+                            if (value >= 10) tens_k_sum += (value - 10);
+                            if (value === 20) hundreds_m_sum += 10;
+                            else if (value === 21) hundreds_m_sum += 20;
+                        }
+                    }
+
+                    const tens = units + 9 * tens_k_sum;
+                    const hundreds = tens + 9 * hundreds_m_sum;
+                    
+                    lineTotals.units += units;
+                    lineTotals.tens += tens;
+                    lineTotals.hundreds += hundreds;
+
+                    return { 
+                        word, letterDetails, units, tens, hundreds, 
+                        dr: getDigitalRoot(units), 
+                        isPrimeU: isPrime(units),
+                        isPrimeT: isPrime(tens),
+                        isPrimeH: isPrime(hundreds),
+                    };
+                });
+                
+                grandTotals.units += lineTotals.units;
+                grandTotals.tens += lineTotals.tens;
+                grandTotals.hundreds += lineTotals.hundreds;
+                
+                const isPrimeTotalU = isPrime(lineTotals.units);
+                const isPrimeTotalT = isPrime(lineTotals.tens);
+                const isPrimeTotalH = isPrime(lineTotals.hundreds);
+
+                if (isPrimeTotalU) primeSummary.push({ line: lineIndex + 1, value: lineTotals.units, layer: 'יחידות' });
+                if (isPrimeTotalT) primeSummary.push({ line: lineIndex + 1, value: lineTotals.tens, layer: 'עשרות' });
+                if (isPrimeTotalH) primeSummary.push({ line: lineIndex + 1, value: lineTotals.hundreds, layer: 'מאות' });
+
+                return {
+                    lineText: line,
+                    words: calculatedWords,
+                    totals: lineTotals,
+                    totalsDR: getDigitalRoot(lineTotals.units),
+                    isPrimeTotals: { U: isPrimeTotalU, T: isPrimeTotalT, H: isPrimeTotalH }
+                };
+            });
+            
+            const finalGrandTotals = {
+                ...grandTotals,
+                dr: getDigitalRoot(grandTotals.units),
+                isPrime: { U: isPrime(grandTotals.units), T: isPrime(grandTotals.tens), H: isPrime(grandTotals.hundreds) }
+            };
+
+            setResults({ lines: calculatedLines, grandTotals: finalGrandTotals, primeSummary });
+        };
+        
+        // --- Render Functions ---
+
+        const PrimeCell = ({ value, isPrimeFlag }) => (
+            <td className={`px-4 py-3 text-center tabular-nums ${isPrimeFlag ? 'text-emerald-500 font-bold' : 'text-gray-700'}`}>
+                {value}
+                {isPrimeFlag && <span className="ml-1 text-emerald-500" title="ראשוני">♢</span>}
+            </td>
+        );
+        
+        const TotalNumberDisplay = ({ value, isPrimeFlag }) => (
+             <p className={`text-3xl font-bold ${isPrimeFlag ? 'text-emerald-400' : ''}`}>
+                {value}
+                {isPrimeFlag && <span className="ml-2 text-xl">♢</span>}
+            </p>
+        );
+
+        return (
+            <div dir="rtl" className="bg-gray-50 min-h-screen font-sans text-gray-800 p-4 sm:p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto">
+                    <header className="mb-8">
+                        <h1 className="text-4xl font-bold text-gray-800 text-center mb-2">מחשבון קוד-אלף</h1>
+                        <p className="text-center text-lg text-gray-500">כלי לניתוח נומרולוגי של טקסט עברי על פי שיטת א=0 ונעילת Δ9</p>
+                    </header>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                        <label htmlFor="text-input" className="block text-lg font-semibold text-gray-700 mb-3">הזן טקסט לניתוח (כל שורה תחושב בנפרד):</label>
+                        <textarea id="text-input" className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 text-lg leading-7" rows="4" value={text} onChange={(e) => setText(e.target.value)} placeholder="בראשית ברא אלהים את השמים ואת הארץ..."></textarea>
+                        <div className="mt-4 flex justify-center">
+                            <button onClick={handleCalculate} className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">חשב</button>
+                        </div>
+                    </div>
+
+                    {results && results.lines.map((lineResult, lineIndex) => (
+                        <div key={lineIndex} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-1 text-center">תוצאות עבור שורה {lineIndex + 1}</h2>
+                            <p className="text-center text-gray-500 mb-6 italic">"{lineResult.lineText}"</p>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full bg-white border-separate" style={{borderSpacing: "0 0.5rem"}}>
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="px-4 py-3 text-right font-semibold text-gray-600 uppercase tracking-wider rounded-r-lg">מילה</th>
+                                            <th className="px-4 py-3 text-right font-semibold text-gray-600 uppercase tracking-wider">פירוט אותיות</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">Σ-יחידות</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">Σ-עשרות</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">Σ-מאות</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider rounded-l-lg">ש"ד</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lineResult.words.map((res, index) => (
+                                            <tr key={index} className="bg-white hover:bg-gray-50 transition-colors duration-200">
+                                                <td className="px-4 py-3 font-bold text-lg text-blue-800 whitespace-nowrap rounded-r-lg">{res.word}</td>
+                                                <td className="px-4 py-3 text-gray-500 text-sm">{res.letterDetails.map(l => `${l.char} ${l.value}`).join(' + ')}</td>
+                                                <PrimeCell value={res.units} isPrimeFlag={res.isPrimeU} />
+                                                <PrimeCell value={res.tens} isPrimeFlag={res.isPrimeT} />
+                                                <PrimeCell value={res.hundreds} isPrimeFlag={res.isPrimeH} />
+                                                <td className="px-4 py-3 text-center font-semibold text-purple-700 text-lg rounded-l-lg">{res.dr}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-200 font-bold">
+                                         <tr>
+                                             <td colSpan="2" className="px-4 py-4 text-right text-lg text-gray-700 rounded-r-lg">סה"כ שורה:</td>
+                                             <PrimeCell value={lineResult.totals.units} isPrimeFlag={lineResult.isPrimeTotals.U} />
+                                             <PrimeCell value={lineResult.totals.tens} isPrimeFlag={lineResult.isPrimeTotals.T} />
+                                             <PrimeCell value={lineResult.totals.hundreds} isPrimeFlag={lineResult.isPrimeTotals.H} />
+                                             <td className="px-4 py-4 text-center font-semibold text-purple-700 text-lg rounded-l-lg">{lineResult.totalsDR}</td>
+                                         </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    ))}
+
+                    {results && results.grandTotals && (
+                        <div className="bg-blue-900 text-white p-6 rounded-xl shadow-lg mt-10">
+                            <h2 className="text-3xl font-bold mb-4 text-center">סיכום כללי</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                                <div className="bg-blue-800 p-4 rounded-lg">
+                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-יחידות (סה"כ)</p>
+                                    <TotalNumberDisplay value={results.grandTotals.units} isPrimeFlag={results.grandTotals.isPrime.U} />
+                                </div>
+                                <div className="bg-blue-800 p-4 rounded-lg">
+                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p>
+                                    <TotalNumberDisplay value={results.grandTotals.tens} isPrimeFlag={results.grandTotals.isPrime.T} />
+                                </div>
+                                <div className="bg-blue-800 p-4 rounded-lg">
+                                    <p className="text-sm text-blue-300 uppercase font-semibold">Σ-מאות (סה"כ)</p>
+                                    <TotalNumberDisplay value={results.grandTotals.hundreds} isPrimeFlag={results.grandTotals.isPrime.H} />
+                                </div>
+                                <div className="bg-purple-800 p-4 rounded-lg">
+                                    <p className="text-sm text-purple-300 uppercase font-semibold">ש"ד (סה"כ)</p>
+                                    <p className="text-3xl font-bold">{results.grandTotals.dr}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {results && results.primeSummary && results.primeSummary.length > 0 && (
+                        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 mt-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">סיכום ראשוניים מסכומי השורות</h2>
+                            <p className="text-center text-gray-600 mb-4">
+                                בסך הכל נמצאו <span className="font-bold text-emerald-600">{results.primeSummary.length}</span> ערכים ראשוניים בסכומי השורות.
+                            </p>
+                            <div className="overflow-x-auto max-w-lg mx-auto">
+                                <table className="min-w-full bg-white">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שורה</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">ערך ראשוני</th>
+                                            <th className="px-4 py-3 text-center font-semibold text-gray-600 uppercase tracking-wider">שכבה</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {results.primeSummary.map((primeInfo, index) => (
+                                            <tr key={index} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-center text-gray-700">{primeInfo.line}</td>
+                                                <td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td>
+                                                <td className="px-4 py-3 text-center text-gray-700">{primeInfo.layer}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
