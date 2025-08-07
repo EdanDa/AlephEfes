@@ -543,9 +543,8 @@ const App = () => {
                                 return (
                                     <div key={dr} className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-gray-900/30 border-purple-200'}`}>
                                         <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center">ש"ד {dr} ({filteredWords.length} מילים)</h3>
-                                        <div 
-                                            className="flex flex-wrap justify-end gap-2"
-                                            onMouseLeave={() => setHoveredWord(null)}
+                                        <div
+                                            className="flex flex-wrap justify-start gap-2"
                                         >
                                             {filteredWords.map((wordData, index) => {
                                                 let backgroundColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
