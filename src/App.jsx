@@ -12,21 +12,67 @@ const HYPHEN_RE = /[־–—\-]/g;
 
 
 // --- Caching for expensive functions ---
-const primeCache = new Map();
+const primeSieve = new Map();
+let sieveBuilt = false;
+const SIEVE_LIMIT = 1000000;
 
-// --- Utility Functions ---
-const isPrime = (num) => {
-    if (primeCache.has(num)) return primeCache.get(num);
-    if (num <= 1) { primeCache.set(num, false); return false; }
-    if (num <= 3) { primeCache.set(num, true); return true; }
-    if (num % 2 === 0 || num % 3 === 0) { primeCache.set(num, false); return false; }
-    for (let i = 5; i * i <= num; i += 6) {
-      if (num % i === 0 || num % (i + 2) === 0) {
-        primeCache.set(num, false);
-        return false;
-      }
+function buildSieve() {
+    if (sieveBuilt) return;
+    const isPrimeArr = new Array(SIEVE_LIMIT + 1).fill(true);
+    isPrimeArr[0] = isPrimeArr[1] = false;
+    for (let p = 2; p * p <= SIEVE_LIMIT; p++) {
+        if (isPrimeArr[p]) {
+            for (let i = p * p; i <= SIEVE_LIMIT; i += p)
+                isPrimeArr[i] = false;
+        }
     }
-    primeCache.set(num, true);
+    for(let i=0; i<=SIEVE_LIMIT; i++) {
+        primeSieve.set(i, isPrimeArr[i]);
+    }
+    sieveBuilt = true;
+}
+
+// Miller-Rabin for larger numbers (deterministic for up to 2^64)
+function power(a, b, m) {
+    let res = BigInt(1);
+    a %= m;
+    while (b > 0) {
+        if (b % BigInt(2) === BigInt(1)) res = (res * a) % m;
+        a = (a * a) % m;
+        b /= BigInt(2);
+    }
+    return res;
+}
+
+function millerRabinTest(d, n) {
+    const a = BigInt(2) + BigInt(Math.floor(Math.random() * (Number(n) - 4)));
+    let x = power(a, d, n);
+    if (x === BigInt(1) || x === n - BigInt(1)) return true;
+
+    while (d !== n - BigInt(1)) {
+        x = (x * x) % n;
+        d *= BigInt(2);
+        if (x === BigInt(1)) return false;
+        if (x === n - BigInt(1)) return true;
+    }
+    return false;
+}
+
+const isPrime = (num) => {
+    if (!sieveBuilt) buildSieve();
+    if (num < SIEVE_LIMIT) return primeSieve.get(num) ?? false;
+    
+    if (num <= 1 || num === 4) return false;
+    if (num <= 3) return true;
+    if (num % 2 === 0) return false;
+
+    const nBig = BigInt(num);
+    let d = nBig - BigInt(1);
+    while (d % BigInt(2) === BigInt(0)) d /= BigInt(2);
+
+    for (let i = 0; i < 12; i++) { // 12 iterations are sufficient for 64-bit numbers
+        if (!millerRabinTest(d, nBig)) return false;
+    }
     return true;
 };
 
@@ -197,7 +243,7 @@ function computeResults(text, letterTable) {
           connectionValues.add(value);
       }
   }
-
+ 
   const drClusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
   for (const wd of allWordsMap.values()) {
     if (wd.dr > 0) drClusters[wd.dr].push(wd);
@@ -210,6 +256,11 @@ function computeResults(text, letterTable) {
       });
   }
 
+  const sortedHotValues = Array.from(valueToWordsMap.entries())
+    .filter(([, words]) => words.size > 1)
+    .sort(([, a], [, b]) => b.size - a.size)
+    .map(([value, words]) => ({ value, count: words.size }));
+
   const grandTotals = {
     units: grandU, tens: grandT, hundreds: grandH,
     dr: getDigitalRoot(grandU),
@@ -220,7 +271,7 @@ function computeResults(text, letterTable) {
     lines: calculatedLines, grandTotals, primeSummary, drClusters,
     allWords: Array.from(allWordsMap.values()),
     drDistribution, totalWordCount,
-    connectionValues,
+    connectionValues, valueToWordsMap, sortedHotValues
   };
 }
 
