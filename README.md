@@ -11,7 +11,7 @@ The aim is to provide an **open playground** for testing the model, exploring it
 > 
 ---
 
-![AlephEfes screenshot](docs/demo.png)
+![App screenshot](docs/demo.png)
 
 ---
 
