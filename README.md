@@ -80,18 +80,13 @@ The goal of this repository is not dogma but documentation: to provide transpare
 ---
 
 ## Running the calculator
+Requires Node.js 18+ and npm.
 
 ```bash
-# clone the repo from GitHub
+
 git clone https://github.com/EdanDa/AlephEfes.git
-
-# move into the project folder
 cd AlephEfes
-
-# install dependencies
 npm install
-
-# start development server
 npm run dev
 
 ```
