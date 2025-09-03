@@ -1166,7 +1166,7 @@ const App = () => {
         return [...drOrder].sort((a, b) => {
             const countA = counts[a] || 0;
             const countB = counts[b] || 0;
-            return drSortMode === 'asc' ? countA - countB : countB - countA;
+            return drSortMode === 'asc' ? countA - countB : countB - a;
         });
     }, [drOrder, drSortMode, stats]);
 
