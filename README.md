@@ -8,6 +8,11 @@ The aim is to provide an **open playground** for testing the model, exploring it
 > **Note**: The calculator interface is in **Hebrew**. Enter Hebrew consonantal text directly into the input field.
 > 
 > Each word is analysed separately, and line totals are also reported separately.
+> 
+---
+
+![AlephEfes screenshot](docs/demo.png)
+
 ---
 
 ## Features
