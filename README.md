@@ -119,8 +119,6 @@ Developed by **Edan-David Eyon**
 Independent researcher (Israel)  
 
 I have been pursuing independent study across philosophy, linguistics, history, and mathematics and more for over 14 years.  
-The AlephEfes repository is my attempt to document and share the tool i developed for this work:  
-a reproducible numeric–semantic framework for the Hebrew Bible, and language, based on zero-indexed valuation.
-
+The AlephEfes repository documents and shares a reproducible numeric–semantic framework for the Hebrew Bible, based on zero-indexed valuation.
 This repository is intended as an open, transparent resource for testing, replication, and dialogue.
 
