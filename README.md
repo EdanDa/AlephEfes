@@ -5,6 +5,39 @@
 This repository contains a React-based calculator and research notes around the **Aleph-Code** (קוד-אלף) hypothesis.  
 The project treats the biblical consonantal text as a deliberately engineered system where Hebrew letters are mapped to values **0–21** and processed through a **three-layer valuation** (Units, Tens with Δ9 adjustment, Hundreds).  
 The aim is to provide an **open playground** for testing the model, exploring its linguistic consequences, and reproducing all calculations.
+> **Note**: The calculator interface is in **Hebrew**. Enter Hebrew consonantal text directly into the input field.
+> 
+> Each word is analysed separately, and line totals are also reported separately.
+---
+
+## Features
+The calculator includes the following capabilities:
+- **Dual Calculation Modes**  
+  Switch between Aleph-Zero (א:0) and Aleph-One (א:1) mappings. Both modes apply the same 3-layer valuation but with different base indexing.
+
+- **Digital Root Clusters (ש״ד)**  
+  Words are grouped by digital root (1–9), with interactive drill-down, search, and re-ordering of clusters.
+
+- **Prime Highlights**  
+  Prime totals are detected per word and per line. You can customize the highlight color in the legend.
+
+- **Multiple Views**  
+  - *Lines*: see full breakdown with per-letter calculations, line totals, and prime markers.  
+  - *Clusters*: explore semantic networks grouped by digital root.  
+  - *Hot Words*: analyze frequency of values or words, with drill-down into specific value clusters.
+
+- **Data Export**  
+  One-click copy for:  
+  - Full analysis (line by line)  
+  - Summary of clusters or pinned words  
+  - Unique word calculations  
+  - Frequency tables
+
+- **Dark Mode**  
+  Auto-detects system preference, toggleable at runtime.
+
+- **Performance**  
+  Uses memoization and a virtualized list for handling large texts efficiently.
 
 ---
 
@@ -44,9 +77,19 @@ The goal of this repository is not dogma but documentation: to provide transpare
 ## Running the calculator
 
 ```bash
-npm install   # install dependencies (React, Vite)
-npm run dev   # start development server
-````
+# clone the repo from GitHub
+git clone https://github.com/EdanDa/AlephEfes.git
+
+# move into the project folder
+cd AlephEfes
+
+# install dependencies
+npm install
+
+# start development server
+npm run dev
+
+```
 
 The app runs on [http://localhost:5173](http://localhost:5173), styled with TailwindCSS (loaded via CDN).
 It stores the last analysed text in `localStorage` for convenience.
