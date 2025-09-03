@@ -1,8 +1,8 @@
 # AlephEfes
 
-🄰🄰 **Hebrew Isopsephy** – reproducible code and data for numeric–semantic analysis of the Hebrew Bible.
+🄰🄰 **Hebrew Lexiometry** – reproducible code and data for numeric–semantic analysis of the Hebrew Bible.
 
-This repository contains a React-based calculator and research notes around the **Aleph-Code** (קוד-אלף) hypothesis.  
+This repository contains a React-based calculator and research notes around the **א=0**  hypothesis.  
 The project treats the biblical consonantal text as a deliberately engineered system where Hebrew letters are mapped to values **0–21** and processed through a **three-layer valuation** (Units, Tens with Δ9 adjustment, Hundreds).  
 The aim is to provide an **open playground** for testing the model, exploring its linguistic consequences, and reproducing all calculations.
 > **Note**: The calculator interface is in **Hebrew**. Enter Hebrew consonantal text directly into the input field.
@@ -117,3 +117,15 @@ It stores the last analysed text in `localStorage` for convenience.
 ## License
 
 MIT
+
+## Author
+
+Developed by **Edan-David Eyon**  
+Independent researcher (Israel)  
+
+I have been pursuing independent study across philosophy, linguistics, history, and mathematics and more for over 14 years.  
+The AlephEfes project is my attempt to document and share the key findings of this work:  
+a reproducible numeric–semantic framework for the Hebrew Bible, and language, based on zero-indexed valuation.
+
+This repository is intended as an open, transparent resource for testing, replication, and dialogue.
+
