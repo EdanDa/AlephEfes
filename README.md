@@ -50,7 +50,7 @@ The calculator includes the following capabilities:
 
 The current working model rests on three intertwined pillars:
 
-1. **Zero-Indexed Valuation (ZIV)**  
+1. **Zero-Indexed Valuation**  
    Hebrew letters are assigned values from א=0 through ת=21. Final forms share their base letter’s value.  
    From this assignment arise three additive homomorphisms:  
    - **U** (Units): the raw index sum.  
@@ -59,16 +59,17 @@ The current working model rests on three intertwined pillars:
    All three collapse to the same **digital root mod-9**, creating a stable invariant.
 
 2. **Semantic alignment with calendrical constants**  
-   Key words and names consistently resolve to values with strong cultural salience:  
-   - יהוה → 22  
-   - שמש → 52  
-   - לבנה → 29  
-   - ירח → 116 (=4×29)  
-   - ישרון → 354  
-   - ירושלם → 364 (=52×7)  
-   - מלכות / שבתותי / תשמרו → 365 
+   Key word consistently resolve to values with strong cultural salience:  
+   - יהוה → 22 
+   - שמש → 52 
+   - לבנה → 29 
+    - ירח → 116 (29*4)
+   - חדש → 30 
+   - ישרון / זיתים → 354 
+   - ירושלם → 364 
+   - מלכות / סכות / תשמרו / שבתותי → 365 
 
-   These are not isolated coincidences but clusters tied to lunar, solar, and ritual cycles.
+   These are not isolated coincidences but clusters tied to lunar, solar, and ritual.
 
 3. **Cross-layer coherence**  
    Because U, T, and H are locked together by construction, alignments repeat across layers and create **semantic “nodes”** where related words converge (e.g. the “59-cluster” including ישראל, מלכות, עושר).  
