@@ -1,6 +1,4 @@
-# AlephEfes
-
-🄰🄰 **Hebrew Lexiometry** – reproducible code and data for numeric–semantic analysis of the Hebrew Bible.
+# AlephEfes - reproducible code and data for numeric–semantic analysis of the Hebrew Bible
 
 This repository contains a React-based calculator and research notes around the **א=0**  hypothesis.
 The project treats the biblical consonantal text as a deliberately engineered system where Hebrew letters are mapped to values **0–21** and processed through a **three-layer valuation** (Units, Tens with Δ9 adjustment, Hundreds).
