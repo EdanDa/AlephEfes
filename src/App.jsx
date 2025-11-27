@@ -636,23 +636,22 @@ const VirtualizedList = React.memo(({ items, itemHeight, listHeight, renderItem,
 
 // Main component for the Advanced Aleph-Code Calculator
 const App = () => {
-		const state = useContext(AppContext);
-		const dispatch = useContext(AppDispatchContext);
-		const {
-			text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
-			mode, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
-			hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
-			expandedRows, drOrder, isDrOrderLocked, draggedDr, primeColor, drSortMode
-		} = state;
+                const state = useContext(AppContext);
+                const dispatch = useContext(AppDispatchContext);
+                const {
+                        text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
+                        mode, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
+                        hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
+                        expandedRows, drOrder, isDrOrderLocked, draggedDr, primeColor, drSortMode,
+                        stats, connectionValues, valueToWordsMap, isPending
+                } = state;
 
-		const draggedItem = useRef(null);
-		const clusterRefs = useRef({});
-		const valueTableRef = useRef(null);
-		const valueTableButtonRef = useRef(null);
-		
-		const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
-		const deferredText = useDeferredValue(text);
-		const [isPending, startTransition] = useTransition();
+                const draggedItem = useRef(null);
+                const clusterRefs = useRef({});
+                const valueTableRef = useRef(null);
+                const valueTableButtonRef = useRef(null);
+
+                const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
 		// Effect to scroll to the selected DR cluster
 		useLayoutEffect(() => {
@@ -704,39 +703,6 @@ const App = () => {
 				}
 		}, [dispatch]);
 		
-		// Auto-calculate on text change with a dynamic debounce and React 18 transition
-		useEffect(() => {
-				if (!deferredText) { 
-					dispatch({ type: 'SET_CORE_RESULTS', payload: null });
-					return; 
-				}
-
-				const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-				const cancelIdle  = window.cancelIdleCallback  ?? clearTimeout;
-				
-				let timeoutId;
-				
-				const handler = () => {
-						timeoutId = requestIdle(() => {
-								startTransition(() => {
-										const results = computeCoreResults(deferredText, mode);
-										dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-								});
-						});
-				};
-
-				const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-				const initialTimeout = setTimeout(handler, delay);
-
-				return () => {
-						clearTimeout(initialTimeout);
-						if (timeoutId) {
-								cancelIdle(timeoutId);
-						}
-				};
-		}, [deferredText, mode, startTransition, dispatch]);
-
-
 		// Save text to localStorage and clear selections whenever it changes
 		useEffect(() => {
 				localStorage.setItem('alephCodeText', text);
@@ -749,41 +715,6 @@ const App = () => {
 
 		// clear letter details cache when mode changes
 		useEffect(() => { letterDetailsCache.clear(); }, [mode]);
-
-		const stats = useMemo(() => {
-				if (!coreResults) return null;
-				const primeLineCount = new Set(coreResults.primeSummary.map(p => p.line)).size;
-				return {
-						totalLines: coreResults.lines.length,
-						totalWords: coreResults.totalWordCount,
-						uniqueWords: coreResults.allWords.length,
-						primeLineTotals: primeLineCount,
-						drDistribution: coreResults.drDistribution,
-				};
-		}, [coreResults]);
-
-		// --- Lazy Derived Data ---
-		const valueToWordsMap = useMemo(() => {
-			if (!coreResults) return new Map();
-			const map = new Map();
-			coreResults.allWords.forEach(wd => {
-				const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
-				uniqueValues.forEach(v => {
-					if (!map.has(v)) map.set(v, []);
-					map.get(v).push(wd);
-				});
-			});
-			return map;
-		}, [coreResults]);
-
-		const connectionValues = useMemo(() => {
-			if (!valueToWordsMap) return new Set();
-			const s = new Set();
-			for (const [value, arr] of valueToWordsMap.entries()) {
-				if (new Set(arr.map(w => w.word)).size > 1) s.add(value);
-			}
-			return s;
-		}, [valueToWordsMap]);
 
 		const drClusters = useMemo(() => {
 			if (!coreResults || view !== 'clusters') return {};
@@ -1882,15 +1813,90 @@ const App = () => {
 };
 
 const AppProvider = ({ children }) => {
-	const [state, dispatch] = useReducer(appReducer, initialState);
+        const [state, dispatch] = useReducer(appReducer, initialState);
+        const [isPending, startTransition] = useTransition();
+        const deferredText = useDeferredValue(state.text);
 
-	return (
-		<AppContext.Provider value={state}>
-			<AppDispatchContext.Provider value={dispatch}>
-				{children}
-			</AppDispatchContext.Provider>
-		</AppContext.Provider>
-	);
+        useEffect(() => {
+                if (!deferredText) {
+                        dispatch({ type: 'SET_CORE_RESULTS', payload: null });
+                        return;
+                }
+
+                const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
+                const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
+
+                let timeoutId;
+
+                const handler = () => {
+                        timeoutId = requestIdle(() => {
+                                startTransition(() => {
+                                        const results = computeCoreResults(deferredText, state.mode);
+                                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+                                });
+                        });
+                };
+
+                const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
+                const initialTimeout = setTimeout(handler, delay);
+
+                return () => {
+                        clearTimeout(initialTimeout);
+                        if (timeoutId) {
+                                cancelIdle(timeoutId);
+                        }
+                };
+        }, [deferredText, state.mode, startTransition, dispatch]);
+
+        const stats = useMemo(() => {
+                if (!state.coreResults) return null;
+                const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
+                return {
+                        totalLines: state.coreResults.lines.length,
+                        totalWords: state.coreResults.totalWordCount,
+                        uniqueWords: state.coreResults.allWords.length,
+                        primeLineTotals: primeLineCount,
+                        drDistribution: state.coreResults.drDistribution,
+                };
+        }, [state.coreResults]);
+
+        const valueToWordsMap = useMemo(() => {
+                if (!state.coreResults) return new Map();
+                const map = new Map();
+                state.coreResults.allWords.forEach(wd => {
+                        const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
+                        uniqueValues.forEach(v => {
+                                if (!map.has(v)) map.set(v, []);
+                                map.get(v).push(wd);
+                        });
+                });
+                return map;
+        }, [state.coreResults]);
+
+        const connectionValues = useMemo(() => {
+                if (!valueToWordsMap) return new Set();
+                const s = new Set();
+                for (const [value, arr] of valueToWordsMap.entries()) {
+                        if (new Set(arr.map(w => w.word)).size > 1) s.add(value);
+                }
+                return s;
+        }, [valueToWordsMap]);
+
+        const contextValue = useMemo(() => ({
+                ...state,
+                stats,
+                valueToWordsMap,
+                connectionValues,
+                isPending,
+        }), [state, stats, valueToWordsMap, connectionValues, isPending]);
+
+        return (
+                <AppContext.Provider value={contextValue}>
+                        <AppDispatchContext.Provider value={dispatch}>
+                                {children}
+                        </AppDispatchContext.Provider>
+                </AppContext.Provider>
+        );
 };
 
 const WrappedApp = () => (
