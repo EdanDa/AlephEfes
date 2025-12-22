@@ -15,13 +15,15 @@ const LAYER_COLORS = {
 };
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red: { light: 'text-red-500', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-500', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-500', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
+    red:     { light: 'text-red-500',     dark: 'dark:text-red-400',     name: 'אדום',    bg: 'bg-red-500',     swatch: '#ef4444' },
+    yellow:  { light: 'text-yellow-400',  dark: 'dark:text-yellow-300',  name: 'צהוב',    bg: 'bg-yellow-400',  swatch: '#facc15' },
+    green:   { light: 'text-green-500',   dark: 'dark:text-green-400',   name: 'ירוק',    bg: 'bg-green-500',   swatch: '#22c55e' },
+    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500', swatch: '#10b981' },
+    blue:    { light: 'text-blue-500',    dark: 'dark:text-blue-400',    name: 'כחול',    bg: 'bg-blue-500',    swatch: '#3b82f6' },
+    sky:     { light: 'text-sky-500',     dark: 'dark:text-sky-400',     name: 'שמיים',  bg: 'bg-sky-500',     swatch: '#0ea5e9' },
+    pink:    { light: 'text-pink-500',    dark: 'dark:text-pink-400',    name: 'ורוד',    bg: 'bg-pink-500',    swatch: '#ec4899' },
+    purple:  { light: 'text-purple-500',  dark: 'dark:text-purple-400',  name: 'סגול',    bg: 'bg-purple-500',  swatch: '#a855f7' },
+    orange:  { light: 'text-orange-500',  dark: 'dark:text-orange-400',  name: 'כתום',    bg: 'bg-orange-500',  swatch: '#f97316' },
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -370,7 +372,7 @@ const ICONS = {
 const Icon = React.memo(({ name, className }) => <div className={className}>{ICONS[name]}</div>);
 
 const Legend = React.memo(() => {
-    const { primeColor, filters } = useContext(AppContext);
+    const { primeColor, filters, isDarkMode } = useContext(AppContext);
     const dispatch = useContext(AppDispatchContext);
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
@@ -401,19 +403,23 @@ const Legend = React.memo(() => {
     };
 
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeColorHex = primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch;
     
     const getFilterStyle = (key, baseClass = "") => {
         const isActive = filters[key];
-        const activeClass = "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 shadow-inner";
-        const inactiveClass = "opacity-60 grayscale hover:opacity-100 hover:grayscale-0";
+        const activeClass = "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 shadow-inner text-gray-900 dark:text-white";
+        const inactiveClass = "opacity-80 text-gray-700 dark:text-gray-200 hover:opacity-100";
         return `cursor-pointer transition-all duration-200 border-2 border-transparent rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
     };
 
     return (
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-            <div className="flex items-center gap-2 text-base text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 px-3 py-1.5 rounded-full">
+            <div
+                className="flex items-center gap-2 text-base text-gray-900 dark:text-gray-50 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-full shadow-md"
+                style={{ backgroundColor: isDarkMode ? 'rgba(31,41,55,0.9)' : 'rgba(255,255,255,0.98)' }}
+            >
                  <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
-                    <span className={`text-lg font-bold ${primeColorClasses.light} ${primeColorClasses.dark}`}>♢</span>
+                    <span className="text-lg font-bold" style={{ color: primeColorHex }}>♢</span>
                     <span>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
@@ -440,11 +446,26 @@ const Legend = React.memo(() => {
                             const radius = 36; const angleStep = (2 * Math.PI) / circularColors.length;
                             return (
                                 <>
-                                    <button key={centralColorKey} onClick={() => handleColorSelection(centralColorKey)} className={`absolute w-8 h-8 rounded-full ${centralColor.bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} aria-label={`Select ${centralColorKey} color`}/>
+                                    <button
+                                        key={centralColorKey}
+                                        onClick={() => handleColorSelection(centralColorKey)}
+                                        className="absolute w-8 h-8 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700"
+                                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: centralColor.swatch }}
+                                        aria-label={`Select ${centralColorKey} color`}
+                                    />
                                     {circularColors.map(([key, { bg }], index) => {
                                         const angle = angleStep * index - (Math.PI / 2);
                                         const x = radius * Math.cos(angle); const y = radius * Math.sin(angle);
-                                        return <button key={key} onClick={() => handleColorSelection(key)} className={`absolute w-7 h-7 rounded-full ${bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' }} aria-label={`Select ${key} color`}/>;
+                                        const color = COLOR_PALETTE[key];
+                                        return (
+                                            <button
+                                                key={key}
+                                                onClick={() => handleColorSelection(key)}
+                                                className="absolute w-7 h-7 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700"
+                                                style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)', backgroundColor: color.swatch }}
+                                                aria-label={`Select ${key} color`}
+                                            />
+                                        );
                                     })}
                                 </>
                             );
@@ -503,31 +524,34 @@ const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable
     // If column should not be shown, logic handled by parent (table structure)
     // But for safety/reuse:
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
-    
+
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeStyle = isPrimeFlag ? { color: primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch } : undefined;
     const className = `px-4 py-3 text-center tabular-nums ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-700 dark:text-gray-300'}`;
-    
-    if (!isApplicable) return <td className={className}>-</td>;
+
+    if (!isApplicable) return <td className={className} style={primeStyle}>-</td>;
     // If not visible due to filters, we render nothing or empty cell if parent insists on rendering
     if (!isVisible) return <td className={className}></td>; 
-    
-    if (value === previousValue) return <td className={className}>〃</td>;
-    return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
+
+    if (value === previousValue) return <td className={className} style={primeStyle}>〃</td>;
+    return <td className={className} style={primeStyle}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
 });
 
 const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeStyle = isPrimeFlag ? { color: primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch } : undefined;
     
     if (!isVisible) {
          return <p className="text-3xl font-bold text-gray-300 dark:text-gray-600">-</p>;
     }
-    return <p className={`text-3xl font-bold ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
+    return <p className={`text-3xl font-bold ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`} style={primeStyle}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
 });
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
     const { filters } = useContext(AppContext);
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeColorHex = primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch;
     const values = getWordValues(wordData);
     const baseBorder = isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(31,41,55,0.60)';
     
@@ -555,7 +579,7 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
 
                 return (
                     <div key={i} className="flex flex-col items-center">
-                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{v.value}{v.isPrime && '♢'}</span>
+                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''} style={v.isPrime ? { color: primeColorHex } : undefined}>{v.value}{v.isPrime && '♢'}</span>
                         <div className="mt-0.5 flex items-center justify-center h-3 w-3.5">{symbol}</div>
                     </div>
                 );
@@ -627,7 +651,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-extrabold text-gray-900 dark:text-white">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">ניתוח סטטיסטי</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -1140,9 +1164,9 @@ const App = () => {
 
                     <div className="flex justify-center my-8">
                         <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700">
-                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
+                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
+                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
+                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'hot-words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
                         </div>
                     </div>
 
@@ -1150,7 +1174,7 @@ const App = () => {
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים (ש"ד)</h3>
+                                <h3 className="text-2xl font-bold text-center flex-grow text-gray-900 dark:text-white">התפלגות שורשים דיגיטליים (ש"ד)</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
                             <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
@@ -1201,29 +1225,37 @@ const App = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {coreResults.primeSummary.length > 0 && (
+                                    {coreResults && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-extrabold text-gray-900 dark:text-white">
                                                 <span className="text-center flex-grow">סיכום ראשוניים מסכומי השורות</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
-                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>בסך הכל נמצאו <span className="font-bold text-emerald-600">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.</p>
-                                                    <div className="overflow-x-auto max-w-lg mx-auto">
-                                                        <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-gray-100 to-emerald-100'}>
-                                                            <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
-                                                        </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                                            {coreResults.primeSummary.map((primeInfo, index) => {
-                                                                // Filter prime summary based on active layers
-                                                                const layers = primeInfo.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
-                                                                if (!layers.some(l => filters[l])) return null;
+                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                        {coreResults.primeSummary.length > 0
+                                                            ? (<>
+                                                                בסך הכל נמצאו <span className="font-bold text-emerald-600 dark:text-emerald-300">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.
+                                                              </>)
+                                                            : 'לא נמצאו ערכים ראשוניים מסכומי השורות.'}
+                                                    </p>
+                                                    {coreResults.primeSummary.length > 0 && (
+                                                        <div className="overflow-x-auto max-w-lg mx-auto">
+                                                            <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-gray-100 to-emerald-100'}>
+                                                                <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
+                                                            </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                                                                {coreResults.primeSummary.map((primeInfo, index) => {
+                                                                    // Filter prime summary based on active layers
+                                                                    const layers = primeInfo.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
+                                                                    if (!layers.some(l => filters[l])) return null;
 
-                                                                return (
-                                                                <tr key={index} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-emerald-50'}`}><td className="px-4 py-3 text-center">{primeInfo.line}</td><td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td><td className="px-4 py-3 text-center">{primeInfo.layers.join(', ')}</td></tr>
-                                                            )})}
-                                                        </tbody></table>
-                                                    </div>
+                                                                    return (
+                                                                    <tr key={index} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-emerald-50'}`}><td className="px-4 py-3 text-center">{primeInfo.line}</td><td className="px-4 py-3 text-center font-bold text-emerald-600 dark:text-emerald-300 tabular-nums">{primeInfo.value}</td><td className="px-4 py-3 text-center">{primeInfo.layers.join(', ')}</td></tr>
+                                                                )})}
+                                                            </tbody></table>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
