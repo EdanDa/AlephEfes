@@ -292,11 +292,11 @@ const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
 
 const initialState = {
-	text: "",
-	coreResults: null,
-	selectedDR: null,
-	isDarkMode: false,
-	searchTerm: '',
+        text: "",
+        coreResults: null,
+        selectedDR: null,
+        isDarkMode: false,
+        searchTerm: '',
 	isValueTableOpen: false,
 	isValueTablePinned: false,
 	mode: 'aleph-zero',
@@ -315,6 +315,26 @@ const initialState = {
 	expandedRows: {},
 	primeColor: 'yellow',
     filters: { U: true, T: true, H: true, Prime: false }
+};
+
+const resolveInitialDarkMode = () => {
+    if (typeof window === 'undefined') return initialState.isDarkMode;
+    const stored = localStorage.getItem('alephTheme');
+    if (stored === 'dark') return true;
+    if (stored === 'light') return false;
+    return false;
+};
+
+const syncThemeClasses = (applyDark) => {
+    const theme = applyDark ? 'dark' : 'light';
+    const apply = (el) => {
+        if (!el) return;
+        el.classList.remove('dark');
+        if (applyDark) el.classList.add('dark');
+        el.dataset.theme = theme;
+    };
+    apply(document.documentElement);
+    apply(document.body);
 };
 
 function appReducer(state, action) {
@@ -646,7 +666,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-950 dark:text-gray-100">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">ניתוח סטטיסטי</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -818,11 +838,19 @@ const App = () => {
     useEffect(() => {
         const savedText = localStorage.getItem('alephCodeText');
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dispatch({ type: 'SET_DARK_MODE', payload: true });
     }, [dispatch]);
-    
+
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
-    useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        const applyDark = Boolean(isDarkMode);
+        const theme = applyDark ? 'dark' : 'light';
+        syncThemeClasses(applyDark);
+        try {
+            localStorage.setItem('alephTheme', theme);
+        } catch (e) {
+            // Ignore storage issues
+        }
+    }, [isDarkMode]);
 
     const drClusters = useMemo(() => {
         if (!coreResults || view !== 'clusters') return {};
@@ -1095,12 +1123,20 @@ const App = () => {
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
+        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-950'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
-                        <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
+                        <h1
+                            className={`text-5xl font-bold bg-clip-text text-transparent mb-2 ${
+                                isDarkMode
+                                    ? 'bg-gradient-to-l from-blue-400 to-purple-400'
+                                    : 'bg-gradient-to-l from-blue-600 to-purple-600'
+                            }`}
+                        >
+                            {mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}
+                        </h1>
                         <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -1461,7 +1497,11 @@ const App = () => {
 };
 
 const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
+    const [state, dispatch] = useReducer(
+        appReducer,
+        initialState,
+        (baseState) => ({ ...baseState, isDarkMode: resolveInitialDarkMode() })
+    );
     const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
     const versionRef = useRef(0);
