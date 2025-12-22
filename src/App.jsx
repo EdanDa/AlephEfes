@@ -15,13 +15,13 @@ const LAYER_COLORS = {
 };
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red: { light: 'text-red-500', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-500', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-500', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
+    red:    { light: 'text-red-500',    dark: 'dark:text-red-400',    name: 'אדום',   bg: 'bg-red-500',    swatch: '#ef4444' },
+    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב',   bg: 'bg-yellow-400', swatch: '#facc15' },
+    green:  { light: 'text-green-500',  dark: 'dark:text-green-400',  name: 'ירוק',   bg: 'bg-green-500',  swatch: '#22c55e' },
+    blue:   { light: 'text-blue-500',   dark: 'dark:text-blue-400',   name: 'כחול',   bg: 'bg-blue-500',   swatch: '#3b82f6' },
+    pink:   { light: 'text-pink-500',   dark: 'dark:text-pink-400',   name: 'ורוד',   bg: 'bg-pink-500',   swatch: '#ec4899' },
+    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול',   bg: 'bg-purple-500', swatch: '#a855f7' },
+    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום',   bg: 'bg-orange-500', swatch: '#f97316' },
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -404,14 +404,14 @@ const Legend = React.memo(() => {
     
     const getFilterStyle = (key, baseClass = "") => {
         const isActive = filters[key];
-        const activeClass = "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 shadow-inner";
-        const inactiveClass = "opacity-60 grayscale hover:opacity-100 hover:grayscale-0";
+        const activeClass = "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 shadow-inner text-gray-900 dark:text-white";
+        const inactiveClass = "opacity-80 text-gray-700 dark:text-gray-200 hover:opacity-100";
         return `cursor-pointer transition-all duration-200 border-2 border-transparent rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
     };
 
     return (
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-            <div className="flex items-center gap-2 text-base text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 px-3 py-1.5 rounded-full">
+            <div className="flex items-center gap-2 text-base text-gray-900 dark:text-gray-50 bg-white/90 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-full shadow-md backdrop-blur">
                  <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
                     <span className={`text-lg font-bold ${primeColorClasses.light} ${primeColorClasses.dark}`}>♢</span>
                     <span>ראשוני</span>
@@ -440,11 +440,26 @@ const Legend = React.memo(() => {
                             const radius = 36; const angleStep = (2 * Math.PI) / circularColors.length;
                             return (
                                 <>
-                                    <button key={centralColorKey} onClick={() => handleColorSelection(centralColorKey)} className={`absolute w-8 h-8 rounded-full ${centralColor.bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} aria-label={`Select ${centralColorKey} color`}/>
+                                    <button
+                                        key={centralColorKey}
+                                        onClick={() => handleColorSelection(centralColorKey)}
+                                        className={`absolute w-8 h-8 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`}
+                                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: centralColor.swatch }}
+                                        aria-label={`Select ${centralColorKey} color`}
+                                    />
                                     {circularColors.map(([key, { bg }], index) => {
                                         const angle = angleStep * index - (Math.PI / 2);
                                         const x = radius * Math.cos(angle); const y = radius * Math.sin(angle);
-                                        return <button key={key} onClick={() => handleColorSelection(key)} className={`absolute w-7 h-7 rounded-full ${bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' }} aria-label={`Select ${key} color`}/>;
+                                        const color = COLOR_PALETTE[key];
+                                        return (
+                                            <button
+                                                key={key}
+                                                onClick={() => handleColorSelection(key)}
+                                                className="absolute w-7 h-7 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800"
+                                                style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)', backgroundColor: color.swatch }}
+                                                aria-label={`Select ${key} color`}
+                                            />
+                                        );
                                     })}
                                 </>
                             );
@@ -627,7 +642,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-gray-100">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">ניתוח סטטיסטי</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -1140,9 +1155,9 @@ const App = () => {
 
                     <div className="flex justify-center my-8">
                         <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700">
-                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
+                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
+                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
+                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200 ${view === 'hot-words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
                         </div>
                     </div>
 
@@ -1201,29 +1216,37 @@ const App = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {coreResults.primeSummary.length > 0 && (
+                                    {coreResults && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-gray-100">
                                                 <span className="text-center flex-grow">סיכום ראשוניים מסכומי השורות</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
-                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>בסך הכל נמצאו <span className="font-bold text-emerald-600">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.</p>
-                                                    <div className="overflow-x-auto max-w-lg mx-auto">
-                                                        <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-gray-100 to-emerald-100'}>
-                                                            <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
-                                                        </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                                            {coreResults.primeSummary.map((primeInfo, index) => {
-                                                                // Filter prime summary based on active layers
-                                                                const layers = primeInfo.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
-                                                                if (!layers.some(l => filters[l])) return null;
+                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                        {coreResults.primeSummary.length > 0
+                                                            ? (<>
+                                                                בסך הכל נמצאו <span className="font-bold text-emerald-600">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.
+                                                              </>)
+                                                            : 'לא נמצאו ערכים ראשוניים מסכומי השורות.'}
+                                                    </p>
+                                                    {coreResults.primeSummary.length > 0 && (
+                                                        <div className="overflow-x-auto max-w-lg mx-auto">
+                                                            <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-gray-100 to-emerald-100'}>
+                                                                <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
+                                                            </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                                                                {coreResults.primeSummary.map((primeInfo, index) => {
+                                                                    // Filter prime summary based on active layers
+                                                                    const layers = primeInfo.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
+                                                                    if (!layers.some(l => filters[l])) return null;
 
-                                                                return (
-                                                                <tr key={index} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-emerald-50'}`}><td className="px-4 py-3 text-center">{primeInfo.line}</td><td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td><td className="px-4 py-3 text-center">{primeInfo.layers.join(', ')}</td></tr>
-                                                            )})}
-                                                        </tbody></table>
-                                                    </div>
+                                                                    return (
+                                                                    <tr key={index} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-emerald-50'}`}><td className="px-4 py-3 text-center">{primeInfo.line}</td><td className="px-4 py-3 text-center font-bold text-emerald-600 tabular-nums">{primeInfo.value}</td><td className="px-4 py-3 text-center">{primeInfo.layers.join(', ')}</td></tr>
+                                                                )})}
+                                                            </tbody></table>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
