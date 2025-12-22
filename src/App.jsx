@@ -322,19 +322,7 @@ const resolveInitialDarkMode = () => {
     const stored = localStorage.getItem('alephTheme');
     if (stored === 'dark') return true;
     if (stored === 'light') return false;
-    return false;
-};
-
-const syncThemeClasses = (applyDark) => {
-    const theme = applyDark ? 'dark' : 'light';
-    const apply = (el) => {
-        if (!el) return;
-        el.classList.remove('dark');
-        if (applyDark) el.classList.add('dark');
-        el.dataset.theme = theme;
-    };
-    apply(document.documentElement);
-    apply(document.body);
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 function appReducer(state, action) {
@@ -843,13 +831,9 @@ const App = () => {
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
     useEffect(() => {
         const applyDark = Boolean(isDarkMode);
-        const theme = applyDark ? 'dark' : 'light';
-        syncThemeClasses(applyDark);
-        try {
-            localStorage.setItem('alephTheme', theme);
-        } catch (e) {
-            // Ignore storage issues
-        }
+        document.documentElement.classList.toggle('dark', applyDark);
+        document.body.classList.toggle('dark', applyDark);
+        localStorage.setItem('alephTheme', applyDark ? 'dark' : 'light');
     }, [isDarkMode]);
 
     const drClusters = useMemo(() => {
@@ -1123,7 +1107,7 @@ const App = () => {
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-950'}`}>
+        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">

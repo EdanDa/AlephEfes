@@ -6,39 +6,11 @@
   <title>Aleph Code Calculator</title>
   <script>
     (() => {
-      const safeGetTheme = () => {
-        try {
-          return localStorage.getItem('alephTheme');
-        } catch (e) {
-          return null;
-        }
-      };
-
-      const applyTheme = (theme) => {
-        const isDark = theme === 'dark';
-        const root = document.documentElement;
-        const body = document.body;
-
-        if (root) {
-          root.classList.remove('dark');
-          if (isDark) root.classList.add('dark');
-          root.dataset.theme = isDark ? 'dark' : 'light';
-        }
-
-        if (body) {
-          body.classList.remove('dark');
-          if (isDark) body.classList.add('dark');
-          body.dataset.theme = isDark ? 'dark' : 'light';
-        }
-      };
-
-      const stored = safeGetTheme();
-      const theme = stored === 'dark' ? 'dark' : 'light';
-      applyTheme(theme);
-
-      if (!document.body) {
-        window.addEventListener('DOMContentLoaded', () => applyTheme(theme), { once: true });
-      }
+      const stored = localStorage.getItem('alephTheme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = stored ? stored === 'dark' : prefersDark;
+      document.documentElement.classList.toggle('dark', isDark);
+      document.body.classList.toggle('dark', isDark);
     })();
   </script>
   <script>
