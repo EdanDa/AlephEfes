@@ -9,19 +9,19 @@ const BASE_LETTER_VALUES = {
 const HEB_FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
 const HYPHEN_RE = /[־–—\-]/g;
 const LAYER_COLORS = {
-	U: { light: 'hsl(210, 80%, 95%)', dark: 'hsl(210, 30%, 25%)', dot: 'hsl(210, 85%, 55%)' }, // blue
-	T: { light: 'hsl(140, 70%, 94%)', dark: 'hsl(140, 30%, 22%)', dot: 'hsl(140, 65%, 45%)' }, // green
-	H: { light: 'hsl(280, 75%, 95%)', dark: 'hsl(280, 25%, 28%)', dot: 'hsl(280, 70%, 60%)' }, // violet
+	U: { light: 'hsl(210, 80%, 95%)', dark: 'hsl(210, 30%, 25%)', dot: 'hsl(210, 85%, 55%)' },
+	T: { light: 'hsl(140, 70%, 94%)', dark: 'hsl(140, 30%, 22%)', dot: 'hsl(140, 65%, 45%)' },
+	H: { light: 'hsl(280, 75%, 95%)', dark: 'hsl(280, 25%, 28%)', dot: 'hsl(280, 70%, 60%)' },
 };
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red: { light: 'text-red-500', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    green: { light: 'text-green-500', dark: 'dark:text-green-400', name: 'ירוק', bg: 'bg-green-500' },
-    blue: { light: 'text-blue-500', dark: 'dark:text-blue-400', name: 'כחול', bg: 'bg-blue-500' },
-    pink: { light: 'text-pink-500', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
+	red:    { light: 'text-red-500',    dark: 'dark:text-red-400',    name: 'אדום',  bg: 'bg-red-500',    swatch: '#ef4444' },
+ 	yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב',  bg: 'bg-yellow-400', swatch: '#facc15' },
+	green:  { light: 'text-green-500',  dark: 'dark:text-green-400',  name: 'ירוק',  bg: 'bg-green-500',  swatch: '#22c55e' },
+	blue:   { light: 'text-blue-500',   dark: 'dark:text-blue-400',   name: 'כחול',  bg: 'bg-blue-500',   swatch: '#3b82f6' },
+	pink:   { light: 'text-pink-500',   dark: 'dark:text-pink-400',   name: 'ורוד',  bg: 'bg-pink-500',   swatch: '#ec4899' },
+	purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול',  bg: 'bg-purple-500', swatch: '#a855f7' },
+	orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום',  bg: 'bg-orange-500', swatch: '#f97316' },
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
