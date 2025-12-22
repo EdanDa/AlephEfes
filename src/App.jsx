@@ -292,11 +292,11 @@ const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
 
 const initialState = {
-	text: "",
-	coreResults: null,
-	selectedDR: null,
-	isDarkMode: false,
-	searchTerm: '',
+        text: "",
+        coreResults: null,
+        selectedDR: null,
+        isDarkMode: false,
+        searchTerm: '',
 	isValueTableOpen: false,
 	isValueTablePinned: false,
 	mode: 'aleph-zero',
@@ -315,6 +315,14 @@ const initialState = {
 	expandedRows: {},
 	primeColor: 'yellow',
     filters: { U: true, T: true, H: true, Prime: false }
+};
+
+const resolveInitialDarkMode = () => {
+    if (typeof window === 'undefined') return initialState.isDarkMode;
+    const stored = localStorage.getItem('alephTheme');
+    if (stored === 'dark') return true;
+    if (stored === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 function appReducer(state, action) {
@@ -818,11 +826,15 @@ const App = () => {
     useEffect(() => {
         const savedText = localStorage.getItem('alephCodeText');
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dispatch({ type: 'SET_DARK_MODE', payload: true });
     }, [dispatch]);
-    
+
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
-    useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        const applyDark = Boolean(isDarkMode);
+        document.documentElement.classList.toggle('dark', applyDark);
+        document.body.classList.toggle('dark', applyDark);
+        localStorage.setItem('alephTheme', applyDark ? 'dark' : 'light');
+    }, [isDarkMode]);
 
     const drClusters = useMemo(() => {
         if (!coreResults || view !== 'clusters') return {};
@@ -1100,7 +1112,15 @@ const App = () => {
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
-                        <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
+                        <h1
+                            className={`text-5xl font-bold bg-clip-text text-transparent mb-2 ${
+                                isDarkMode
+                                    ? 'bg-gradient-to-l from-blue-400 to-purple-400'
+                                    : 'bg-gradient-to-l from-blue-600 to-purple-600'
+                            }`}
+                        >
+                            {mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}
+                        </h1>
                         <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -1461,7 +1481,11 @@ const App = () => {
 };
 
 const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
+    const [state, dispatch] = useReducer(
+        appReducer,
+        initialState,
+        (baseState) => ({ ...baseState, isDarkMode: resolveInitialDarkMode() })
+    );
     const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
     const versionRef = useRef(0);
