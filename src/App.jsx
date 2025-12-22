@@ -292,11 +292,11 @@ const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
 
 const initialState = {
-	text: "",
-	coreResults: null,
-	selectedDR: null,
-	isDarkMode: false,
-	searchTerm: '',
+        text: "",
+        coreResults: null,
+        selectedDR: null,
+        isDarkMode: false,
+        searchTerm: '',
 	isValueTableOpen: false,
 	isValueTablePinned: false,
 	mode: 'aleph-zero',
@@ -315,6 +315,14 @@ const initialState = {
 	expandedRows: {},
 	primeColor: 'yellow',
     filters: { U: true, T: true, H: true, Prime: false }
+};
+
+const resolveInitialDarkMode = () => {
+    if (typeof window === 'undefined') return initialState.isDarkMode;
+    const stored = localStorage.getItem('alephTheme');
+    if (stored === 'dark') return true;
+    if (stored === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 function appReducer(state, action) {
@@ -818,15 +826,6 @@ const App = () => {
     useEffect(() => {
         const savedText = localStorage.getItem('alephCodeText');
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-
-        const storedTheme = localStorage.getItem('alephTheme');
-        if (storedTheme === 'dark') {
-            dispatch({ type: 'SET_DARK_MODE', payload: true });
-        } else if (storedTheme === 'light') {
-            dispatch({ type: 'SET_DARK_MODE', payload: false });
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            dispatch({ type: 'SET_DARK_MODE', payload: true });
-        }
     }, [dispatch]);
 
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
@@ -1482,7 +1481,11 @@ const App = () => {
 };
 
 const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
+    const [state, dispatch] = useReducer(
+        appReducer,
+        initialState,
+        (baseState) => ({ ...baseState, isDarkMode: resolveInitialDarkMode() })
+    );
     const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
     const versionRef = useRef(0);
