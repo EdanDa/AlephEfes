@@ -15,13 +15,15 @@ const LAYER_COLORS = {
 };
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red:    { light: 'text-red-500',    dark: 'dark:text-red-400',    name: 'אדום',   bg: 'bg-red-500',    swatch: '#ef4444' },
-    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב',   bg: 'bg-yellow-400', swatch: '#facc15' },
-    green:  { light: 'text-green-500',  dark: 'dark:text-green-400',  name: 'ירוק',   bg: 'bg-green-500',  swatch: '#22c55e' },
-    blue:   { light: 'text-blue-500',   dark: 'dark:text-blue-400',   name: 'כחול',   bg: 'bg-blue-500',   swatch: '#3b82f6' },
-    pink:   { light: 'text-pink-500',   dark: 'dark:text-pink-400',   name: 'ורוד',   bg: 'bg-pink-500',   swatch: '#ec4899' },
-    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול',   bg: 'bg-purple-500', swatch: '#a855f7' },
-    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום',   bg: 'bg-orange-500', swatch: '#f97316' },
+    red:     { light: 'text-red-500',     dark: 'dark:text-red-400',     name: 'אדום',    bg: 'bg-red-500',     swatch: '#ef4444' },
+    yellow:  { light: 'text-yellow-400',  dark: 'dark:text-yellow-300',  name: 'צהוב',    bg: 'bg-yellow-400',  swatch: '#facc15' },
+    green:   { light: 'text-green-500',   dark: 'dark:text-green-400',   name: 'ירוק',    bg: 'bg-green-500',   swatch: '#22c55e' },
+    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500', swatch: '#10b981' },
+    blue:    { light: 'text-blue-500',    dark: 'dark:text-blue-400',    name: 'כחול',    bg: 'bg-blue-500',    swatch: '#3b82f6' },
+    sky:     { light: 'text-sky-500',     dark: 'dark:text-sky-400',     name: 'שמיים',  bg: 'bg-sky-500',     swatch: '#0ea5e9' },
+    pink:    { light: 'text-pink-500',    dark: 'dark:text-pink-400',    name: 'ורוד',    bg: 'bg-pink-500',    swatch: '#ec4899' },
+    purple:  { light: 'text-purple-500',  dark: 'dark:text-purple-400',  name: 'סגול',    bg: 'bg-purple-500',  swatch: '#a855f7' },
+    orange:  { light: 'text-orange-500',  dark: 'dark:text-orange-400',  name: 'כתום',    bg: 'bg-orange-500',  swatch: '#f97316' },
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -443,7 +445,7 @@ const Legend = React.memo(() => {
                                     <button
                                         key={centralColorKey}
                                         onClick={() => handleColorSelection(centralColorKey)}
-                                        className={`absolute w-8 h-8 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`}
+                                        className={`absolute w-8 h-8 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700`}
                                         style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: centralColor.swatch }}
                                         aria-label={`Select ${centralColorKey} color`}
                                     />
@@ -455,7 +457,7 @@ const Legend = React.memo(() => {
                                             <button
                                                 key={key}
                                                 onClick={() => handleColorSelection(key)}
-                                                className="absolute w-7 h-7 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800"
+                                                className="absolute w-7 h-7 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700"
                                                 style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)', backgroundColor: color.swatch }}
                                                 aria-label={`Select ${key} color`}
                                             />
