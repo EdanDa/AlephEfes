@@ -440,11 +440,26 @@ const Legend = React.memo(() => {
                             const radius = 36; const angleStep = (2 * Math.PI) / circularColors.length;
                             return (
                                 <>
-                                    <button key={centralColorKey} onClick={() => handleColorSelection(centralColorKey)} className={`absolute w-8 h-8 rounded-full ${centralColor.bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} aria-label={`Select ${centralColorKey} color`}/>
+                                    <button
+                                        key={centralColorKey}
+                                        onClick={() => handleColorSelection(centralColorKey)}
+                                        className={`absolute w-8 h-8 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700`}
+                                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: centralColor.swatch }}
+                                        aria-label={`Select ${centralColorKey} color`}
+                                    />
                                     {circularColors.map(([key, { bg }], index) => {
                                         const angle = angleStep * index - (Math.PI / 2);
                                         const x = radius * Math.cos(angle); const y = radius * Math.sin(angle);
-                                        return <button key={key} onClick={() => handleColorSelection(key)} className={`absolute w-7 h-7 rounded-full ${bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' }} aria-label={`Select ${key} color`}/>;
+                                        const color = COLOR_PALETTE[key];
+                                        return (
+                                            <button
+                                                key={key}
+                                                onClick={() => handleColorSelection(key)}
+                                                className="absolute w-7 h-7 rounded-full transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800 border border-gray-200 dark:border-gray-700"
+                                                style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)', backgroundColor: color.swatch }}
+                                                aria-label={`Select ${key} color`}
+                                            />
+                                        );
                                     })}
                                 </>
                             );
@@ -627,7 +642,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-gray-100">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">ניתוח סטטיסטי</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -1203,7 +1218,7 @@ const App = () => {
                                     )}
                                     {coreResults && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
-                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200">
+                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-gray-100">
                                                 <span className="text-center flex-grow">סיכום ראשוניים מסכומי השורות</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
