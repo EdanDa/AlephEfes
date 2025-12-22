@@ -4,11 +4,45 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aleph Code Calculator</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script>
+    (() => {
+      let stored = null;
+      try {
+        stored = localStorage.getItem('alephTheme');
+      } catch (e) {
+        // Ignore storage failures
+      }
+
+      const isDark = stored === 'dark';
+      const applyTheme = () => {
+        const theme = isDark ? 'dark' : 'light';
+
+        const root = document.documentElement;
+        if (root) {
+          root.classList[isDark ? 'add' : 'remove']('dark');
+          root.dataset.theme = theme;
+        }
+
+        const body = document.body;
+        if (body) {
+          body.classList[isDark ? 'add' : 'remove']('dark');
+          body.dataset.theme = theme;
+        }
+      };
+
+      applyTheme();
+      if (!document.body) {
+        window.addEventListener('DOMContentLoaded', () => applyTheme(), { once: true });
+      }
+    })();
+  </script>
+  <script>
+    tailwind = { config: { darkMode: 'class' } };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
-
