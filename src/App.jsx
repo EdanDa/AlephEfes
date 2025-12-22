@@ -370,7 +370,7 @@ const ICONS = {
 const Icon = React.memo(({ name, className }) => <div className={className}>{ICONS[name]}</div>);
 
 const Legend = React.memo(() => {
-    const { primeColor, filters } = useContext(AppContext);
+    const { primeColor, filters, isDarkMode } = useContext(AppContext);
     const dispatch = useContext(AppDispatchContext);
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
@@ -401,6 +401,7 @@ const Legend = React.memo(() => {
     };
 
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeColorHex = primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch;
     
     const getFilterStyle = (key, baseClass = "") => {
         const isActive = filters[key];
@@ -413,7 +414,7 @@ const Legend = React.memo(() => {
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <div className="flex items-center gap-2 text-base text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-full shadow-sm">
                  <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
-                    <span className={`text-lg font-bold ${primeColorClasses.light} ${primeColorClasses.dark}`}>♢</span>
+                    <span className="text-lg font-bold" style={{ color: primeColorHex }}>♢</span>
                     <span>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
@@ -518,31 +519,34 @@ const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable
     // If column should not be shown, logic handled by parent (table structure)
     // But for safety/reuse:
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
-    
+
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeStyle = isPrimeFlag ? { color: primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch } : undefined;
     const className = `px-4 py-3 text-center tabular-nums ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-700 dark:text-gray-300'}`;
-    
-    if (!isApplicable) return <td className={className}>-</td>;
+
+    if (!isApplicable) return <td className={className} style={primeStyle}>-</td>;
     // If not visible due to filters, we render nothing or empty cell if parent insists on rendering
     if (!isVisible) return <td className={className}></td>; 
-    
-    if (value === previousValue) return <td className={className}>〃</td>;
-    return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
+
+    if (value === previousValue) return <td className={className} style={primeStyle}>〃</td>;
+    return <td className={className} style={primeStyle}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
 });
 
 const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeStyle = isPrimeFlag ? { color: primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch } : undefined;
     
     if (!isVisible) {
          return <p className="text-3xl font-bold text-gray-300 dark:text-gray-600">-</p>;
     }
-    return <p className={`text-3xl font-bold ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
+    return <p className={`text-3xl font-bold ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`} style={primeStyle}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
 });
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
     const { filters } = useContext(AppContext);
     const primeColorClasses = COLOR_PALETTE[primeColor];
+    const primeColorHex = primeColorClasses?.swatch || COLOR_PALETTE.yellow.swatch;
     const values = getWordValues(wordData);
     const baseBorder = isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(31,41,55,0.60)';
     
@@ -570,7 +574,7 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
 
                 return (
                     <div key={i} className="flex flex-col items-center">
-                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{v.value}{v.isPrime && '♢'}</span>
+                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''} style={v.isPrime ? { color: primeColorHex } : undefined}>{v.value}{v.isPrime && '♢'}</span>
                         <div className="mt-0.5 flex items-center justify-center h-3 w-3.5">{symbol}</div>
                     </div>
                 );
@@ -1165,7 +1169,7 @@ const App = () => {
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים (ש"ד)</h3>
+                                <h3 className="text-2xl font-bold text-center flex-grow text-gray-900 dark:text-white">התפלגות שורשים דיגיטליים (ש"ד)</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
                             <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
