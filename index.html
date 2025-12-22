@@ -6,22 +6,11 @@
   <title>Aleph Code Calculator</title>
   <script>
     (() => {
-      let stored = null;
-      try {
-        stored = localStorage.getItem('alephTheme');
-      } catch (e) {
-        // Ignore storage failures
-      }
-
-      const isDark = stored === 'dark';
-      const syncClass = (el) => el && el.classList.toggle('dark', isDark);
-
-      syncClass(document.documentElement);
-      if (document.body) {
-        syncClass(document.body);
-      } else {
-        window.addEventListener('DOMContentLoaded', () => syncClass(document.body), { once: true });
-      }
+      const stored = localStorage.getItem('alephTheme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = stored ? stored === 'dark' : prefersDark;
+      document.documentElement.classList.toggle('dark', isDark);
+      document.body.classList.toggle('dark', isDark);
     })();
   </script>
   <script>
