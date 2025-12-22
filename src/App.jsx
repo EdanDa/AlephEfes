@@ -15,15 +15,13 @@ const LAYER_COLORS = {
 };
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red:     { light: 'text-red-500',     dark: 'dark:text-red-400',     name: 'אדום',    bg: 'bg-red-500',     swatch: '#ef4444' },
-    yellow:  { light: 'text-yellow-400',  dark: 'dark:text-yellow-300',  name: 'צהוב',    bg: 'bg-yellow-400',  swatch: '#facc15' },
-    green:   { light: 'text-green-500',   dark: 'dark:text-green-400',   name: 'ירוק',    bg: 'bg-green-500',   swatch: '#22c55e' },
-    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500', swatch: '#10b981' },
-    blue:    { light: 'text-blue-500',    dark: 'dark:text-blue-400',    name: 'כחול',    bg: 'bg-blue-500',    swatch: '#3b82f6' },
-    sky:     { light: 'text-sky-500',     dark: 'dark:text-sky-400',     name: 'שמיים',  bg: 'bg-sky-500',     swatch: '#0ea5e9' },
-    pink:    { light: 'text-pink-500',    dark: 'dark:text-pink-400',    name: 'ורוד',    bg: 'bg-pink-500',    swatch: '#ec4899' },
-    purple:  { light: 'text-purple-500',  dark: 'dark:text-purple-400',  name: 'סגול',    bg: 'bg-purple-500',  swatch: '#a855f7' },
-    orange:  { light: 'text-orange-500',  dark: 'dark:text-orange-400',  name: 'כתום',    bg: 'bg-orange-500',  swatch: '#f97316' },
+    red: { light: 'text-red-500', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
+    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
+    green: { light: 'text-green-500', dark: 'dark:text-green-400', name: 'ירוק', bg: 'bg-green-500' },
+    blue: { light: 'text-blue-500', dark: 'dark:text-blue-400', name: 'כחול', bg: 'bg-blue-500' },
+    pink: { light: 'text-pink-500', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
+    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
+    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -413,7 +411,7 @@ const Legend = React.memo(() => {
 
     return (
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-            <div className="flex items-center gap-2 text-base text-gray-900 dark:text-gray-50 bg-white/90 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-full shadow-md backdrop-blur">
+            <div className="flex items-center gap-2 text-base text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-full shadow-sm">
                  <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
                     <span className={`text-lg font-bold ${primeColorClasses.light} ${primeColorClasses.dark}`}>♢</span>
                     <span>ראשוני</span>
@@ -1099,7 +1097,7 @@ const App = () => {
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
                         <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>Aleph Code Calculator</p>
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <Legend />
