@@ -85,7 +85,7 @@ Requires Node.js 18+ and npm.
 git clone https://github.com/EdanDa/AlephEfes.git
 cd AlephEfes
 npm install
-npm run dev
+npm run dev -- --host
 
 ```
 
