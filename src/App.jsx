@@ -319,12 +319,10 @@ const initialState = {
 
 const resolveInitialDarkMode = () => {
     if (typeof window === 'undefined') return initialState.isDarkMode;
-    const preflightDark = document.documentElement.classList.contains('dark') || document.body?.classList.contains('dark');
     const stored = localStorage.getItem('alephTheme');
-    const explicit = stored === 'dark' ? true : stored === 'light' ? false : null;
-    if (explicit !== null) return explicit;
-    if (preflightDark) return true;
-    return false;
+    if (stored === 'dark') return true;
+    if (stored === 'light') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 function appReducer(state, action) {
@@ -833,15 +831,9 @@ const App = () => {
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
     useEffect(() => {
         const applyDark = Boolean(isDarkMode);
-        const targetTheme = applyDark ? 'dark' : 'light';
-        const apply = (el) => {
-            if (!el) return;
-            el.classList.toggle('dark', applyDark);
-            el.dataset.theme = targetTheme;
-        };
-        apply(document.documentElement);
-        apply(document.body);
-        localStorage.setItem('alephTheme', targetTheme);
+        document.documentElement.classList.toggle('dark', applyDark);
+        document.body.classList.toggle('dark', applyDark);
+        localStorage.setItem('alephTheme', applyDark ? 'dark' : 'light');
     }, [isDarkMode]);
 
     const drClusters = useMemo(() => {
