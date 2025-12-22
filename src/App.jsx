@@ -322,7 +322,7 @@ const resolveInitialDarkMode = () => {
     const stored = localStorage.getItem('alephTheme');
     if (stored === 'dark') return true;
     if (stored === 'light') return false;
-    return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 function appReducer(state, action) {
@@ -831,9 +831,8 @@ const App = () => {
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
     useEffect(() => {
         const applyDark = Boolean(isDarkMode);
-        const apply = (el) => el && el.classList.toggle('dark', applyDark);
-        apply(document.documentElement);
-        apply(document.body);
+        document.documentElement.classList.toggle('dark', applyDark);
+        document.body.classList.toggle('dark', applyDark);
         localStorage.setItem('alephTheme', applyDark ? 'dark' : 'light');
     }, [isDarkMode]);
 
