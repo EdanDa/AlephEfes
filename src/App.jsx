@@ -1082,7 +1082,7 @@ const App = () => {
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
                         <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>Aleph Code Calculator</p>
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <Legend />
