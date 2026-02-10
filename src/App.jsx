@@ -19,40 +19,40 @@ const HYPHEN_RE = /[־–—\-]/g;
 const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
 const HEB_MARKS_RE = /[\u0591-\u05C7]/g;
 
-// Combined Color Config: Pastel for Cards (backgrounds), Strong for Lines/Strokes
+// Combined Color Config: Darkened backgrounds for better visibility in light mode
 const LAYER_COLORS = {
 	U: { 
-        light: 'hsl(210, 80%, 95%)', // Pastel Blue for Card BG
+        light: 'hsl(210, 70%, 85%)', // Darker pastel blue
         dark: 'hsl(210, 30%, 25%)', 
-        dot: 'hsl(210, 85%, 55%)',
-        strokeLight: '#0284c7',      // Strong Sky Blue for Network Links
-        strokeDark: '#38bdf8'        // Light Sky Blue for Network Links (Dark Mode)
+        dot: 'hsl(210, 100%, 40%)', 
+        strokeLight: '#0284c7',      
+        strokeDark: '#38bdf8'        
     }, 
 	T: { 
-        light: 'hsl(140, 70%, 94%)', // Pastel Green for Card BG
+        light: 'hsl(140, 60%, 85%)', // Darker pastel green
         dark: 'hsl(140, 30%, 22%)', 
-        dot: 'hsl(140, 65%, 45%)',
-        strokeLight: '#059669',      // Strong Emerald
+        dot: 'hsl(140, 100%, 30%)', 
+        strokeLight: '#059669',      
         strokeDark: '#34d399'
     }, 
 	H: { 
-        light: 'hsl(280, 75%, 95%)', // Pastel Purple for Card BG
+        light: 'hsl(280, 65%, 88%)', // Darker pastel purple
         dark: 'hsl(280, 25%, 28%)', 
-        dot: 'hsl(280, 70%, 60%)',
-        strokeLight: '#9333ea',      // Strong Purple
+        dot: 'hsl(280, 100%, 45%)', 
+        strokeLight: '#9333ea',      
         strokeDark: '#c084fc'
     }, 
 };
 
 const LAYER_PRIORITY = ['H','T','U'];
 const COLOR_PALETTE = {
-    red: { light: 'text-red-500', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-400', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-500', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-500', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-500', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-500', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-500', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
+    red: { light: 'text-red-600', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
+    yellow: { light: 'text-yellow-600', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
+    emerald: { light: 'text-emerald-600', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
+    sky: { light: 'text-sky-600', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
+    pink: { light: 'text-pink-600', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
+    purple: { light: 'text-purple-600', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
+    orange: { light: 'text-orange-600', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
 };
 const PRIME_COLOR_HEX = {
     yellow: '#EAB308',
@@ -479,7 +479,7 @@ const Legend = React.memo(() => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const getFilterStyle = (key, baseClass = "") => {
         const isActive = filters[key];
-        const activeClass = "bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-500 shadow-inner";
+        const activeClass = "bg-blue-600 dark:bg-blue-800 border-blue-600 dark:border-blue-400 shadow-inner text-white";
         const inactiveClass = "opacity-60 hover:opacity-100";
         return `cursor-pointer transition-all duration-200 border-2 border-transparent rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
     };
@@ -488,25 +488,25 @@ const Legend = React.memo(() => {
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <div className="flex items-center gap-2 text-base text-gray-700 dark:text-gray-300 bg-gray-200/50 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
-                    <span className={`text-lg font-bold ${primeColorClasses.light} ${primeColorClasses.dark}`}>♢</span>
+                    <span className={`text-lg font-bold ${filters['Prime'] ? 'text-white' : `${primeColorClasses.light} ${primeColorClasses.dark}`}`}>♢</span>
                     <span>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
                  {/* Icons now always colored, opacity handles inactive state */}
                  <button onClick={() => toggleFilter('U')} className={getFilterStyle('U', 'flex items-center gap-2')}>
-                    <div className="text-sky-600 dark:text-sky-400">
+                    <div className={filters['U'] ? "text-white" : "text-sky-600 dark:text-sky-400"}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
                     <span>אחדות</span>
                  </button>
                  <button onClick={() => toggleFilter('T')} className={getFilterStyle('T', 'flex items-center gap-2')}>
-                    <div className="text-emerald-600 dark:text-emerald-400">
+                    <div className={filters['T'] ? "text-white" : "text-emerald-600 dark:text-emerald-400"}>
                         <div className="w-3 h-3 border-2 border-current"></div>
                     </div>
                     <span>עשרות</span>
                  </button>
                  <button onClick={() => toggleFilter('H')} className={getFilterStyle('H', 'flex items-center gap-2')}>
-                    <div className="text-purple-600 dark:text-purple-400">
+                    <div className={filters['H'] ? "text-white" : "text-purple-600 dark:text-purple-400"}>
                         <div className="w-3 h-3 rounded-full border-2 border-current"></div>
                     </div>
                     <span>מאות</span>
@@ -848,14 +848,14 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     return prevActive.word === nextActive.word;
 });
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, copiedId, searchTerm }) => {
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const activeWord = pinnedWord || hoveredWord;
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex-1 flex justify-start">
-                    <ExportToolbar getText={copySummaryToClipboard} getCSV={() => ""} id='summary' />
+                    <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
                     <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי (ש"ד)</h2>
@@ -1461,6 +1461,9 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1; 
             const maxX = Math.max(...dataPoints.map(p => p.x));
             
+            // Safeguard against division by zero if empty or single point at 0
+            if (maxX <= 0 || maxY <= 0) return;
+
             const scaleX = (x) => padding.left + (x / maxX) * graphWidth;
             const scaleY = (y) => height - padding.bottom - (y / maxY) * graphHeight;
 
@@ -1518,6 +1521,8 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1;
         const maxX = Math.max(...dataPoints.map(p => p.x));
         
+        if (maxX <= 0 || maxY <= 0) return; // Guard in interaction too
+
         const scaleX = (x) => padding.left + (x / maxX) * graphWidth;
         const scaleY = (y) => height - padding.bottom - (y / maxY) * graphHeight;
 
@@ -1773,8 +1778,22 @@ const App = () => {
         if (coreResults.grandTotals.tens !== coreResults.grandTotals.units && isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ עשרות: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
         if (coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מאות: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
         lines.push(`ש"ד כללי: ${coreResults.grandTotals.dr}\n`);
-        lines.push("פירוט שורות\n-------------------\n");
 
+        if (detailsView === 'words') {
+             lines.push("סיכום מילים ייחודיות\n-------------------\n");
+             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+             visibleWords.forEach(w => {
+                const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
+                let valuesArr = [];
+                if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`אחדות: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
+                if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`עשרות: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
+                if (w.hundreds !== w.tens && isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מאות: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
+                lines.push(`- ${w.word}: ${calc} | ${valuesArr.join(' | ')} | ש"ד: ${w.dr}`);
+             });
+             return lines.join('\n');
+        }
+
+        lines.push("פירוט שורות\n-------------------\n");
         coreResults.lines.forEach((line, index) => {
             const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
             if (visibleWords.length === 0) return;
@@ -1810,18 +1829,19 @@ const App = () => {
             });
         }
         return lines.filter(Boolean).join('\n');
-    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR]);
+    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView]);
 
     const prepareAllDetailsCSV = useCallback(() => {
         if (!coreResults) return "";
         const header = ["שורה", "מילה", "חישוב", "אחדות", "האם ראשוני (א)", "עשרות", "האם ראשוני (ע)", "מאות", "האם ראשוני (מ)", "ש\"ד"];
         const rows = [];
-        coreResults.lines.forEach((line, idx) => {
-            const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-            visibleWords.forEach(w => {
+        
+        if (detailsView === 'words') {
+             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+             visibleWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 rows.push([
-                    idx + 1,
+                    "-",
                     w.word,
                     calc,
                     isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
@@ -1833,9 +1853,28 @@ const App = () => {
                     w.dr
                 ]);
             });
-        });
+        } else {
+            coreResults.lines.forEach((line, idx) => {
+                const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+                visibleWords.forEach(w => {
+                    const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
+                    rows.push([
+                        idx + 1,
+                        w.word,
+                        calc,
+                        isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
+                        isValueVisible('U', w.isPrimeU, filters) && w.isPrimeU ? "כן" : "לא",
+                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units ? w.tens : "",
+                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units && w.isPrimeT ? "כן" : "לא",
+                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens ? w.hundreds : "",
+                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens && w.isPrimeH ? "כן" : "לא",
+                        w.dr
+                    ]);
+                });
+            });
+        }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, letterTable, filters, selectedDR]);
+    }, [coreResults, letterTable, filters, selectedDR, detailsView]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
@@ -1926,18 +1965,19 @@ const App = () => {
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n===================\n`];
         if (hotView === 'values') {
             lines.push("סיכום שכיחות ערכים\n-------------------\n");
-            // Reuse logic from memo
-            const arr = hotValuesList; 
+            // USE SORTED LIST
+            const arr = sortedHotViewList; 
             arr.forEach(({ value, count }) => {
                  const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join(', ');
                  if(words) lines.push(`ערך: ${value} | כמות: ${count}\nמילים: ${words}\n`);
             });
         } else {
             lines.push("סיכום שכיחות מילים\n-------------------\n");
-            sortedWordCounts.forEach(({ word, count }) => lines.push(`מילה: ${word}, שכיחות: ${count}`));
+            // USE SORTED LIST
+            sortedHotViewList.forEach(({ word, count }) => lines.push(`מילה: ${word}, שכיחות: ${count}`));
         }
         return lines.join('\n');
-    }, [coreResults, mode, hotView, hotValuesList, sortedWordCounts, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, mode, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
 
     const prepareFrequenciesCSV = useCallback(() => {
         if (!coreResults) return "";
@@ -1945,16 +1985,18 @@ const App = () => {
         let rows = [];
         if (hotView === 'values') {
             header = ["ערך", "כמות", "מילים"];
-            hotValuesList.forEach(({ value, count }) => {
+             // USE SORTED LIST
+            sortedHotViewList.forEach(({ value, count }) => {
                 const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join('; ');
                 if(words) rows.push([value, count, `"${words}"`]); // quote words for CSV safety
             });
         } else {
             header = ["מילה", "שכיחות"];
-            sortedWordCounts.forEach(({ word, count }) => rows.push([word, count]));
+             // USE SORTED LIST
+            sortedHotViewList.forEach(({ word, count }) => rows.push([word, count]));
         }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, hotView, hotValuesList, sortedWordCounts, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2065,7 +2107,7 @@ const App = () => {
                                         <div key={dr} className="flex flex-col items-center w-1/12 h-full justify-center group">
                                             <div className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all cursor-pointer ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`} onClick={() => handleDrillDown(dr)}>
                                                 <div className="h-8 flex items-center justify-center mb-1">
-                                                    {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-300 dark:bg-blue-700 text-xs font-bold text-white dark:text-gray-100" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
+                                                    {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
                                                 <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-500 dark:text-gray-400'}`}>ש"ד {dr}</div>
                                             </div>
@@ -2227,6 +2269,7 @@ const App = () => {
                             connectionValues={connectionValues}
                             dispatch={dispatch}
                             copySummaryToClipboard={prepareSummaryText}
+                            prepareSummaryCSV={prepareSummaryCSV}
                             copiedId={copiedId}
                             searchTerm={searchTerm}
                         />
