@@ -772,6 +772,60 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     if (!prevActive || !nextActive) return false;
     return prevActive.word === nextActive.word;
 });
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm, isHighVolume }) => {
+    const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
+
+    const virtualizedClusterItems = useMemo(
+        () => filteredWordsInView.flatMap(({ dr, words }) => words.map(wordData => ({ dr, wordData }))),
+        [filteredWordsInView]
+    );
+
+    const clusterContent = isHighVolume ? (
+        <VirtualizedList
+            items={virtualizedClusterItems}
+            rowHeight={52}
+            height={620}
+            getKey={(item) => `${item.dr}-${item.wordData.word}`}
+            renderRow={({ dr, wordData }) => (
+                <div className={`grid grid-cols-12 items-center gap-2 px-3 border-b ${isDarkMode ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'}`}>
+                    <div className="col-span-3 font-bold truncate">{wordData.word}</div>
+                    <div className="col-span-2 text-center font-mono">{wordData.units}</div>
+                    <div className="col-span-2 text-center font-mono">{wordData.tens}</div>
+                    <div className="col-span-2 text-center font-mono">{wordData.hundreds}</div>
+                    <div className="col-span-1 text-center">{wordData.dr}</div>
+                    <div className="col-span-2 text-xs truncate">ש"ד {dr}</div>
+                </div>
+            )}
+        />
+    ) : (
+        <div className="space-y-6">
+            {filteredWordsInView.map(({ dr, words }) => (
+                <div
+                    key={dr}
+                    ref={el => (clusterRefs.current[dr] = el)}
+                    className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
+                    onClick={unpinOnBackgroundClick}
+                >
+                    <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
+                    <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
+                        {words.map((wordData) => (
+                            <WordCard
+                                key={wordData.word}
+                                wordData={wordData}
+                                activeWord={activeWord}
+                                isDarkMode={isDarkMode}
+                                primeColor={primeColor}
+                                connectionValues={connectionValues}
+                                dispatch={dispatch}
+                                compact={false}
+                                disableHover={false}
+                            />
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm, isHighVolume }) => {
     const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
@@ -788,7 +842,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
                     </div>
                 </div>
-                 <div className="flex-1"></div>
+                <div className="flex-1"></div>
             </div>
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
@@ -1561,6 +1615,10 @@ const App = () => {
             }
         }
 
+        const arr = [];
+        for (const [value, wordsSet] of visibleValueToWords.entries()) {
+            arr.push({ value, count: wordsSet.size });
+        }
         const arr = [];
         for (const [value, wordsSet] of visibleValueToWords.entries()) {
             arr.push({ value, count: wordsSet.size });
