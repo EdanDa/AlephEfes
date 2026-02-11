@@ -64,6 +64,7 @@ const PRIME_COLOR_HEX = {
     orange: '#F97316',
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const HIGH_VOLUME_WORDS_THRESHOLD = 8000;
 
 const GlobalStyles = () => (
 	<style>{`
@@ -710,7 +711,7 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectionValues, dispatch }) => {
+const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectionValues, dispatch, compact = false, disableHover = false }) => {
     const { filters } = useContext(AppContext);
     const isSelf = activeWord && activeWord.word === wordData.word;
     
@@ -773,7 +774,9 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
         background: tint,
         opacity: activeWord && !topLayer && !isSelf ? 0.35 : 1,
         border: `2px solid ${borderColor}`,
-        cursor: 'pointer'
+        cursor: 'pointer',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '56px 140px'
     };
 
     const handleClick = (e) => {
@@ -781,8 +784,27 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
         dispatch({ type: 'SET_PINNED_WORD', payload: wordData });
     };
 
-    const handleMouseEnter = () => dispatch({ type: 'SET_HOVERED_WORD', payload: wordData });
-    const handleMouseLeave = () => dispatch({ type: 'SET_HOVERED_WORD', payload: null });
+    const handleMouseEnter = () => {
+        if (disableHover) return;
+        dispatch({ type: 'SET_HOVERED_WORD', payload: wordData });
+    };
+    const handleMouseLeave = () => {
+        if (disableHover) return;
+        dispatch({ type: 'SET_HOVERED_WORD', payload: null });
+    };
+
+    if (compact) {
+        return (
+            <button
+                type="button"
+                className={`px-3 py-2 rounded-md text-sm font-semibold text-right ${isDarkMode ? 'bg-gray-700/60 text-gray-100' : 'bg-gray-100 text-gray-900'}`}
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '38px 120px', border: `1px solid ${borderColor}` }}
+                onClick={handleClick}
+            >
+                {wordData.word}
+            </button>
+        );
+    }
 
     return (
         <div
@@ -808,8 +830,8 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     return prevActive.word === nextActive.word;
 });
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
-    const activeWord = pinnedWord || hoveredWord;
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm, isHighVolume }) => {
+    const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
@@ -828,6 +850,11 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
+            {isHighVolume && (
+                <p className={`mb-4 text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    מצב ביצועים פעיל: תצוגת מילים קומפקטית וללא הדגשת מעבר עכבר עבור רשימות גדולות מאוד.
+                </p>
+            )}
             <div className="space-y-6">
                 {filteredWordsInView.map(({ dr, words }) => (
                     <div
@@ -847,6 +874,8 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                                     primeColor={primeColor}
                                     connectionValues={connectionValues}
                                     dispatch={dispatch}
+                                    compact={isHighVolume}
+                                    disableHover={isHighVolume}
                                 />
                             ))}
                         </div>
@@ -1574,6 +1603,7 @@ const App = () => {
     const valueTableButtonRef = useRef(null);
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
+    const isHighVolume = (coreResults?.totalWordCount || 0) >= HIGH_VOLUME_WORDS_THRESHOLD;
 
     useLayoutEffect(() => {
         if (view !== 'clusters' || !selectedDR) return;
@@ -2227,6 +2257,7 @@ const App = () => {
                             prepareSummaryCSV={prepareSummaryCSV}
                             copiedId={copiedId}
                             searchTerm={searchTerm}
+                            isHighVolume={isHighVolume}
                         />
                     )}
 
@@ -2272,11 +2303,13 @@ const App = () => {
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
-                                                        activeWord={pinnedWord || hoveredWord}
+                                                        activeWord={pinnedWord || (isHighVolume ? null : hoveredWord)}
                                                         isDarkMode={isDarkMode}
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
                                                         dispatch={dispatch}
+                                                        compact={isHighVolume}
+                                                        disableHover={isHighVolume}
                                                     />
                                                 ))}
                                             </div>
