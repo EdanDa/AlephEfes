@@ -1632,6 +1632,10 @@ const App = () => {
         for (const [value, wordsSet] of visibleValueToWords.entries()) {
             arr.push({ value, count: wordsSet.size });
         }
+        const arr = [];
+        for (const [value, wordsSet] of visibleValueToWords.entries()) {
+            arr.push({ value, count: wordsSet.size });
+        }
         return arr;
     }, [coreResults, filters, selectedDR]);
 
