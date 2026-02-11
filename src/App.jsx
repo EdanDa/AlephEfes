@@ -61,6 +61,9 @@ const PRIME_COLOR_HEX = {
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const HIGH_VOLUME_WORDS_THRESHOLD = 8000;
+const NETWORK_VIEW_WORDS_THRESHOLD = 12000;
+const CLUSTER_CHUNK_SIZE = 30;
+const CLUSTER_CHUNK_ROW_HEIGHT = 380;
 const GlobalStyles = () => (
 	<style>{`
 		html { overflow-y: scroll; }
@@ -788,21 +791,36 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     if (!prevActive || !nextActive) return false;
     return prevActive.word === nextActive.word;
 });
-const ClusterVirtualizedContent = memo(function ClusterVirtualizedContent({ items, isDarkMode }) {
+const ClusterVirtualizedContent = memo(function ClusterVirtualizedContent({ chunks, isDarkMode, activeWord, primeColor, connectionValues, dispatch }) {
     return (
         <VirtualizedList
-            items={items}
-            rowHeight={52}
+            items={chunks}
+            rowHeight={CLUSTER_CHUNK_ROW_HEIGHT}
             height={620}
-            getKey={(item) => `${item.dr}-${item.wordData.word}`}
-            renderRow={({ dr, wordData }) => (
-                <div className={`grid grid-cols-12 items-center gap-2 px-3 border-b ${isDarkMode ? 'border-gray-700 text-gray-200' : 'border-gray-200 text-gray-800'}`}>
-                    <div className="col-span-3 font-bold truncate">{wordData.word}</div>
-                    <div className="col-span-2 text-center font-mono">{wordData.units}</div>
-                    <div className="col-span-2 text-center font-mono">{wordData.tens}</div>
-                    <div className="col-span-2 text-center font-mono">{wordData.hundreds}</div>
-                    <div className="col-span-1 text-center">{wordData.dr}</div>
-                    <div className="col-span-2 text-xs truncate">ש"ד {dr}</div>
+            overscan={2}
+            getKey={(item) => `${item.dr}-${item.chunkIndex}`}
+            renderRow={(item) => (
+                <div className="px-1 py-1 h-full">
+                    <div className={`p-4 rounded-lg border transition-shadow h-full ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}>
+                        <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">
+                            ש"ד {item.dr} ({item.totalWords} מילים) • חלק {item.chunkIndex + 1}/{item.totalChunks}
+                        </h3>
+                        <div className="flex flex-wrap justify-start gap-2">
+                            {item.words.map((wordData) => (
+                                <WordCard
+                                    key={`${item.dr}-${item.chunkIndex}-${wordData.word}`}
+                                    wordData={wordData}
+                                    activeWord={activeWord}
+                                    isDarkMode={isDarkMode}
+                                    primeColor={primeColor}
+                                    connectionValues={connectionValues}
+                                    dispatch={dispatch}
+                                    compact={false}
+                                    disableHover={true}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         />
@@ -844,14 +862,22 @@ const ClusterRegularContent = memo(function ClusterRegularContent({ filteredWord
 function ClusterViewComponent({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, searchTerm, isHighVolume }) {
     const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
 
-    const virtualizedClusterItems = useMemo(
-        () => filteredWordsInView.flatMap(({ dr, words }) => words.map(wordData => ({ dr, wordData }))),
-        [filteredWordsInView]
-    );
+    const virtualizedClusterChunks = useMemo(() => (
+        filteredWordsInView.flatMap(({ dr, words }) => {
+            const totalChunks = Math.ceil(words.length / CLUSTER_CHUNK_SIZE);
+            return Array.from({ length: totalChunks }, (_, chunkIndex) => ({
+                dr,
+                chunkIndex,
+                totalChunks,
+                totalWords: words.length,
+                words: words.slice(chunkIndex * CLUSTER_CHUNK_SIZE, (chunkIndex + 1) * CLUSTER_CHUNK_SIZE)
+            }));
+        })
+    ), [filteredWordsInView]);
 
     let content;
     if (isHighVolume) {
-        content = <ClusterVirtualizedContent items={virtualizedClusterItems} isDarkMode={isDarkMode} />;
+        content = <ClusterVirtualizedContent chunks={virtualizedClusterChunks} isDarkMode={isDarkMode} activeWord={activeWord} primeColor={primeColor} connectionValues={connectionValues} dispatch={dispatch} />;
     } else {
         content = (
             <ClusterRegularContent
@@ -1552,6 +1578,7 @@ const App = () => {
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
     const isHighVolume = (coreResults?.totalWordCount || 0) >= HIGH_VOLUME_WORDS_THRESHOLD;
+    const isNetworkDisabled = (coreResults?.totalWordCount || 0) >= NETWORK_VIEW_WORDS_THRESHOLD;
     useLayoutEffect(() => {
         if (view !== 'clusters' || !selectedDR) return;
         const el = clusterRefs.current[selectedDR];
@@ -1915,7 +1942,13 @@ const App = () => {
         dispatch({ type: 'SET_SELECTED_DR', payload: dr });
     }, [dispatch]);
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
-    const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
+    const handleViewChange = useCallback((newView) => {
+        if (newView === 'network' && isNetworkDisabled) {
+            alert('תצוגת רשת מושבתת עבור קלט גדול מאוד כדי לשמור על ביצועים.');
+            return;
+        }
+        dispatch({ type: 'SET_VIEW', payload: newView });
+    }, [dispatch, isNetworkDisabled]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
     return (
         <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
@@ -1983,7 +2016,7 @@ const App = () => {
                             <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
                             <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
                             <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
-                            <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                            <button disabled={isNetworkDisabled} onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''} ${isNetworkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`} title={isNetworkDisabled ? 'זמין רק לקלט קטן יותר' : ''}><Icon name="share-2" className="w-4 h-4" />רשת</button>
                         </div>
                     </div>
                     {stats && (
@@ -2255,7 +2288,7 @@ const App = () => {
                             selectedDR={selectedDR}
                         />
                     )}
-                    {view === 'network' && coreResults && (
+                    {view === 'network' && coreResults && !isNetworkDisabled && (
                         <NetworkView 
                             coreResults={coreResults}
                             filters={filters}
@@ -2264,6 +2297,12 @@ const App = () => {
                             onWordClick={handleWordClick}
                             selectedDR={selectedDR}
                         />
+                    )}
+
+                    {view === 'network' && coreResults && isNetworkDisabled && (
+                        <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600 shadow-lg'}`}>
+                            תצוגת רשת מושבתת אוטומטית עבור קלט גדול מאוד כדי למנוע תקיעות. השתמש/י בתצוגת קבוצות או פירוט.
+                        </div>
                     )}
                 </>
                 )}
