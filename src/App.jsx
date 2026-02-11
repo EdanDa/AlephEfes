@@ -61,7 +61,6 @@ const PRIME_COLOR_HEX = {
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const HIGH_VOLUME_WORDS_THRESHOLD = 8000;
-
 const GlobalStyles = () => (
 	<style>{`
 		html { overflow-y: scroll; }
@@ -185,7 +184,6 @@ const buildLetterTable = (mode) => {
 	}
 	return table;
 };
-
 function cleanHebrewToken(raw) {
   const s = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
   const letters = s.match(HEB_LETTER_RE);
@@ -480,7 +478,28 @@ const Legend = React.memo(() => {
         </div>
     );
 });
-
+const VirtualizedList = memo(({ items, rowHeight, height = 560, overscan = 6, renderRow, getKey }) => {
+    const [scrollTop, setScrollTop] = useState(0);
+    const onScroll = useCallback((e) => setScrollTop(e.currentTarget.scrollTop), []);
+    const totalHeight = items.length * rowHeight;
+    const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
+    const endIndex = Math.min(items.length, Math.ceil((scrollTop + height) / rowHeight) + overscan);
+    const offsetY = startIndex * rowHeight;
+    const visible = items.slice(startIndex, endIndex);
+    return (
+        <div className="overflow-y-auto" style={{ height }} onScroll={onScroll}>
+            <div style={{ height: totalHeight, position: 'relative' }}>
+                <div style={{ transform: `translateY(${offsetY}px)` }}>
+                    {visible.map((item, idx) => (
+                        <div key={getKey ? getKey(item) : (startIndex + idx)} style={{ height: rowHeight }}>
+                            {renderRow(item, startIndex + idx)}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+});
 const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
@@ -657,7 +676,6 @@ const StatsPanel = memo(() => {
         </div>
     );
 });
-
 const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectionValues, dispatch, compact = false, disableHover = false }) => {
     const { filters } = useContext(AppContext);
     const isSelf = activeWord && activeWord.word === wordData.word;
@@ -726,7 +744,6 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
         e.stopPropagation();
         dispatch({ type: 'SET_PINNED_WORD', payload: wordData });
     };
-
     const handleMouseEnter = () => {
         if (disableHover) return;
         dispatch({ type: 'SET_HOVERED_WORD', payload: wordData });
@@ -735,7 +752,6 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
         if (disableHover) return;
         dispatch({ type: 'SET_HOVERED_WORD', payload: null });
     };
-
     if (compact) {
         return (
             <button
@@ -744,11 +760,11 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
                 style={{ contentVisibility: 'auto', containIntrinsicSize: '38px 120px', border: `1px solid ${borderColor}` }}
                 onClick={handleClick}
             >
-                {wordData.word}
+                <div className="font-semibold">{wordData.word}</div>
+                <div className="text-xs mt-1 opacity-80">{wordData.units}{wordData.tens !== wordData.units ? ` · ${wordData.tens}` : ""}{wordData.hundreds !== wordData.tens ? ` · ${wordData.hundreds}` : ""} | ש"ד {wordData.dr}</div>
             </button>
         );
     }
-
     return (
         <div
             className="p-2 rounded-lg text-center transition-all duration-200 noselect"
@@ -772,17 +788,10 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     if (!prevActive || !nextActive) return false;
     return prevActive.word === nextActive.word;
 });
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm, isHighVolume }) => {
-    const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
-
-    const virtualizedClusterItems = useMemo(
-        () => filteredWordsInView.flatMap(({ dr, words }) => words.map(wordData => ({ dr, wordData }))),
-        [filteredWordsInView]
-    );
-
-    const clusterContent = isHighVolume ? (
+const ClusterVirtualizedContent = memo(function ClusterVirtualizedContent({ items, isDarkMode }) {
+    return (
         <VirtualizedList
-            items={virtualizedClusterItems}
+            items={items}
             rowHeight={52}
             height={620}
             getKey={(item) => `${item.dr}-${item.wordData.word}`}
@@ -797,7 +806,11 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                 </div>
             )}
         />
-    ) : (
+    );
+});
+
+const ClusterRegularContent = memo(function ClusterRegularContent({ filteredWordsInView, clusterRefs, unpinOnBackgroundClick, activeWord, isDarkMode, primeColor, connectionValues, dispatch }) {
+    return (
         <div className="space-y-6">
             {filteredWordsInView.map(({ dr, words }) => (
                 <div
@@ -826,10 +839,34 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
             ))}
         </div>
     );
+});
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm, isHighVolume }) => {
+function ClusterViewComponent({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, searchTerm, isHighVolume }) {
     const activeWord = pinnedWord || (isHighVolume ? null : hoveredWord);
-    
+
+    const virtualizedClusterItems = useMemo(
+        () => filteredWordsInView.flatMap(({ dr, words }) => words.map(wordData => ({ dr, wordData }))),
+        [filteredWordsInView]
+    );
+
+    let content;
+    if (isHighVolume) {
+        content = <ClusterVirtualizedContent items={virtualizedClusterItems} isDarkMode={isDarkMode} />;
+    } else {
+        content = (
+            <ClusterRegularContent
+                filteredWordsInView={filteredWordsInView}
+                clusterRefs={clusterRefs}
+                unpinOnBackgroundClick={unpinOnBackgroundClick}
+                activeWord={activeWord}
+                isDarkMode={isDarkMode}
+                primeColor={primeColor}
+                connectionValues={connectionValues}
+                dispatch={dispatch}
+            />
+        );
+    }
+
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
             <div className="flex justify-between items-center mb-4">
@@ -848,70 +885,20 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
+
             {isHighVolume && (
                 <p className={`mb-4 text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     מצב ביצועים פעיל: תצוגת מילים קומפקטית וללא הדגשת מעבר עכבר עבור רשימות גדולות מאוד.
                 </p>
             )}
-            <div className="space-y-6">
-                {filteredWordsInView.map(({ dr, words }) => (
-                    <div
-                        key={dr}
-                        ref={el => (clusterRefs.current[dr] = el)}
-                        className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
-                        onClick={unpinOnBackgroundClick}
-                    >
-                        <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
-                        <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
-                            {words.map((wordData, index) => (
-                                <WordCard 
-                                    key={wordData.word}
-                                    wordData={wordData}
-                                    activeWord={activeWord}
-                                    isDarkMode={isDarkMode}
-                                    primeColor={primeColor}
-                                    connectionValues={connectionValues}
-                                    dispatch={dispatch}
-                                    compact={isHighVolume}
-                                    disableHover={isHighVolume}
-                                />
-                            ))}
-                        </div>
-                    )}
-                />
-            ) : (
-                <div className="space-y-6">
-                    {filteredWordsInView.map(({ dr, words }) => (
-                        <div
-                            key={dr}
-                            ref={el => (clusterRefs.current[dr] = el)}
-                            className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
-                            onClick={unpinOnBackgroundClick}
-                        >
-                            <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
-                            <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
-                                {words.map((wordData, index) => (
-                                    <WordCard 
-                                        key={wordData.word}
-                                        wordData={wordData}
-                                        activeWord={activeWord}
-                                        isDarkMode={isDarkMode}
-                                        primeColor={primeColor}
-                                        connectionValues={connectionValues}
-                                        dispatch={dispatch}
-                                        compact={false}
-                                        disableHover={false}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+
+            {content}
         </div>
     );
-});
-const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
+}
+
+const ClusterView = memo(ClusterViewComponent);
+function NetworkViewComponent({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const transformRef = useRef({ x: 0, y: 0, k: 1 });
@@ -1365,7 +1352,10 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             </div>
         </div>
     );
-});
+}
+
+const NetworkView = memo(NetworkViewComponent);
+
 const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -1562,7 +1552,6 @@ const App = () => {
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
     const isHighVolume = (coreResults?.totalWordCount || 0) >= HIGH_VOLUME_WORDS_THRESHOLD;
-
     useLayoutEffect(() => {
         if (view !== 'clusters' || !selectedDR) return;
         const el = clusterRefs.current[selectedDR];
@@ -1604,33 +1593,14 @@ const App = () => {
     const hotValuesList = useMemo(() => {
         if (!coreResults) return [];
         const visibleValueToWords = new Map();
-
         for (const wordData of coreResults.allWords) {
             if (!isWordVisible(wordData, filters)) continue;
             if (selectedDR && wordData.dr !== selectedDR) continue;
-
             const uniqueValues = new Set([wordData.units, wordData.tens, wordData.hundreds]);
             for (const value of uniqueValues) {
                 if (!visibleValueToWords.has(value)) visibleValueToWords.set(value, new Set());
                 visibleValueToWords.get(value).add(wordData.word);
             }
-        }
-
-        const arr = [];
-        for (const [value, wordsSet] of visibleValueToWords.entries()) {
-            arr.push({ value, count: wordsSet.size });
-        }
-        const arr = [];
-        for (const [value, wordsSet] of visibleValueToWords.entries()) {
-            arr.push({ value, count: wordsSet.size });
-        }
-        const arr = [];
-        for (const [value, wordsSet] of visibleValueToWords.entries()) {
-            arr.push({ value, count: wordsSet.size });
-        }
-        const arr = [];
-        for (const [value, wordsSet] of visibleValueToWords.entries()) {
-            arr.push({ value, count: wordsSet.size });
         }
         const arr = [];
         for (const [value, wordsSet] of visibleValueToWords.entries()) {
@@ -1638,7 +1608,6 @@ const App = () => {
         }
         return arr;
     }, [coreResults, filters, selectedDR]);
-
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
         const wordMap = coreResults.wordDataMap;
@@ -1668,11 +1637,9 @@ const App = () => {
     const filteredWordsInView = useMemo(() => {
         if (view !== 'clusters' || !coreResults) return [];
         let filteredWords = coreResults.allWords;
-
         if (selectedDR !== null) {
             filteredWords = filteredWords.filter(w => w.dr === selectedDR);
         }
-
         if (searchTerm.trim()) {
             const searchTerms = searchTerm.toLowerCase().split(' ').filter(t => t);
             filteredWords = filteredWords.filter(w => {
@@ -1687,7 +1654,6 @@ const App = () => {
         }
         
         filteredWords = filteredWords.filter(w => isWordVisible(w, filters));
-
         const regrouped = new Map();
         filteredWords.forEach(word => {
             if (!regrouped.has(word.dr)) regrouped.set(word.dr, []);
@@ -1697,7 +1663,6 @@ const App = () => {
             .sort((a, b) => a[0] - b[0])
             .map(([dr, words]) => ({ dr, words }));
     }, [coreResults, view, searchTerm, selectedDR, filters]);
-
     const getPinnedRelevantWords = useCallback(() => {
             if (!pinnedWord || view !== 'clusters' || !coreResults) return null;
             const relevantWords = [pinnedWord];
