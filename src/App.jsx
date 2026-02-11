@@ -844,6 +844,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                 </div>
                 <div className="flex-1"></div>
             </div>
+
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
@@ -1615,6 +1616,10 @@ const App = () => {
             }
         }
 
+        const arr = [];
+        for (const [value, wordsSet] of visibleValueToWords.entries()) {
+            arr.push({ value, count: wordsSet.size });
+        }
         const arr = [];
         for (const [value, wordsSet] of visibleValueToWords.entries()) {
             arr.push({ value, count: wordsSet.size });
