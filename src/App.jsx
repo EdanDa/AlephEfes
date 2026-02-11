@@ -201,21 +201,6 @@ const buildLetterTable = (mode) => {
 	return table;
 };
 
-const letterDetailsCache = new Map();
-const getLetterDetails = (word, letterTable) => {
-	const modeKey = letterTable.get('א')?.u === 0 ? '0' : '1';
-	const key = modeKey + '|' + word;
-	const hit = letterDetailsCache.get(key);
-	if (hit) return hit;
-	const details = [];
-	for (const ch of word) {
-		const rec = letterTable.get(ch);
-		if (rec) details.push({ char: ch, value: rec.u });
-	}
-	letterDetailsCache.set(key, details);
-	return details;
-};
-
 function cleanHebrewToken(raw) {
   const s = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
   const letters = s.match(HEB_LETTER_RE);
@@ -232,12 +217,16 @@ const makeWordComputer = (letterTable) => {
         
 		let u = 0, t = 0, h = 0;
 		let builtWord = "";
+        const valueParts = [];
+        const letterParts = [];
         let maxU = -Infinity;
         
 		for (const ch of it) {
 			const rec = letterTable.get(ch);
 			if (!rec) continue; 
 			builtWord += ch;
+			valueParts.push(rec.u);
+			letterParts.push(`${ch}(${rec.u})`);
 			u += rec.u; t += rec.t; h += rec.h;
             if (rec.u > maxU) maxU = rec.u;
 		}
@@ -249,6 +238,8 @@ const makeWordComputer = (letterTable) => {
 		const res = {
 			word: builtWord, 
 			units: u, tens: t, hundreds: h, dr,
+			calcValues: valueParts.join('+'),
+			calcDetails: letterParts.join('+'),
 			isPrimeU: isPrimeExpand(u),
 			isPrimeT: t !== u && isPrimeExpand(t),
 			isPrimeH: h !== t && isPrimeExpand(h),
@@ -267,7 +258,6 @@ const memoizedComputers = {
 };
 
 function computeCoreResults(text, mode) {
-    letterDetailsCache.clear();
     memoizedComputers[mode].clear();
 	const lines = text.split('\n').filter(l => l.trim().length);
 	const computeWord = memoizedComputers[mode];
@@ -526,36 +516,6 @@ const Legend = React.memo(() => {
             )}
         </div>
     );
-});
-
-const VirtualizedList = React.memo(({ items, itemHeight, listHeight, renderItem, getKey }) => {
-	const [scrollTop, setScrollTop] = useState(0);
-	const rafId = useRef(null);
-	const handleScroll = (e) => {
-		const y = e.currentTarget.scrollTop;
-		if (rafId.current) cancelAnimationFrame(rafId.current);
-		rafId.current = requestAnimationFrame(() => setScrollTop(y));
-	};
-	useEffect(() => () => { if (rafId.current) cancelAnimationFrame(rafId.current); }, []);
-	const startIndex = Math.floor(scrollTop / itemHeight);
-	const visibleCount = Math.ceil(listHeight / itemHeight) + 2;
-	const endIndex = Math.min(startIndex + visibleCount, items.length);
-	const visibleItems = useMemo(() => items.slice(startIndex, endIndex), [items, startIndex, endIndex]);
-	const totalHeight = items.length * itemHeight;
-	const offsetY = startIndex * itemHeight;
-	return (
-		<div onScroll={handleScroll} className="noselect" style={{ height: listHeight, overflowY: 'auto', position: 'relative' }}>
-			<div style={{ height: totalHeight }}>
-				<div style={{ transform: `translateY(${offsetY}px)` }}>
-					{visibleItems.map((item, idx) => (
-						<div key={getKey ? getKey(item) : (item?.value ?? item?.word ?? (startIndex + idx))}>
-							{renderItem(item)}
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
 });
 
 const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
@@ -1657,34 +1617,27 @@ const App = () => {
     useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
 
     // ... Memos for clusters, hot values, word counts ...
-    const drClusters = useMemo(() => {
-        if (!coreResults || view !== 'clusters') return {};
-        const clusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
-        coreResults.allWords.forEach(wd => {
-            if (wd.dr > 0) clusters[wd.dr].push(wd);
-        });
-        for (const k in clusters) {
-            clusters[k].sort((a, b) => {
-                if (a.units !== b.units) return a.units - b.units;
-                if (a.tens !== b.tens) return a.tens - b.tens;
-                return a.hundreds - b.hundreds;
-            });
-        }
-        return clusters;
-    }, [coreResults, view]);
-
     const hotValuesList = useMemo(() => {
-        if (!valueToWordsMap) return [];
-        const arr = [];
-        for (const [value, words] of valueToWordsMap.entries()) {
-            const visibleWords = words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-            if (visibleWords.length > 0) {
-                 const uniqueWordsCount = new Set(visibleWords.map(w => w.word)).size;
-                 arr.push({ value, count: uniqueWordsCount });
+        if (!coreResults) return [];
+        const visibleValueToWords = new Map();
+
+        for (const wordData of coreResults.allWords) {
+            if (!isWordVisible(wordData, filters)) continue;
+            if (selectedDR && wordData.dr !== selectedDR) continue;
+
+            const uniqueValues = new Set([wordData.units, wordData.tens, wordData.hundreds]);
+            for (const value of uniqueValues) {
+                if (!visibleValueToWords.has(value)) visibleValueToWords.set(value, new Set());
+                visibleValueToWords.get(value).add(wordData.word);
             }
         }
+
+        const arr = [];
+        for (const [value, wordsSet] of visibleValueToWords.entries()) {
+            arr.push({ value, count: wordsSet.size });
+        }
         return arr;
-    }, [valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, filters, selectedDR]);
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
@@ -1715,12 +1668,12 @@ const App = () => {
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
 
     const filteredWordsInView = useMemo(() => {
-        if (view !== 'clusters' || !drClusters) return [];
-        const allWordsInClusters = Object.entries(drClusters)
-            .filter(([dr]) => selectedDR === null || selectedDR === parseInt(dr))
-            .flatMap(([, words]) => words);
+        if (view !== 'clusters' || !coreResults) return [];
+        let filteredWords = coreResults.allWords;
 
-        let filteredWords = allWordsInClusters;
+        if (selectedDR !== null) {
+            filteredWords = filteredWords.filter(w => w.dr === selectedDR);
+        }
 
         if (searchTerm.trim()) {
             const searchTerms = searchTerm.toLowerCase().split(' ').filter(t => t);
@@ -1737,24 +1690,26 @@ const App = () => {
         
         filteredWords = filteredWords.filter(w => isWordVisible(w, filters));
 
-        const regrouped = {};
+        const regrouped = new Map();
         filteredWords.forEach(word => {
-            if (!regrouped[word.dr]) regrouped[word.dr] = [];
-            regrouped[word.dr].push(word);
+            if (!regrouped.has(word.dr)) regrouped.set(word.dr, []);
+            regrouped.get(word.dr).push(word);
         });
-        return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, searchTerm, selectedDR, filters]);
+        return Array.from(regrouped.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([dr, words]) => ({ dr, words }));
+    }, [coreResults, view, searchTerm, selectedDR, filters]);
 
     const getPinnedRelevantWords = useCallback(() => {
-            if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
+            if (!pinnedWord || view !== 'clusters' || !coreResults) return null;
             const relevantWords = [pinnedWord];
-            Object.values(drClusters).flat().forEach(wordData => {
+            coreResults.allWords.forEach(wordData => {
                  if (wordData.word !== pinnedWord.word && topConnectionLayer(pinnedWord, wordData)) {
                      if (isWordVisible(wordData, filters)) relevantWords.push(wordData);
                  }
             });
             return relevantWords;
-    }, [pinnedWord, view, drClusters, filters]);
+    }, [pinnedWord, view, coreResults, filters]);
     
     // --- Data Preparation for Export ---
     const prepareAllDetailsText = useCallback(() => {
@@ -1783,7 +1738,7 @@ const App = () => {
              lines.push("סיכום מילים ייחודיות\n-------------------\n");
              const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
              visibleWords.forEach(w => {
-                const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
+                const calc = w.calcDetails;
                 let valuesArr = [];
                 if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`אחדות: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
                 if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`עשרות: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
@@ -1800,7 +1755,7 @@ const App = () => {
 
             lines.push(`\nשורה ${index + 1}: "${line.lineText}"`);
             visibleWords.forEach(wordData => {
-                const calculation = getLetterDetails(wordData.word, letterTable).map(l => `${l.char}(${l.value})`).join(' + ');
+                const calculation = wordData.calcDetails.replaceAll('+', ' + ');
                 const primeU = wordData.isPrimeU ? " ♢" : "";
                 
                 let valuesArr = [];
@@ -1839,7 +1794,7 @@ const App = () => {
         if (detailsView === 'words') {
              const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
              visibleWords.forEach(w => {
-                const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
+                const calc = w.calcDetails;
                 rows.push([
                     "-",
                     w.word,
@@ -1857,7 +1812,7 @@ const App = () => {
             coreResults.lines.forEach((line, idx) => {
                 const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
                 visibleWords.forEach(w => {
-                    const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
+                    const calc = w.calcDetails;
                     rows.push([
                         idx + 1,
                         w.word,
@@ -2202,7 +2157,7 @@ const App = () => {
                                                             <tbody>{visibleWords.map((res, index) => (
                                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
                                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
-                                                                    <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
+                                                                    <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{res.calcValues}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
                                                                     {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
@@ -2243,7 +2198,7 @@ const App = () => {
                                             <tbody>{coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map((res, index) => (
                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
-                                                    <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
+                                                    <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{res.calcValues}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
                                                     {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
@@ -2296,19 +2251,15 @@ const App = () => {
                                                 <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                                 <div className="w-1/2">מילים</div>
                                             </div>
-                                            <VirtualizedList
-                                                items={sortedHotViewList}
-                                                itemHeight={40}
-                                                listHeight={384} 
-                                                getKey={(item) => item.value}
-                                                renderItem={({ value, count }) => (
-                                                    <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: valueToWordsMap.get(value) || [] } })}>
+                                            <div className="noselect max-h-96 overflow-y-auto">
+                                                {sortedHotViewList.map(({ value, count }) => (
+                                                    <div key={value} className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: valueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
                                                         <div className="w-1/4 p-2 text-center">{count}</div>
                                                         <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters)).map(w => w.word))].join(', ')}</div>
                                                     </div>
-                                                )}
-                                            />
+                                                ))}
+                                            </div>
                                         </div>
                                     ) : (
                                         <div>
@@ -2339,12 +2290,14 @@ const App = () => {
                                         <div className="w-3/4">מילה</div>
                                         <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                     </div>
-                                    <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
-                                        <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
-                                            <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
-                                            <div className="w-1/4 p-2 text-center font-mono">{count}</div>
-                                        </div>
-                                    )} />
+                                    <div className="noselect max-h-96 overflow-y-auto">
+                                        {sortedHotViewList.map(({ word, count }) => (
+                                            <div key={word} className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
+                                                <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
+                                                <div className="w-1/4 p-2 text-center font-mono">{count}</div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
