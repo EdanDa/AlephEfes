@@ -105,13 +105,12 @@ Crucially, **U, T, and H are congruent mod-9** by construction, so digital-root 
 Certain values recur as **cultural attractors**—numbers that mattered across Late Bronze / Iron Age scribal worlds (solar/lunar cycles, ritual calendars, ranked divine arithmetic, base-60 legacies). In the Hebrew corpus and adjacent name-imports, key terms repeatedly land on these anchors:
 
 * **יהוה → 22**
- 
 * **לבנה → 29**
 * **חדש → 30**
 * **שמש → 52**
 * **ישראל → 59**
 * **ישרון → 354 (in H)**
-* ** עת → 360** 
+* **עת → 360 (in H)** 
 * **ירושלם → 364 (in H)**
 * **מלכות / סכות / שבתותי → 365 (in H)**
 
