@@ -13,6 +13,46 @@ The aim is to provide an **open playground** for testing the model, exploring it
 
 ---
 
+## Running the calculator
+Requires Node.js 18+ and npm.
+
+```bash
+
+git clone https://github.com/EdanDa/AlephEfes.git
+cd AlephEfes
+npm install
+npm run dev -- --host
+
+```
+
+The app runs on [http://localhost:5173](http://localhost:5173), styled with TailwindCSS (loaded via CDN).
+It stores the last analysed text in `localStorage` for convenience.
+
+After you git clone once, you keep that same folder and just pull updates into it:
+
+```bash
+
+cd AlephEfes
+git pull
+npm install
+npm run dev -- --host
+
+```
+---
+
+## Structure
+
+```
+├── index.html        – Vite entry point
+├── src/
+│   ├── App.jsx       – main calculator component
+│   └── main.jsx      – React DOM bootstrap
+├── package.json      – project metadata and scripts
+└── vite.config.js    – Vite + React configuration
+```
+
+---
+
 ## Features
 The calculator includes the following capabilities:
 - **Dual Calculation Modes**
@@ -43,8 +83,6 @@ The calculator includes the following capabilities:
   Uses memoization and a virtualized list for handling large texts efficiently.
 
 ---
-
-
 
 ## Research backdrop
 
@@ -160,46 +198,6 @@ The goal of this project is not dogma but documentation:
 * and a framework that allows scholarly replication or refutation.
 
 Taken together, the evidence increasingly supports the view that the **alphabet itself—via order, orthography, and modular arithmetic—was used as a carrier of theological and cosmological design**, in a way consistent with ancient scribal culture and its calendar-numeric obsessions.
-
----
-
-## Running the calculator
-Requires Node.js 18+ and npm.
-
-```bash
-
-git clone https://github.com/EdanDa/AlephEfes.git
-cd AlephEfes
-npm install
-npm run dev -- --host
-
-```
-
-The app runs on [http://localhost:5173](http://localhost:5173), styled with TailwindCSS (loaded via CDN).
-It stores the last analysed text in `localStorage` for convenience.
-
-After you git clone once, you keep that same folder and just pull updates into it:
-
-```bash
-
-cd AlephEfes
-git pull
-npm install
-npm run dev -- --host
-
-```
----
-
-## Structure
-
-```
-├── index.html        – Vite entry point
-├── src/
-│   ├── App.jsx       – main calculator component
-│   └── main.jsx      – React DOM bootstrap
-├── package.json      – project metadata and scripts
-└── vite.config.js    – Vite + React configuration
-```
 
 ---
 
