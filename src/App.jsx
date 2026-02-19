@@ -18,12 +18,13 @@ const HEB_FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
 const HYPHEN_RE = /[־–—\-]/g;
 const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
 const HEB_MARKS_RE = /[\u0591-\u05C7]/g;
-const INPUT_NORMALIZE_RE = /[,.\-:;]+| {2,}/g;
+const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;־–—]+/g;
+const INPUT_MULTI_SPACE_RE = / {2,}/g;
 
 const EN_TO_HE_MAP = Object.freeze({
     q: '/', w: "'", e: 'ק', r: 'ר', t: 'א', y: 'ט', u: 'ו', i: 'ן', o: 'ם', p: 'פ',
-    '[': ']', ']': '[', a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע', h: 'י', j: 'ח', k: 'ל', l: 'ך', ';': 'ף', "'": ',',
-    z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ', ',': 'ת', '.': 'ץ', '/': '.'
+    '[': ']', ']': '[', a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע', h: 'י', j: 'ח', k: 'ל', l: 'ך',
+    z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ'
 });
 
 // Combined Color Config: Darkened backgrounds for better visibility in light mode
@@ -234,10 +235,11 @@ function forceHebrewInput(raw) {
     const mapped = Array.from(withoutMarks).map((ch) => {
         const lower = ch.toLowerCase();
         const mappedChar = EN_TO_HE_MAP[lower];
-        if (!mappedChar) return ch;
-        return ch === lower ? mappedChar : mappedChar.toUpperCase();
+        return mappedChar || ch;
     }).join('');
-    return mapped.replace(INPUT_NORMALIZE_RE, ' ');
+    return mapped
+        .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
+        .replace(INPUT_MULTI_SPACE_RE, ' ');
 }
 
 const makeWordComputer = (letterTable) => {
