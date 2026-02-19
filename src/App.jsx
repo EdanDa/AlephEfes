@@ -18,6 +18,13 @@ const HEB_FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
 const HYPHEN_RE = /[־–—\-]/g;
 const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
 const HEB_MARKS_RE = /[\u0591-\u05C7]/g;
+const INPUT_NORMALIZE_RE = /[,.\-:;]+| {2,}/g;
+
+const EN_TO_HE_MAP = Object.freeze({
+    q: '/', w: "'", e: 'ק', r: 'ר', t: 'א', y: 'ט', u: 'ו', i: 'ן', o: 'ם', p: 'פ',
+    '[': ']', ']': '[', a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע', h: 'י', j: 'ח', k: 'ל', l: 'ך', ';': 'ף', "'": ',',
+    z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ', ',': 'ת', '.': 'ץ', '/': '.'
+});
 
 // Combined Color Config: Darkened backgrounds for better visibility in light mode
 const LAYER_COLORS = {
@@ -220,6 +227,17 @@ function cleanHebrewToken(raw) {
   const s = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
   const letters = s.match(HEB_LETTER_RE);
   return letters ? letters.join('') : '';
+}
+
+function forceHebrewInput(raw) {
+    const withoutMarks = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
+    const mapped = Array.from(withoutMarks).map((ch) => {
+        const lower = ch.toLowerCase();
+        const mappedChar = EN_TO_HE_MAP[lower];
+        if (!mappedChar) return ch;
+        return ch === lower ? mappedChar : mappedChar.toUpperCase();
+    }).join('');
+    return mapped.replace(INPUT_NORMALIZE_RE, ' ');
 }
 
 const makeWordComputer = (letterTable) => {
@@ -750,7 +768,7 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectionValues, dispatch }) => {
+const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch }) => {
     const { filters } = useContext(AppContext);
     const isSelf = activeWord && activeWord.word === wordData.word;
     
@@ -840,16 +858,30 @@ const WordCard = memo(({ wordData, activeWord, isDarkMode, primeColor, connectio
     if (prev.wordData !== next.wordData) return false;
     if (prev.isDarkMode !== next.isDarkMode) return false;
     if (prev.primeColor !== next.primeColor) return false;
-    const prevActive = prev.activeWord;
-    const nextActive = next.activeWord;
-    if (prevActive === nextActive) return true;
-    if (!prevActive && !nextActive) return true;
-    if (!prevActive || !nextActive) return false;
-    return prevActive.word === nextActive.word;
+    if (prev.activeWordKey !== next.activeWordKey) {
+        const wasAffected = prev.isConnectedToActive || (prev.wordData.word === prev.activeWordKey);
+        const isAffected = next.isConnectedToActive || (next.wordData.word === next.activeWordKey);
+        return !wasAffected && !isAffected;
+    }
+    if (prev.isConnectedToActive !== next.isConnectedToActive) return false;
+    return true;
 });
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const activeWord = pinnedWord || hoveredWord;
+    const activeWordKey = activeWord?.word || null;
+    const connectedWordsSet = useMemo(() => {
+        if (!activeWord) return new Set();
+        const connected = new Set();
+        filteredWordsInView.forEach(({ words }) => {
+            words.forEach((wordData) => {
+                if (wordData.word !== activeWord.word && topConnectionLayer(activeWord, wordData)) {
+                    connected.add(wordData.word);
+                }
+            });
+        });
+        return connected;
+    }, [activeWord, filteredWordsInView]);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
@@ -883,6 +915,8 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                                     key={wordData.word}
                                     wordData={wordData}
                                     activeWord={activeWord}
+                                    activeWordKey={activeWordKey}
+                                    isConnectedToActive={connectedWordsSet.has(wordData.word)}
                                     isDarkMode={isDarkMode}
                                     primeColor={primeColor}
                                     connectionValues={connectionValues}
@@ -2071,7 +2105,7 @@ const App = () => {
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>א:1</button>
                             </div>
                         </div>
-                        <textarea dir="rtl" id="text-input" className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`} rows="5" value={text} onChange={(e) => dispatch({ type: 'SET_TEXT', payload: e.target.value })} placeholder="הזן טקסט לניתוח"></textarea>
+                        <textarea dir="rtl" id="text-input" className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`} rows="5" value={text} onChange={(e) => dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(e.target.value) })} placeholder="הזן טקסט לניתוח"></textarea>
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
                         </div>
