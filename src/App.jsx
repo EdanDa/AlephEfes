@@ -1,90 +1,42 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
-
-// -----------------------------------------------------------------------------
-// 1. Context Definitions
-// -----------------------------------------------------------------------------
-const AppContext = createContext(null);
-const AppDispatchContext = createContext(null);
-
-// -----------------------------------------------------------------------------
-// 2. Constants & Styles
-// -----------------------------------------------------------------------------
-const BASE_LETTER_VALUES = {
-	'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10,
-	'כ': 11, 'ל': 12, 'מ': 13, 'נ': 14, 'ס': 15, 'ע': 16, 'פ': 17, 'צ': 18, 'ק': 19,
-	'ר': 20, 'ש': 21, 'ת': 22,
-};
-const HEB_FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
-const HYPHEN_RE = /[־–—\-]/g;
-const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
-// Hebrew cantillation + nikkud marks (intentionally excludes maqaf U+05BE)
-const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
-// Includes Hebrew maqaf (U+05BE): "־"
-const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
-const INPUT_MULTI_SPACE_RE = / {2,}/g;
-
-const EN_TO_HE_MAP = Object.freeze({
-    q: '/', w: "'", e: 'ק', r: 'ר', t: 'א', y: 'ט', u: 'ו', i: 'ן', o: 'ם', p: 'פ',
-    '[': ']', ']': '[', a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע', h: 'י', j: 'ח', k: 'ל', l: 'ך',
-    z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ'
-});
-
-// Combined Color Config: Darkened backgrounds for better visibility in light mode
-const LAYER_COLORS = {
-	U: { 
-        light: 'hsl(210, 70%, 85%)', // Darker pastel blue
-        dark: 'hsl(210, 30%, 25%)', 
-        dot: 'hsl(210, 100%, 40%)', 
-        strokeLight: '#0284c7',      
-        strokeDark: '#38bdf8'        
-    }, 
-	T: { 
-        light: 'hsl(140, 60%, 85%)', // Darker pastel green
-        dark: 'hsl(140, 30%, 22%)', 
-        dot: 'hsl(140, 100%, 30%)', 
-        strokeLight: '#059669',      
-        strokeDark: '#34d399'
-    }, 
-	H: { 
-        light: 'hsl(280, 65%, 88%)', // Darker pastel purple
-        dark: 'hsl(280, 25%, 28%)', 
-        dot: 'hsl(280, 100%, 45%)', 
-        strokeLight: '#9333ea',      
-        strokeDark: '#c084fc'
-    }, 
-};
-
-const LAYER_PRIORITY = ['H','T','U'];
-const COLOR_PALETTE = {
-    red: { light: 'text-red-600', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-600', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-600', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-600', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-600', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-600', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-600', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
-};
-const PRIME_COLOR_HEX = {
-    yellow: '#EAB308',
-    red: '#EF4444',
-    emerald: '#10B981',
-    sky: '#0EA5E9',
-    pink: '#EC4899',
-    purple: '#A855F7',
-    orange: '#F97316',
-};
-const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect, memo } from 'react';
+import VirtualizedList from './components/VirtualizedList';
+import {
+    BASE_LETTER_VALUES,
+    HEB_FINALS,
+    COLOR_PALETTE,
+    DEFAULT_DR_ORDER,
+    LAYER_COLORS,
+    PRIME_COLOR_HEX,
+    availableLayers,
+    buildLetterTable,
+    forceHebrewInput,
+    getLetterDetails,
+    getWordValues,
+    isValueVisible,
+    isWordVisible,
+    layersMatching,
+    strongestLayer,
+    topConnectionLayer,
+} from './core/analysisCore';
+import {
+    AppProvider,
+    useAppClipboard,
+    useAppCoreState,
+    useAppDispatch,
+    useAppFilters,
+    useAppStats,
+} from './state/appStore';
 
 const GlobalStyles = () => (
-	<style>{`
-		html { overflow-y: scroll; }
-		::-webkit-scrollbar { width: 8px; }
-		::-webkit-scrollbar-track { background: #f1f5f9; }
-		::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
-		::-webkit-scrollbar-thumb:hover { background: #64748b; }
-		.dark ::-webkit-scrollbar-track { background: #1f2937; }
-		.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-		.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    <style>{`
+        html { overflow-y: scroll; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .dark ::-webkit-scrollbar-track { background: #1f2937; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         body {
             -webkit-user-select: none;
             user-select: none;
@@ -94,356 +46,8 @@ const GlobalStyles = () => (
             user-select: text;
             cursor: auto;
         }
-	`}</style>
+    `}</style>
 );
-
-// -----------------------------------------------------------------------------
-// 3. Logic Helpers & Calculators
-// -----------------------------------------------------------------------------
-const MAX_SIEVE_SIZE = 20_000_000;
-let sieveArr = new Uint8Array(256);
-sieveArr[0] = 0; sieveArr[1] = 0;
-for(let i=2; i<256; i++) sieveArr[i]=1;
-for(let p=2; p*p<256; p++) { if(sieveArr[p]) { for(let i=p*p; i<256; i+=p) sieveArr[i]=0; } }
-
-function growSieveTo(limit) {
-    if (limit < sieveArr.length) return;
-    if (limit > MAX_SIEVE_SIZE) return; 
-    const target = Math.min(Math.max(limit, (sieveArr.length - 1) * 2), MAX_SIEVE_SIZE);
-    const oldLen = sieveArr.length;
-    const next = new Uint8Array(target + 1);
-    next.set(sieveArr);
-    next.fill(1, Math.max(2, oldLen));
-    const sqrtTarget = Math.sqrt(target);
-    for (let p = 2; p <= sqrtTarget; p++) {
-        if (next[p] === 0) continue;
-        let start = p * p;
-        if (start < oldLen) start = Math.ceil(oldLen / p) * p;
-        for (let i = start; i <= target; i += p) next[i] = 0;
-    }
-    sieveArr = next;
-}
-
-const isPrimeExpand = (num) => {
-	if (num < 2) return false;
-    if (num > MAX_SIEVE_SIZE) {
-        if (num % 2 === 0) return false;
-        const sqrt = Math.sqrt(num);
-        for(let i = 3; i <= sqrt; i+=2) if (num % i === 0) return false;
-        return true;
-    }
-	if (num >= sieveArr.length) growSieveTo(num);
-	return sieveArr[num] === 1;
-};
-
-const getDigitalRoot = (n) => n === 0 ? 0 : 1 + ((n - 1) % 9);
-
-// Performance Optimization: Reduced allocation overhead by using direct checks and reusable logic
-const layersMatching = (hovered, current) => {
-	if (!hovered || !current) return [];
-	const matches = [];
-    
-    // We check which layer of 'current' (the target word) matches ANY layer of 'hovered' (the active word)
-    const hU = hovered.units, hT = hovered.tens, hH = hovered.hundreds;
-    const cU = current.units, cT = current.tens, cH = current.hundreds;
-
-    if (cU === hU || cU === hT || cU === hH) matches.push('U');
-    if (cT === hU || cT === hT || cT === hH) matches.push('T');
-    if (cH === hU || cH === hT || cH === hH) matches.push('H');
-
-	return matches;
-}
-
-const strongestLayer = (matchLayers) => LAYER_PRIORITY.find(L => matchLayers.includes(L)) || null;
-
-const LAYERS_U = Object.freeze(['U']);
-const LAYERS_UT = Object.freeze(['U','T']);
-const LAYERS_UTH = Object.freeze(['U','T','H']);
-const availableLayers = (w) => {
-	if (w.tens === w.units) return LAYERS_U;
-	if (w.hundreds === w.tens) return LAYERS_UT;
-	return LAYERS_UTH;
-};
-
-const topConnectionLayer = (source, target) => {
-	if (!source || !target) return null;
-	const hits = layersMatching(source, target);
-	if (!hits.length) return null;
-    
-    const sU = source.units, sT = source.tens, sH = source.hundreds;
-    const tU = target.units, tT = target.tens, tH = target.hundreds;
-    
-    const sourceLayers = [];
-    if (sH === tU || sH === tT || sH === tH) sourceLayers.push('H');
-    if (sT === tU || sT === tT || sT === tH) sourceLayers.push('T');
-    if (sU === tU || sU === tT || sU === tH) sourceLayers.push('U');
-
-	return strongestLayer(sourceLayers);
-};
-
-const buildLetterTable = (mode) => {
-	const table = new Map();
-	const letters = Object.keys(BASE_LETTER_VALUES);
-	for (const ch of letters) {
-		const m = BASE_LETTER_VALUES[ch]; 
-		const n = m - 1; 
-		let u, t, h;
-		if (mode === 'aleph-zero') {
-			u = n;
-			t = n <= 9 ? n : 10 * (n - 9);
-			if (n <= 10) h = n;
-			else if (n <= 19) h = 10 * (n - 9);
-			else h = 100 * (n - 18);
-		} else { 
-			u = m;
-			if (m <= 10) { t = m; h = m; } 
-			else {
-				t = (m - 9) * 10;
-				h = m <= 19 ? t : (m - 18) * 100;
-			}
-		}
-		table.set(ch, { u, t, h });
-	}
-	for (const [f, baseCh] of Object.entries(HEB_FINALS)) {
-		const r = table.get(baseCh);
-		if (r) table.set(f, { ...r });
-	}
-	return table;
-};
-
-const letterDetailsCache = new Map();
-const getLetterDetails = (word, letterTable) => {
-	const modeKey = letterTable.get('א')?.u === 0 ? '0' : '1';
-	const key = modeKey + '|' + word;
-	const hit = letterDetailsCache.get(key);
-	if (hit) return hit;
-	const details = [];
-	for (const ch of word) {
-		const rec = letterTable.get(ch);
-		if (rec) details.push({ char: ch, value: rec.u });
-	}
-	letterDetailsCache.set(key, details);
-	return details;
-};
-
-function cleanHebrewToken(raw) {
-  const s = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
-  const letters = s.match(HEB_LETTER_RE);
-  return letters ? letters.join('') : '';
-}
-
-function forceHebrewInput(raw) {
-    const withoutMarks = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
-    const mapped = Array.from(withoutMarks).map((ch) => {
-        const lower = ch.toLowerCase();
-        const mappedChar = EN_TO_HE_MAP[lower];
-        return mappedChar || ch;
-    }).join('');
-    return mapped
-        .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
-        .replace(INPUT_MULTI_SPACE_RE, ' ');
-}
-
-const makeWordComputer = (letterTable) => {
-	const cache = new Map();
-    const computer = (rawWord) => {
-        const it = cleanHebrewToken(rawWord);
-        if (!it) return null;
-
-        if (cache.has(it)) return cache.get(it);
-        
-		let u = 0, t = 0, h = 0;
-		let builtWord = "";
-        let maxU = -Infinity;
-        
-		for (const ch of it) {
-			const rec = letterTable.get(ch);
-			if (!rec) continue; 
-			builtWord += ch;
-			u += rec.u; t += rec.t; h += rec.h;
-            if (rec.u > maxU) maxU = rec.u;
-		}
-        
-		if (builtWord.length === 0) { cache.set(it, null); return null; }
-        
-        const dr = getDigitalRoot(u);
-        const maxLayer = (maxU > 19) ? 'H' : (maxU > 10) ? 'T' : 'U';
-		const res = {
-			word: builtWord, 
-			units: u, tens: t, hundreds: h, dr,
-			isPrimeU: isPrimeExpand(u),
-			isPrimeT: t !== u && isPrimeExpand(t),
-			isPrimeH: h !== t && isPrimeExpand(h),
-			maxLayer
-		};
-		cache.set(it, res);
-		return res;
-	};
-    computer.clear = () => cache.clear();
-    return computer;
-};
-
-const memoizedComputers = {
-	'aleph-zero': makeWordComputer(buildLetterTable('aleph-zero')),
-	'aleph-one': makeWordComputer(buildLetterTable('aleph-one')),
-};
-
-function computeCoreResults(text, mode) {
-    letterDetailsCache.clear();
-    memoizedComputers[mode].clear();
-	const lines = text.split('\n').filter(l => l.trim().length);
-	const computeWord = memoizedComputers[mode];
-	const allWordsMap = new Map();
-	const primeSummary = [];
-	const calculatedLines = [];
-	const wordCounts = new Map();
-	const drDistribution = new Uint32Array(10);
-	
-	let grandU = 0, grandT = 0, grandH = 0;
-	let totalWordCount = 0;
-
-	for (let li = 0; li < lines.length; li++) {
-		const lineWithSpacesForHyphens = lines[li].replace(HYPHEN_RE, ' ');
-		const words = lineWithSpacesForHyphens.split(/\s+/).filter(Boolean);
-		let lineU = 0, lineT = 0, lineH = 0;
-		const calcWords = [];
-		let lineMaxLayer = 'U';
-
-		for (const raw of words) {
-			const wd = computeWord(raw);
-			if (!wd) continue;
-			totalWordCount++;
-			calcWords.push(wd);
-			lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
-			if (wd.maxLayer === 'H') lineMaxLayer = 'H';
-			else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
-
-			if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
-			drDistribution[wd.dr]++;
-			wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
-		}
-		grandU += lineU; grandT += lineT; grandH += lineH;
-		growSieveTo(Math.max(lineU, lineT, lineH));
-		const isPrimeLineU = isPrimeExpand(lineU);
-		const isPrimeLineT = lineT !== lineU && isPrimeExpand(lineT);
-		const isPrimeLineH = lineH !== lineT && isPrimeExpand(lineH);
-		const linePrimes = {};
-		if (isPrimeLineU) { if (!linePrimes[lineU]) linePrimes[lineU] = []; linePrimes[lineU].push('אחדות'); }
-		if (isPrimeLineT) { if (!linePrimes[lineT]) linePrimes[lineT] = []; linePrimes[lineT].push('עשרות'); }
-		if (isPrimeLineH) { if (!linePrimes[lineH]) linePrimes[lineH] = []; linePrimes[lineH].push('מאות'); }
-		for (const [value, layers] of Object.entries(linePrimes)) {
-				primeSummary.push({ line: li + 1, value: parseInt(value), layers });
-		}
-		calculatedLines.push({
-			lineText: lines[li],
-			words: calcWords,
-			totals: { units: lineU, tens: lineT, hundreds: lineH },
-			totalsDR: getDigitalRoot(lineU),
-			isPrimeTotals: { U: isPrimeLineU, T: isPrimeLineT, H: isPrimeLineH },
-			lineMaxLayer
-		});
-	}
-	growSieveTo(Math.max(grandU, grandT, grandH));
-	const grandTotals = {
-		units: grandU, tens: grandT, hundreds: grandH,
-		dr: getDigitalRoot(grandU),
-		isPrime: { U: isPrimeExpand(grandU), T: isPrimeExpand(grandT), H: isPrimeExpand(grandH) },
-	};
-	return {
-		lines: calculatedLines, grandTotals, primeSummary,
-		allWords: Array.from(allWordsMap.values()),
-        wordDataMap: allWordsMap,
-		drDistribution, totalWordCount, wordCounts
-	};
-}
-
-const isValueVisible = (layer, isPrime, filters) => {
-    if (!filters[layer]) return false;
-    if (filters.Prime && !isPrime) return false;
-    return true;
-};
-
-const getWordValues = ({ hundreds, tens, units, isPrimeH, isPrimeT, isPrimeU }) => {
-    const out = [];
-    if (hundreds !== tens) out.push({ value: hundreds, isPrime: isPrimeH, layer: 'H' });
-    if (tens !== units)       out.push({ value: tens,      isPrime: isPrimeT, layer: 'T' });
-    out.push({ value: units, isPrime: isPrimeU, layer: 'U' });
-    return out;
-};
-
-const isWordVisible = (word, filters) => {
-    const values = getWordValues(word);
-    return values.some(v => isValueVisible(v.layer, v.isPrime, filters));
-};
-
-// -----------------------------------------------------------------------------
-// 4. Initial State & Reducer
-// -----------------------------------------------------------------------------
-const initialState = {
-	text: "",
-	coreResults: null,
-	selectedDR: null,
-	isDarkMode: false,
-	searchTerm: '',
-	isValueTableOpen: false,
-	isValueTablePinned: false,
-	mode: 'aleph-zero',
-	copiedId: null,
-	view: 'clusters',
-	hoveredWord: null,
-	isPrimesCollapsed: true,
-	pinnedWord: null,
-	selectedHotValue: null,
-	hotWordsList: [],
-	isStatsCollapsed: true,
-	showScrollTop: false,
-	hotView: 'values',
-	detailsView: 'lines',
-	hotSort: { key: 'count', order: 'desc' },
-	expandedRows: {},
-	primeColor: 'yellow',
-    filters: { U: true, T: true, H: true, Prime: false }
-};
-
-function appReducer(state, action) {
-	switch (action.type) {
-		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null };
-		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
-		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
-		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
-		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
-		case 'SET_SEARCH_TERM': return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
-		case 'SET_HOVERED_WORD': return { ...state, hoveredWord: action.payload };
-		case 'SET_PINNED_WORD': return { ...state, pinnedWord: state.pinnedWord && state.pinnedWord.word === action.payload.word ? null : action.payload };
-		case 'UNPIN_WORD': return { ...state, pinnedWord: null, hoveredWord: null };
-		case 'SET_SELECTED_DR': 
-            const newSelectedDR = state.selectedDR === action.payload ? null : action.payload;
-            return { ...state, selectedDR: newSelectedDR, pinnedWord: null, searchTerm: '' };
-		case 'SET_COPIED_ID': return { ...state, copiedId: action.payload };
-		case 'TOGGLE_VALUE_TABLE': return { ...state, isValueTableOpen: !state.isValueTableOpen };
-		case 'TOGGLE_VALUE_TABLE_PIN': return { ...state, isValueTablePinned: !state.isValueTablePinned, isValueTableOpen: true };
-		case 'SET_VALUE_TABLE_OPEN': return { ...state, isValueTableOpen: action.payload };
-        case 'CLOSE_VALUE_TABLE': return { ...state, isValueTableOpen: false, isValueTablePinned: false };
-		case 'TOGGLE_PRIMES_COLLAPSED': return { ...state, isPrimesCollapsed: !state.isPrimesCollapsed };
-		case 'TOGGLE_STATS_COLLAPSED': return { ...state, isStatsCollapsed: !state.isStatsCollapsed };
-		case 'SET_SHOW_SCROLL_TOP': return { ...state, showScrollTop: action.payload };
-		case 'SET_HOT_VIEW': return { ...state, hotView: action.payload };
-		case 'SET_DETAILS_VIEW': return { ...state, detailsView: action.payload };
-		case 'SET_HOT_SORT': return { ...state, hotSort: state.hotSort.key === action.payload ? { ...state.hotSort, order: state.hotSort.order === 'desc' ? 'asc' : 'desc' } : { key: action.payload, order: 'desc' } };
-		case 'TOGGLE_ROW_EXPAND': return { ...state, expandedRows: { ...state.expandedRows, [action.payload]: !state.expandedRows[action.payload] } };
-		case 'TOGGLE_ALL_ROWS':
-			const areAllExpanded = state.coreResults && Object.keys(state.expandedRows).length === state.coreResults.lines.length && Object.values(state.expandedRows).every(v => v);
-			if (areAllExpanded) return { ...state, expandedRows: {} };
-			const allExpanded = {}; state.coreResults.lines.forEach((_, index) => { allExpanded[index] = true; });
-			return { ...state, expandedRows: allExpanded };
-		case 'SET_PRIME_COLOR': return { ...state, primeColor: action.payload };
-		case 'SET_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: action.payload.value, hotWordsList: action.payload.list };
-		case 'CLEAR_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: null, hotWordsList: [] };
-        case 'TOGGLE_FILTER':
-            return { ...state, filters: { ...state.filters, [action.payload]: !state.filters[action.payload] } };
-		default: throw new Error(`Unhandled action type: ${action.type}`);
-	}
-}
 
 // -----------------------------------------------------------------------------
 // 5. Basic UI Components
@@ -468,8 +72,8 @@ const Icon = React.memo(({ name, className }) => {
 });
 
 const Legend = React.memo(() => {
-    const { primeColor, filters } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { primeColor, filters } = useAppFilters();
+    const dispatch = useAppDispatch();
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
 
@@ -550,36 +154,6 @@ const Legend = React.memo(() => {
     );
 });
 
-const VirtualizedList = React.memo(({ items, itemHeight, listHeight, renderItem, getKey }) => {
-	const [scrollTop, setScrollTop] = useState(0);
-	const rafId = useRef(null);
-	const handleScroll = (e) => {
-		const y = e.currentTarget.scrollTop;
-		if (rafId.current) cancelAnimationFrame(rafId.current);
-		rafId.current = requestAnimationFrame(() => setScrollTop(y));
-	};
-	useEffect(() => () => { if (rafId.current) cancelAnimationFrame(rafId.current); }, []);
-	const startIndex = Math.floor(scrollTop / itemHeight);
-	const visibleCount = Math.ceil(listHeight / itemHeight) + 2;
-	const endIndex = Math.min(startIndex + visibleCount, items.length);
-	const visibleItems = useMemo(() => items.slice(startIndex, endIndex), [items, startIndex, endIndex]);
-	const totalHeight = items.length * itemHeight;
-	const offsetY = startIndex * itemHeight;
-	return (
-		<div onScroll={handleScroll} className="noselect" style={{ height: listHeight, overflowY: 'auto', position: 'relative' }}>
-			<div style={{ height: totalHeight }}>
-				<div style={{ transform: `translateY(${offsetY}px)` }}>
-					{visibleItems.map((item, idx) => (
-						<div key={getKey ? getKey(item) : (item?.value ?? item?.word ?? (startIndex + idx))}>
-							{renderItem(item)}
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
-});
-
 const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
@@ -604,7 +178,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
 });
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
-    const { filters } = useContext(AppContext);
+    const { filters } = useAppFilters();
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const values = getWordValues(wordData);
     
@@ -654,8 +228,8 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
 });
 
 const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
-    const { copiedId } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { copiedId } = useAppClipboard();
+    const dispatch = useAppDispatch();
     const [isCopying, setIsCopying] = useState(false);
 
     const handleCopy = async () => {
@@ -736,8 +310,8 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
 };
 
 const StatsPanel = memo(() => {
-    const { stats, isStatsCollapsed, isDarkMode, connectionValues } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { stats, isStatsCollapsed, isDarkMode, connectionValues } = useAppStats();
+    const dispatch = useAppDispatch();
     if (!stats) return null;
 
     const colorClasses = {
@@ -773,7 +347,7 @@ const StatsPanel = memo(() => {
 });
 
 const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch }) => {
-    const { filters } = useContext(AppContext);
+    const { filters } = useAppFilters();
     const isSelf = activeWord && activeWord.word === wordData.word;
     
     // Background color determination (for connected words)
@@ -835,7 +409,9 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
         background: tint,
         opacity: activeWord && !topLayer && !isSelf ? 0.35 : 1,
         border: `2px solid ${borderColor}`,
-        cursor: 'pointer'
+        cursor: 'pointer',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '84px',
     };
 
     const handleClick = (e) => {
@@ -910,6 +486,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         key={dr}
                         ref={el => (clusterRefs.current[dr] = el)}
                         className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
+                        style={{ contentVisibility: 'auto', containIntrinsicSize: '460px' }}
                         onClick={unpinOnBackgroundClick}
                     >
                         <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
@@ -934,6 +511,154 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         </div>
     );
 });
+
+const BARNES_HUT_MAX_DEPTH = 12;
+const BARNES_HUT_MIN_SIZE = 1e-3;
+
+const createQuadNode = (x, y, size, depth) => ({
+    x,
+    y,
+    size,
+    depth,
+    node: null,
+    bucket: null,
+    children: null,
+    mass: 0,
+    centerX: 0,
+    centerY: 0,
+});
+
+const addMassToQuad = (quad, point) => {
+    const nextMass = quad.mass + 1;
+    quad.centerX = (quad.centerX * quad.mass + point.x) / nextMass;
+    quad.centerY = (quad.centerY * quad.mass + point.y) / nextMass;
+    quad.mass = nextMass;
+};
+
+const getQuadChildIndex = (quad, point) => {
+    const midX = quad.x + quad.size / 2;
+    const midY = quad.y + quad.size / 2;
+    const isRight = point.x >= midX ? 1 : 0;
+    const isBottom = point.y >= midY ? 1 : 0;
+    return isRight + isBottom * 2;
+};
+
+const ensureQuadChildren = (quad) => {
+    if (quad.children) return;
+    const half = quad.size / 2;
+    quad.children = [
+        createQuadNode(quad.x, quad.y, half, quad.depth + 1),
+        createQuadNode(quad.x + half, quad.y, half, quad.depth + 1),
+        createQuadNode(quad.x, quad.y + half, half, quad.depth + 1),
+        createQuadNode(quad.x + half, quad.y + half, half, quad.depth + 1),
+    ];
+};
+
+const insertPointToQuad = (quad, point) => {
+    addMassToQuad(quad, point);
+
+    if (quad.children) {
+        const idx = getQuadChildIndex(quad, point);
+        insertPointToQuad(quad.children[idx], point);
+        return;
+    }
+
+    if (!quad.node && !quad.bucket) {
+        quad.node = point;
+        return;
+    }
+
+    if (quad.depth >= BARNES_HUT_MAX_DEPTH || quad.size <= BARNES_HUT_MIN_SIZE) {
+        if (!quad.bucket) {
+            quad.bucket = [];
+            if (quad.node) {
+                quad.bucket.push(quad.node);
+                quad.node = null;
+            }
+        }
+        quad.bucket.push(point);
+        return;
+    }
+
+    const existing = quad.node;
+    quad.node = null;
+    ensureQuadChildren(quad);
+    if (existing) {
+        const existingIdx = getQuadChildIndex(quad, existing);
+        insertPointToQuad(quad.children[existingIdx], existing);
+    }
+    const idx = getQuadChildIndex(quad, point);
+    insertPointToQuad(quad.children[idx], point);
+};
+
+const buildQuadTree = (points) => {
+    if (!points.length) return null;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const point of points) {
+        if (point.x < minX) minX = point.x;
+        if (point.y < minY) minY = point.y;
+        if (point.x > maxX) maxX = point.x;
+        if (point.y > maxY) maxY = point.y;
+    }
+
+    const span = Math.max(maxX - minX, maxY - minY) || 1;
+    const padding = span * 0.05 + 1;
+    const root = createQuadNode(minX - padding, minY - padding, span + padding * 2, 0);
+
+    for (const point of points) insertPointToQuad(root, point);
+    return root;
+};
+
+const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
+    if (!quad || quad.mass === 0) return;
+
+    if (!quad.children) {
+        if (quad.bucket) {
+            for (const other of quad.bucket) {
+                if (other === point) continue;
+                const dx = point.x - other.x;
+                const dy = point.y - other.y;
+                const distSq = dx * dx + dy * dy + 1e-6;
+                const invDist = 1 / Math.sqrt(distSq);
+                const force = (repulsion * alpha) / distSq;
+                point.vx += dx * invDist * force;
+                point.vy += dy * invDist * force;
+            }
+            return;
+        }
+
+        if (!quad.node || quad.node === point) return;
+        const dx = point.x - quad.node.x;
+        const dy = point.y - quad.node.y;
+        const distSq = dx * dx + dy * dy + 1e-6;
+        const invDist = 1 / Math.sqrt(distSq);
+        const force = (repulsion * alpha) / distSq;
+        point.vx += dx * invDist * force;
+        point.vy += dy * invDist * force;
+        return;
+    }
+
+    const dx = point.x - quad.centerX;
+    const dy = point.y - quad.centerY;
+    const distSq = dx * dx + dy * dy + 1e-6;
+    const sizeSq = quad.size * quad.size;
+
+    if (sizeSq / distSq < thetaSq) {
+        const invDist = 1 / Math.sqrt(distSq);
+        const force = (repulsion * quad.mass * alpha) / distSq;
+        point.vx += dx * invDist * force;
+        point.vy += dy * invDist * force;
+        return;
+    }
+
+    for (const child of quad.children) {
+        applyBarnesHutRepulsion(point, child, repulsion, alpha, thetaSq);
+    }
+};
 
 const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
@@ -1177,19 +902,34 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
         const tick = () => {
             const { width, height } = sizeRef;
             if (alpha > alphaMin) {
-                for (let i = 0; i < nodes.length; i++) {
-                    const a = nodes[i];
-                    for (let j = i + 1; j < nodes.length; j++) {
-                        const b = nodes[j];
-                        const dx = a.x - b.x;
-                        const dy = a.y - b.y;
-                        const distSq = dx * dx + dy * dy || 1;
-                        if (distSq > 250000) continue; 
-                        const force = (isLargeGraph ? 1000 : 2000) / distSq;
-                        const fx = (dx / Math.sqrt(distSq)) * force * alpha;
-                        const fy = (dy / Math.sqrt(distSq)) * force * alpha;
-                        a.vx += fx; a.vy += fy;
-                        b.vx -= fx; b.vy -= fy;
+                const useBarnesHut = nodes.length > 250;
+                if (useBarnesHut) {
+                    const repulsion = isLargeGraph ? 1000 : 2000;
+                    const thetaSq = isLargeGraph ? 0.8 * 0.8 : 0.65 * 0.65;
+                    const tree = buildQuadTree(nodes);
+                    if (tree) {
+                        for (const node of nodes) {
+                            applyBarnesHutRepulsion(node, tree, repulsion, alpha, thetaSq);
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < nodes.length; i += 1) {
+                        const a = nodes[i];
+                        for (let j = i + 1; j < nodes.length; j += 1) {
+                            const b = nodes[j];
+                            const dx = a.x - b.x;
+                            const dy = a.y - b.y;
+                            const distSq = dx * dx + dy * dy || 1;
+                            if (distSq > 250000) continue;
+                            const invDist = 1 / Math.sqrt(distSq);
+                            const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
+                            const fx = dx * invDist * force;
+                            const fy = dy * invDist * force;
+                            a.vx += fx;
+                            a.vy += fy;
+                            b.vx -= fx;
+                            b.vy -= fy;
+                        }
                     }
                 }
 
@@ -1436,6 +1176,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
 const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
+    const spatialRef = useRef({ cellSize: 24, grid: new Map() });
     const [hoverInfo, setHoverInfo] = useState(null);
 
     const dataPoints = useMemo(() => {
@@ -1472,12 +1213,31 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         return points;
     }, [coreResults, filters, selectedDR]);
 
+    const dataExtents = useMemo(() => {
+        let maxX = 0;
+        let maxY = 0;
+        for (const point of dataPoints) {
+            if (point.x > maxX) maxX = point.x;
+            if (point.y > maxY) maxY = point.y;
+        }
+        return { maxX, maxY: maxY * 1.1 };
+    }, [dataPoints]);
+
+    const sortedDataPoints = useMemo(() => [...dataPoints].sort((a, b) => b.radius - a.radius), [dataPoints]);
+
+    const wordLookup = useMemo(() => {
+        if (!coreResults) return new Map();
+        return new Map(coreResults.allWords.map((wordData) => [wordData.word, wordData]));
+    }, [coreResults]);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container || dataPoints.length === 0) return;
 
         const ctx = canvas.getContext('2d');
+        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+        const cellSize = 24;
 
         const render = () => {
             const width = container.clientWidth;
@@ -1488,16 +1248,16 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             canvas.height = height * dpr;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
-            const padding = { top: 20, right: 20, bottom: 40, left: 50 };
             const graphWidth = width - padding.left - padding.right;
             const graphHeight = height - padding.top - padding.bottom;
 
             ctx.clearRect(0, 0, width, height);
 
-            const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1; 
-            const maxX = Math.max(...dataPoints.map(p => p.x));
+            const maxY = dataExtents.maxY;
+            const maxX = dataExtents.maxX;
             
             // Safeguard against division by zero if empty or single point at 0
             if (maxX <= 0 || maxY <= 0) return;
@@ -1521,11 +1281,17 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.fillText(val, 5, y + 3);
             }
 
-            const sortedPoints = [...dataPoints].sort((a, b) => b.radius - a.radius);
+            const grid = new Map();
 
-            sortedPoints.forEach(p => {
+            sortedDataPoints.forEach((p) => {
                 const x = scaleX(p.x);
                 const y = scaleY(p.y);
+                const gx = Math.floor(x / cellSize);
+                const gy = Math.floor(y / cellSize);
+                const gridKey = `${gx}:${gy}`;
+                if (!grid.has(gridKey)) grid.set(gridKey, []);
+                grid.get(gridKey).push({ ...p, px: x, py: y });
+
                 const color = isDarkMode ? LAYER_COLORS[p.layer].light : LAYER_COLORS[p.layer].dark; 
                 
                 ctx.fillStyle = color;
@@ -1535,12 +1301,14 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.arc(x, y, p.radius, 0, 2 * Math.PI);
                 ctx.fill();
             });
+
+            spatialRef.current = { cellSize, grid };
         };
 
         render();
         window.addEventListener('resize', render);
         return () => window.removeEventListener('resize', render);
-    }, [dataPoints, isDarkMode, primeColor]);
+    }, [dataPoints, dataExtents, isDarkMode, primeColor, sortedDataPoints]);
 
     const handleInteraction = useCallback((e) => {
         const canvas = canvasRef.current;
@@ -1549,42 +1317,39 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        
-        const width = canvas.width / (window.devicePixelRatio || 1);
-        const height = canvas.height / (window.devicePixelRatio || 1);
-        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-        const graphWidth = width - padding.left - padding.right;
-        const graphHeight = height - padding.top - padding.bottom;
-        
-        const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1;
-        const maxX = Math.max(...dataPoints.map(p => p.x));
-        
-        if (maxX <= 0 || maxY <= 0) return; // Guard in interaction too
-
-        const scaleX = (x) => padding.left + (x / maxX) * graphWidth;
-        const scaleY = (y) => height - padding.bottom - (y / maxY) * graphHeight;
 
         let nearest = null;
-        let minDist = 20;
+        let minDistSq = 20 * 20;
 
-        for (const p of dataPoints) {
-            const px = scaleX(p.x);
-            const py = scaleY(p.y);
-            const dist = Math.sqrt((px - mouseX) ** 2 + (py - mouseY) ** 2);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = { ...p, px, py };
+        const { cellSize, grid } = spatialRef.current;
+        const gx = Math.floor(mouseX / cellSize);
+        const gy = Math.floor(mouseY / cellSize);
+
+        for (let ix = gx - 1; ix <= gx + 1; ix += 1) {
+            for (let iy = gy - 1; iy <= gy + 1; iy += 1) {
+                const bucket = grid.get(`${ix}:${iy}`);
+                if (!bucket) continue;
+
+                for (const point of bucket) {
+                    const dx = point.px - mouseX;
+                    const dy = point.py - mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < minDistSq) {
+                        minDistSq = distSq;
+                        nearest = point;
+                    }
+                }
             }
         }
 
         setHoverInfo(nearest);
         
         if (e.type === 'click' && nearest) {
-            const wordData = coreResults.allWords.find(w => w.word === nearest.word);
-            if(wordData) onWordClick(wordData);
+            const wordData = wordLookup.get(nearest.word);
+            if (wordData) onWordClick(wordData);
         }
 
-    }, [dataPoints, coreResults, onWordClick]);
+    }, [dataPoints, onWordClick, wordLookup]);
 
     return (
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
@@ -1636,8 +1401,8 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
 // -----------------------------------------------------------------------------
 const App = () => {
     // ... Context and Effects ...
-    const state = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const state = useAppCoreState();
+    const dispatch = useAppDispatch();
     const {
         text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
         mode, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
@@ -1711,18 +1476,42 @@ const App = () => {
         return clusters;
     }, [coreResults, view]);
 
-    const hotValuesList = useMemo(() => {
-        if (!valueToWordsMap) return [];
-        const arr = [];
+    const isVisibleWord = useCallback(
+        (wordData) => isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR),
+        [filters, selectedDR]
+    );
+
+    const visibleAllWords = useMemo(() => {
+        if (!coreResults) return [];
+        return coreResults.allWords.filter(isVisibleWord);
+    }, [coreResults, isVisibleWord]);
+
+    const visibleWordsByLine = useMemo(() => {
+        if (!coreResults) return [];
+        return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
+    }, [coreResults, isVisibleWord]);
+
+    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, filters)), [hotWordsList, filters]);
+
+    const visibleValueToWordsMap = useMemo(() => {
+        if (!valueToWordsMap) return new Map();
+        const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
-            const visibleWords = words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-            if (visibleWords.length > 0) {
-                 const uniqueWordsCount = new Set(visibleWords.map(w => w.word)).size;
-                 arr.push({ value, count: uniqueWordsCount });
-            }
+            const visible = words.filter(isVisibleWord);
+            if (visible.length > 0) map.set(value, visible);
+        }
+        return map;
+    }, [valueToWordsMap, isVisibleWord]);
+
+    const hotValuesList = useMemo(() => {
+        if (!visibleValueToWordsMap) return [];
+        const arr = [];
+        for (const [value, visibleWords] of visibleValueToWordsMap.entries()) {
+            const uniqueWordsCount = new Set(visibleWords.map((w) => w.word)).size;
+            arr.push({ value, count: uniqueWordsCount });
         }
         return arr;
-    }, [valueToWordsMap, filters, selectedDR]);
+    }, [visibleValueToWordsMap]);
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
@@ -1730,11 +1519,11 @@ const App = () => {
         return Array.from(coreResults.wordCounts.entries())
             .filter(([word]) => {
                  const wordData = wordMap.get(word);
-                 return wordData && isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR);
+                 return wordData && isVisibleWord(wordData);
             })
             .map(([word, count]) => ({ word, count }))
             .sort((a, b) => b.count - a.count);
-    }, [coreResults, filters, selectedDR]);
+    }, [coreResults, isVisibleWord]);
 
     const sortedHotViewList = useMemo(() => {
         if (hotView === 'words') {
@@ -1773,7 +1562,7 @@ const App = () => {
             });
         }
         
-        filteredWords = filteredWords.filter(w => isWordVisible(w, filters));
+        filteredWords = filteredWords.filter(isVisibleWord);
 
         const regrouped = {};
         filteredWords.forEach(word => {
@@ -1781,18 +1570,18 @@ const App = () => {
             regrouped[word.dr].push(word);
         });
         return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, searchTerm, selectedDR, filters]);
+    }, [drClusters, view, searchTerm, selectedDR, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
             if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
             const relevantWords = [pinnedWord];
             Object.values(drClusters).flat().forEach(wordData => {
                  if (wordData.word !== pinnedWord.word && topConnectionLayer(pinnedWord, wordData)) {
-                     if (isWordVisible(wordData, filters)) relevantWords.push(wordData);
+                     if (isVisibleWord(wordData)) relevantWords.push(wordData);
                  }
             });
             return relevantWords;
-    }, [pinnedWord, view, drClusters, filters]);
+    }, [pinnedWord, view, drClusters, isVisibleWord]);
     
     // --- Data Preparation for Export ---
     const prepareAllDetailsText = useCallback(() => {
@@ -1819,8 +1608,7 @@ const App = () => {
 
         if (detailsView === 'words') {
              lines.push("סיכום מילים ייחודיות\n-------------------\n");
-             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-             visibleWords.forEach(w => {
+             visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
                 if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`אחדות: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
@@ -1833,7 +1621,7 @@ const App = () => {
 
         lines.push("פירוט שורות\n-------------------\n");
         coreResults.lines.forEach((line, index) => {
-            const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+            const visibleWords = visibleWordsByLine[index] || [];
             if (visibleWords.length === 0) return;
 
             lines.push(`\nשורה ${index + 1}: "${line.lineText}"`);
@@ -1867,7 +1655,7 @@ const App = () => {
             });
         }
         return lines.filter(Boolean).join('\n');
-    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView]);
+    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView, visibleAllWords, visibleWordsByLine]);
 
     const prepareAllDetailsCSV = useCallback(() => {
         if (!coreResults) return "";
@@ -1875,8 +1663,7 @@ const App = () => {
         const rows = [];
         
         if (detailsView === 'words') {
-             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-             visibleWords.forEach(w => {
+             visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 rows.push([
                     "-",
@@ -1893,7 +1680,7 @@ const App = () => {
             });
         } else {
             coreResults.lines.forEach((line, idx) => {
-                const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+                const visibleWords = visibleWordsByLine[idx] || [];
                 visibleWords.forEach(w => {
                     const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                     rows.push([
@@ -1912,7 +1699,7 @@ const App = () => {
             });
         }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, letterTable, filters, selectedDR, detailsView]);
+    }, [coreResults, letterTable, filters, detailsView, visibleAllWords, visibleWordsByLine]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
@@ -1975,7 +1762,6 @@ const App = () => {
         if (!coreResults || selectedHotValue === null) return "";
         const primeU = (w) => w.isPrimeU ? " ♢" : "";
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n===================\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
-        const visibleHotWords = hotWordsList.filter(w => isWordVisible(w, filters));
         visibleHotWords.forEach(w => {
             let parts = [];
             if(isValueVisible('U', w.isPrimeU, filters)) parts.push(`אחדות: ${w.units}${primeU(w)}`);
@@ -1985,18 +1771,17 @@ const App = () => {
             lines.push(`${w.word} | ${valuesString} | ש"ד: ${w.dr}`);
         });
         return lines.join('\n');
-    }, [coreResults, selectedHotValue, mode, hotWordsList, filters]);
+    }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
     const prepareHotWordsCSV = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
         const header = ["מילה", "אחדות", "עשרות", "מאות", "ש\"ד"];
         const rows = [];
-        const visibleHotWords = hotWordsList.filter(w => isWordVisible(w, filters));
         visibleHotWords.forEach(w => {
             rows.push([w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : "", w.dr]);
         });
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, selectedHotValue, hotWordsList, filters]);
+    }, [coreResults, selectedHotValue, visibleHotWords]);
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
@@ -2006,7 +1791,7 @@ const App = () => {
             // USE SORTED LIST
             const arr = sortedHotViewList; 
             arr.forEach(({ value, count }) => {
-                 const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join(', ');
+                 const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ');
                  if(words) lines.push(`ערך: ${value} | כמות: ${count}\nמילים: ${words}\n`);
             });
         } else {
@@ -2015,7 +1800,7 @@ const App = () => {
             sortedHotViewList.forEach(({ word, count }) => lines.push(`מילה: ${word}, שכיחות: ${count}`));
         }
         return lines.join('\n');
-    }, [coreResults, mode, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, mode, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
     const prepareFrequenciesCSV = useCallback(() => {
         if (!coreResults) return "";
@@ -2025,7 +1810,7 @@ const App = () => {
             header = ["ערך", "כמות", "מילים"];
              // USE SORTED LIST
             sortedHotViewList.forEach(({ value, count }) => {
-                const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join('; ');
+                const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join('; ');
                 if(words) rows.push([value, count, `"${words}"`]); // quote words for CSV safety
             });
         } else {
@@ -2034,7 +1819,7 @@ const App = () => {
             sortedHotViewList.forEach(({ word, count }) => rows.push([word, count]));
         }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2209,11 +1994,15 @@ const App = () => {
                                     <div className="flex justify-end mb-4"><button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors noselect">{coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? 'קפל הכל' : 'פתח הכל'}</button></div>
                                     {coreResults.lines.map((lineResult, lineIndex) => {
                                         const isExpanded = !!expandedRows[lineIndex];
-                                        const visibleWords = lineResult.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+                                        const visibleWords = visibleWordsByLine[lineIndex] || [];
                                         if (visibleWords.length === 0) return null;
 
                                         return (
-                                            <div key={lineIndex} className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}>
+                                            <div
+                                                key={lineIndex}
+                                                className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}
+                                                style={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
+                                            >
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
                                                     <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{lineResult.lineText}"</p>
@@ -2238,7 +2027,7 @@ const App = () => {
                                                                 </tr>
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
-                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
+                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
                                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
@@ -2278,8 +2067,8 @@ const App = () => {
                                                     <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider rounded-l-lg">ש"ד</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>{coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map((res, index) => (
-                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
+                                            <tbody>{visibleAllWords.map((res, index) => (
+                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
@@ -2340,10 +2129,10 @@ const App = () => {
                                                 listHeight={384} 
                                                 getKey={(item) => item.value}
                                                 renderItem={({ value, count }) => (
-                                                    <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: valueToWordsMap.get(value) || [] } })}>
+                                                    <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
                                                         <div className="w-1/4 p-2 text-center">{count}</div>
-                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters)).map(w => w.word))].join(', ')}</div>
+                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
                                                     </div>
                                                 )}
                                             />
@@ -2355,7 +2144,7 @@ const App = () => {
                                                 <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
                                             </div>
                                             <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
-                                                {hotWordsList.filter(w => isWordVisible(w, filters)).map((wordData, index) => (
+                                                {visibleHotWords.map((wordData, index) => (
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
@@ -2419,104 +2208,6 @@ const App = () => {
                 )}
             </div>
         </div>
-    );
-};
-
-// -----------------------------------------------------------------------------
-// 9. App Provider & Wrapper
-// -----------------------------------------------------------------------------
-const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
-    const [isPending, startTransition] = useTransition();
-    const deferredText = useDeferredValue(state.text);
-    const versionRef = useRef(0);
-
-    useEffect(() => {
-        if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
-        
-        versionRef.current += 1;
-        const currentVersion = versionRef.current;
-        
-        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let timeoutId;
-        
-        const handler = () => {
-            timeoutId = requestIdle(() => {
-                startTransition(() => {
-                    const results = computeCoreResults(deferredText, state.mode);
-                    if (versionRef.current === currentVersion) {
-                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-                    }
-                });
-            });
-        };
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const initialTimeout = setTimeout(handler, delay);
-        return () => { clearTimeout(initialTimeout); if (timeoutId) cancelIdle(timeoutId); };
-    }, [deferredText, state.mode]);
-
-    const stats = useMemo(() => {
-        if (!state.coreResults) return null;
-        const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
-        return {
-            totalLines: state.coreResults.lines.length,
-            totalWords: state.coreResults.totalWordCount,
-            uniqueWords: state.coreResults.allWords.length,
-            primeLineTotals: primeLineCount,
-            drDistribution: state.coreResults.drDistribution,
-        };
-    }, [state.coreResults]);
-
-    const valueToWordsMap = useMemo(() => {
-        if (!state.coreResults) return new Map();
-        const map = new Map();
-        state.coreResults.allWords.forEach(wd => {
-            const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
-            uniqueValues.forEach(v => {
-                if (!map.has(v)) map.set(v, []);
-                map.get(v).push(wd);
-            });
-        });
-        return map;
-    }, [state.coreResults]);
-
-    const connectionValues = useMemo(() => {
-         if (!state.coreResults) return new Set();
-         const visibleConnections = new Set();
-         
-         const valCounts = new Map(); 
-         
-         state.coreResults.allWords.forEach(w => {
-             const values = getWordValues(w);
-             values.forEach(v => {
-                 if (isValueVisible(v.layer, v.isPrime, state.filters)) {
-                     if (!valCounts.has(v.value)) valCounts.set(v.value, new Set());
-                     valCounts.get(v.value).add(w.word);
-                 }
-             });
-         });
-
-         for (const [val, wordSet] of valCounts.entries()) {
-             if (wordSet.size > 1) visibleConnections.add(val);
-         }
-         return visibleConnections;
-    }, [state.coreResults, state.filters]);
-
-    const contextValue = useMemo(() => ({ 
-        ...state, 
-        stats, 
-        valueToWordsMap, 
-        connectionValues,
-        isPending
-    }), [state, stats, valueToWordsMap, connectionValues, isPending]);
-
-    return (
-        <AppContext.Provider value={contextValue}>
-            <AppDispatchContext.Provider value={dispatch}>
-                {children}
-            </AppDispatchContext.Provider>
-        </AppContext.Provider>
     );
 };
 
