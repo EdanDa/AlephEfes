@@ -16,7 +16,6 @@ import {
     isWordVisible,
     layersMatching,
     strongestLayer,
-    topConnectionLayer,
 } from './core/analysisCore';
 import {
     AppProvider,
@@ -407,7 +406,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
     const cardStyle = {
         background: tint,
-        opacity: activeWord && !topLayer && !isSelf ? 0.35 : 1,
+        opacity: isSelf || topLayer ? 1 : activeWord ? 0.75 : 0.85,
         border: `2px solid ${borderColor}`,
         cursor: 'pointer',
         contentVisibility: 'auto',
@@ -448,20 +447,32 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 });
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
+    const { filters } = useAppFilters();
     const activeWord = pinnedWord || hoveredWord;
     const activeWordKey = activeWord?.word || null;
     const connectedWordsSet = useMemo(() => {
         if (!activeWord) return new Set();
+
+        const activeValues = new Set(
+            getWordValues(activeWord)
+                .filter((v) => isValueVisible(v.layer, v.isPrime, filters) && connectionValues.has(v.value))
+                .map((v) => v.value)
+        );
+        if (activeValues.size === 0) return new Set();
+
         const connected = new Set();
         filteredWordsInView.forEach(({ words }) => {
             words.forEach((wordData) => {
-                if (wordData.word !== activeWord.word && topConnectionLayer(activeWord, wordData)) {
-                    connected.add(wordData.word);
-                }
+                if (wordData.word === activeWord.word) return;
+                const hasSharedVisibleConnection = getWordValues(wordData).some(
+                    (v) => isValueVisible(v.layer, v.isPrime, filters) && activeValues.has(v.value)
+                );
+                if (hasSharedVisibleConnection) connected.add(wordData.word);
             });
         });
+
         return connected;
-    }, [activeWord, filteredWordsInView]);
+    }, [activeWord, filteredWordsInView, filters, connectionValues]);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
