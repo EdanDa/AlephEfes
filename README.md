@@ -43,12 +43,27 @@ npm run dev -- --host
 ## Structure
 
 ```
-├── index.html        – Vite entry point
+├── index.html
 ├── src/
-│   ├── App.jsx       – main calculator component
-│   └── main.jsx      – React DOM bootstrap
-├── package.json      – project metadata and scripts
-└── vite.config.js    – Vite + React configuration
+│   ├── App.jsx
+│   ├── main.jsx
+│   ├── components/
+│   │   └── VirtualizedList.jsx
+│   ├── core/
+│   │   └── analysisCore.js
+│   ├── state/
+│   │   ├── appReducer.js
+│   │   └── appStore.jsx
+│   └── workers/
+│       └── coreResults.worker.js
+├── tests/
+│   ├── analysisCore.test.js
+│   └── appReducer.test.js
+├── docs/
+│   └── demo.png
+├── package.json
+└── vite.config.js
+
 ```
 
 ---
