@@ -15,6 +15,15 @@ function useAppCoreDispatch() {
     return useContext(AppDispatchContext);
 }
 
+
+function useAppState() {
+    return useContext(AppContext);
+}
+
+function useAppDispatch() {
+    return useContext(AppDispatchContext);
+}
+
 // -----------------------------------------------------------------------------
 // 2. Constants & Styles
 // -----------------------------------------------------------------------------
