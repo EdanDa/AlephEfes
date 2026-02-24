@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"No tests configured\""
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "check": "npm run test && npm run build"
   },
   "dependencies": {
     "react": "^18.2.0",
