@@ -1,8 +1,18 @@
+const getInitialDarkMode = () => {
+    if (typeof window === 'undefined') return false;
+
+    const storedTheme = window.localStorage.getItem('alephTheme');
+    if (storedTheme === 'dark') return true;
+    if (storedTheme === 'light') return false;
+
+    return Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+};
+
 const initialState = {
     text: '',
     coreResults: null,
     selectedDR: null,
-    isDarkMode: false,
+    isDarkMode: getInitialDarkMode(),
     searchTerm: '',
     isValueTableOpen: false,
     isValueTablePinned: false,
