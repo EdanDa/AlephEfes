@@ -41,7 +41,6 @@ function appReducer(state, action) {
             return {
                 ...state,
                 text: action.payload,
-                coreResults: null,
                 pinnedWord: null,
                 selectedDR: null,
                 selectedHotValue: null,
