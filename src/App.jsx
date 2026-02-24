@@ -24,6 +24,31 @@ function useAppDispatch() {
     return useContext(AppDispatchContext);
 }
 
+function useAppFilters() {
+    const state = useAppState();
+    return {
+        filters: state?.filters,
+        primeColor: state?.primeColor,
+    };
+}
+
+function useAppClipboard() {
+    const state = useAppState();
+    return {
+        copiedId: state?.copiedId,
+    };
+}
+
+function useAppStats() {
+    const state = useAppState();
+    return {
+        stats: state?.stats,
+        isStatsCollapsed: state?.isStatsCollapsed,
+        isDarkMode: state?.isDarkMode,
+        connectionValues: state?.connectionValues,
+    };
+}
+
 // -----------------------------------------------------------------------------
 // 2. Constants & Styles
 // -----------------------------------------------------------------------------
