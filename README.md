@@ -81,15 +81,16 @@ The goal of this repository is not dogma but documentation: to provide transpare
 Requires Node.js 18+ and npm.
 
 ```bash
-
 git clone https://github.com/EdanDa/AlephEfes.git
 cd AlephEfes
 npm install
-npm run dev -- --host
-
+# Option 1 (recommended):
+npm start
+# Option 2:
+npm run dev
 ```
 
-The app runs on [http://localhost:5173](http://localhost:5173), styled with TailwindCSS (loaded via CDN).
+By default the app runs on [http://localhost:4173](http://localhost:4173) with `npm start` (or Vite default port 5173 with `npm run dev`), styled with TailwindCSS (loaded via CDN).
 It stores the last analysed text in `localStorage` for convenience.
 
 ---
