@@ -1427,7 +1427,20 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     }, []);
 
     const handleKeyDown = useCallback((e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const isMetaCombo = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+
+        if (isMetaCombo && key === 'a') {
+            e.preventDefault();
+            e.stopPropagation();
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+            textarea.focus();
+            textarea.setSelectionRange(0, textarea.value.length);
+            return;
+        }
+
+        if (isMetaCombo && key === 'enter') {
             e.preventDefault();
             commitChanges();
         }
