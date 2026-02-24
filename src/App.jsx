@@ -6,6 +6,15 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredVa
 const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
 
+// Backward-compatible hook aliases for older/local bundles that referenced previous names.
+function useAppCoreState() {
+    return useContext(AppContext);
+}
+
+function useAppCoreDispatch() {
+    return useContext(AppDispatchContext);
+}
+
 // -----------------------------------------------------------------------------
 // 2. Constants & Styles
 // -----------------------------------------------------------------------------
