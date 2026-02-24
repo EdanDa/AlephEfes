@@ -5,8 +5,10 @@
   "description": "🄰🄰 Hebrew Isopsephy – reproducible code and data for numeric-semantic analysis of the Hebrew Bible (isopsephy, digital-root tools, null-model tests).",
   "type": "module",
   "scripts": {
+    "start": "vite --host 0.0.0.0 --port 4173",
     "dev": "vite",
     "build": "vite build",
+    "prepreview": "vite build",
     "preview": "vite preview",
     "test": "node --test",
     "test:watch": "node --test --watch",

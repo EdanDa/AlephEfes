@@ -158,29 +158,18 @@ This is the central diagnostic: the system behaves less like “pick a gematria 
 
 ## Two extensions that became unavoidable
 
-### A) Orthography as an editorial operator (Aleph-pairs and name-morphisms)
+```bash
+git clone https://github.com/EdanDa/AlephEfes.git
+cd AlephEfes
+npm install
+# Option 1 (recommended):
+npm start
+# Option 2:
+npm run dev
+```
 
-Under א=0, Aleph-insertion creates **meaningful pairings** that read like categorical shifts rather than spelling noise:
-
-* **מלך / מלאך**
-* **שרה / אשרה** 
-* **אדם / דם**
-* **אמת / מת**
-* **בריה / בריאה**
-
-This supports a working view that the consonantal layer preserves not only “words” but also **scribal moves**—small orthographic edits that toggle category/status while leaving the numeric signature invariant.
-
-This also resonates with the biblical pattern of **name expansions involving ה/י/ו** (the YHWH letters, present in אברם → אברהם, שרי  → שרה, הושע → יהושע) in key identity moments—suggesting a second family of scribal operations: not only Aleph-silencing, but **YHWH-letter infusion** as a narrative/identity marker. 
-
-### B) The inherited “alphabetic API” hypothesis (human design → later unconscious inheritance)
-
-A coherent, non-mystical explanation emerges: 
-
-> The patterns are shaped by historically rooted choices. Human design is likely a significant factor, as scribal cultures intentionally embedded numerology into their lexicon with modular classes. Later generations inherited these choices unconsciously.
-
-On this view, the “API” is not supernatural—it is a **historical interface**: once the alphabet order, scribal numeracy (calendar + base-60 residues), and orthographic flexibility were in place, editors could **calibrate key names and lexemes** into privileged classes (like the solar 52 bucket), then canonization froze the results.
-
-The repository’s stance is therefore *operational*: treat א=0 as a minimal coordinate system that makes these inherited design pressures **measurable**.
+By default the app runs on [http://localhost:4173](http://localhost:4173) with `npm start` (or Vite default port 5173 with `npm run dev`), styled with TailwindCSS (loaded via CDN).
+It stores the last analysed text in `localStorage` for convenience.
 
 ---
 
