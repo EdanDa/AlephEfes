@@ -1989,16 +1989,23 @@ const App = () => {
     }, [showScrollTop, dispatch]);
 
     useEffect(() => {
-        const savedText = localStorage.getItem('alephCodeText');
+        let savedText = null;
+        try {
+            savedText = localStorage.getItem('alephCodeText');
+        } catch (_err) {
+            savedText = null;
+        }
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
     }, [dispatch]);
     
-    useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
     useEffect(() => {
-        localStorage.setItem('alephTheme', isDarkMode ? 'dark' : 'light');
-        document.documentElement.classList.toggle('dark', isDarkMode);
-        document.body.classList.toggle('dark', isDarkMode);
-    }, [isDarkMode]);
+        try {
+            localStorage.setItem('alephCodeText', text);
+        } catch (_err) {
+            // Ignore storage write failures (private mode / blocked storage)
+        }
+    }, [text]);
+    useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
 
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
