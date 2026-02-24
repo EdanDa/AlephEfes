@@ -1464,11 +1464,14 @@ const App = () => {
     useEffect(() => {
         const savedText = localStorage.getItem('alephCodeText');
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dispatch({ type: 'SET_DARK_MODE', payload: true });
     }, [dispatch]);
     
     useEffect(() => { localStorage.setItem('alephCodeText', text); }, [text]);
-    useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        localStorage.setItem('alephTheme', isDarkMode ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', isDarkMode);
+        document.body.classList.toggle('dark', isDarkMode);
+    }, [isDarkMode]);
 
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
