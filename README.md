@@ -224,7 +224,7 @@ MIT
 Developed by **Edan-David Eyon**  
 Independent researcher (Israel)  
 
-I have been pursuing independent study across philosophy, linguistics, history, and mathematics and more since 2011.  
+I have been pursuing independent study across philosophy, linguistics, history, mathematics and more since 2011.  
 The AlephEfes repository documents and shares a reproducible numeric–semantic framework for the Hebrew Bible and language, which might have been inherited/transported from Mesopotamian/Phoenician/Akkadian traditions.
 This repository is intended as an open, transparent resource for testing, replication, and dialogue.
 
