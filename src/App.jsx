@@ -1478,12 +1478,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        const isAllowedControlKey = [
-            'backspace', 'delete', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown',
-            'home', 'end', 'escape'
-        ].includes(key);
-
-        if (isAllowedControlKey || isMetaCombo) {
+        if (isMetaCombo || e.altKey || key === 'shift' || key === 'alt' || key === 'control' || key === 'meta') {
             return;
         }
 
@@ -1491,7 +1486,11 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        if (!/^[\u05d0-\u05ea]$/i.test(e.key)) {
+        if (e.key.length !== 1) {
+            return;
+        }
+
+        if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
     }, [commitChanges]);
