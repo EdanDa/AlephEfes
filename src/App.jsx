@@ -2762,10 +2762,110 @@ const App = () => {
     );
 };
 
-const WrappedApp = () => (
-	<AppProvider>
-		<App />
-	</AppProvider>
-);
+// -----------------------------------------------------------------------------
+// 9. App Provider & Wrapper
+// -----------------------------------------------------------------------------
+function AppProvider({ children }) {
+    const [state, dispatch] = useReducer(appReducer, initialState);
+    const [isPending, startTransition] = useTransition();
+    const deferredText = useDeferredValue(state.text);
+    const versionRef = useRef(0);
+
+    useEffect(() => {
+        if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
+        
+        versionRef.current += 1;
+        const currentVersion = versionRef.current;
+        
+        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
+        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
+        let timeoutId;
+        
+        const handler = () => {
+            timeoutId = requestIdle(() => {
+                startTransition(() => {
+                    const results = computeCoreResults(deferredText, state.mode);
+                    if (versionRef.current === currentVersion) {
+                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+                    }
+                });
+            });
+        };
+        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
+        const initialTimeout = setTimeout(handler, delay);
+        return () => { clearTimeout(initialTimeout); if (timeoutId) cancelIdle(timeoutId); };
+    }, [deferredText, state.mode]);
+
+    const stats = useMemo(() => {
+        if (!state.coreResults) return null;
+        const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
+        return {
+            totalLines: state.coreResults.lines.length,
+            totalWords: state.coreResults.totalWordCount,
+            uniqueWords: state.coreResults.allWords.length,
+            primeLineTotals: primeLineCount,
+            drDistribution: state.coreResults.drDistribution,
+        };
+    }, [state.coreResults]);
+
+    const valueToWordsMap = useMemo(() => {
+        if (!state.coreResults) return new Map();
+        const map = new Map();
+        state.coreResults.allWords.forEach(wd => {
+            const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
+            uniqueValues.forEach(v => {
+                if (!map.has(v)) map.set(v, []);
+                map.get(v).push(wd);
+            });
+        });
+        return map;
+    }, [state.coreResults]);
+
+    const connectionValues = useMemo(() => {
+         if (!state.coreResults) return new Set();
+         const visibleConnections = new Set();
+         
+         const valCounts = new Map(); 
+         
+         state.coreResults.allWords.forEach(w => {
+             const values = getWordValues(w);
+             values.forEach(v => {
+                 if (isValueVisible(v.layer, v.isPrime, state.filters)) {
+                     if (!valCounts.has(v.value)) valCounts.set(v.value, new Set());
+                     valCounts.get(v.value).add(w.word);
+                 }
+             });
+         });
+
+         for (const [val, wordSet] of valCounts.entries()) {
+             if (wordSet.size > 1) visibleConnections.add(val);
+         }
+         return visibleConnections;
+    }, [state.coreResults, state.filters]);
+
+    const contextValue = useMemo(() => ({ 
+        ...state, 
+        stats, 
+        valueToWordsMap, 
+        connectionValues,
+        isPending
+    }), [state, stats, valueToWordsMap, connectionValues, isPending]);
+
+    return (
+        <AppContext.Provider value={contextValue}>
+            <AppDispatchContext.Provider value={dispatch}>
+                {children}
+            </AppDispatchContext.Provider>
+        </AppContext.Provider>
+    );
+}
+
+function WrappedApp() {
+	return (
+		<AppProvider>
+			<App />
+		</AppProvider>
+	);
+}
 
 export default WrappedApp;
