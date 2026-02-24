@@ -1410,6 +1410,19 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
 const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
+    const commitTimerRef = useRef(null);
+
+    const clearCommitTimer = useCallback(() => {
+        if (commitTimerRef.current !== null) {
+            clearTimeout(commitTimerRef.current);
+            commitTimerRef.current = null;
+        }
+    }, []);
+
+    const commitChanges = useCallback(() => {
+        clearCommitTimer();
+        onTextChange(draftRef.current);
+    }, [clearCommitTimer, onTextChange]);
 
     useEffect(() => {
         draftRef.current = text;
@@ -1418,13 +1431,22 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         }
     }, [text]);
 
-    const commitChanges = useCallback(() => {
-        onTextChange(draftRef.current);
-    }, [onTextChange]);
+    useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
+
+    const scheduleCommit = useCallback((nextValue) => {
+        clearCommitTimer();
+        const debounceMs = nextValue.length === 0 ? 0 : 180;
+        commitTimerRef.current = setTimeout(() => {
+            commitTimerRef.current = null;
+            onTextChange(draftRef.current);
+        }, debounceMs);
+    }, [clearCommitTimer, onTextChange]);
 
     const handleChange = useCallback((e) => {
-        draftRef.current = e.target.value;
-    }, []);
+        const nextValue = e.target.value;
+        draftRef.current = nextValue;
+        scheduleCommit(nextValue);
+    }, [scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
