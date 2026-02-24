@@ -80,15 +80,15 @@ const PRIME_COLOR_HEX = {
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 const GlobalStyles = () => (
-	<style>{`
-		html { overflow-y: scroll; }
-		::-webkit-scrollbar { width: 8px; }
-		::-webkit-scrollbar-track { background: #f1f5f9; }
-		::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
-		::-webkit-scrollbar-thumb:hover { background: #64748b; }
-		.dark ::-webkit-scrollbar-track { background: #1f2937; }
-		.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-		.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    <style>{`
+        html { overflow-y: scroll; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .dark ::-webkit-scrollbar-track { background: #1f2937; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         body {
             -webkit-user-select: none;
             user-select: none;
@@ -98,7 +98,7 @@ const GlobalStyles = () => (
             user-select: text;
             cursor: auto;
         }
-	`}</style>
+    `}</style>
 );
 
 // -----------------------------------------------------------------------------
@@ -478,8 +478,8 @@ const Icon = React.memo(({ name, className }) => {
 });
 
 const Legend = React.memo(() => {
-    const { primeColor, filters } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { primeColor, filters } = useAppFilters();
+    const dispatch = useAppDispatch();
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
 
@@ -560,36 +560,6 @@ const Legend = React.memo(() => {
     );
 });
 
-const VirtualizedList = React.memo(({ items, itemHeight, listHeight, renderItem, getKey }) => {
-	const [scrollTop, setScrollTop] = useState(0);
-	const rafId = useRef(null);
-	const handleScroll = (e) => {
-		const y = e.currentTarget.scrollTop;
-		if (rafId.current) cancelAnimationFrame(rafId.current);
-		rafId.current = requestAnimationFrame(() => setScrollTop(y));
-	};
-	useEffect(() => () => { if (rafId.current) cancelAnimationFrame(rafId.current); }, []);
-	const startIndex = Math.floor(scrollTop / itemHeight);
-	const visibleCount = Math.ceil(listHeight / itemHeight) + 2;
-	const endIndex = Math.min(startIndex + visibleCount, items.length);
-	const visibleItems = useMemo(() => items.slice(startIndex, endIndex), [items, startIndex, endIndex]);
-	const totalHeight = items.length * itemHeight;
-	const offsetY = startIndex * itemHeight;
-	return (
-		<div onScroll={handleScroll} className="noselect" style={{ height: listHeight, overflowY: 'auto', position: 'relative' }}>
-			<div style={{ height: totalHeight }}>
-				<div style={{ transform: `translateY(${offsetY}px)` }}>
-					{visibleItems.map((item, idx) => (
-						<div key={getKey ? getKey(item) : (item?.value ?? item?.word ?? (startIndex + idx))}>
-							{renderItem(item)}
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
-});
-
 const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
@@ -614,7 +584,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
 });
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
-    const { filters } = useContext(AppContext);
+    const { filters } = useAppFilters();
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const values = getWordValues(wordData);
     
@@ -664,8 +634,8 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
 });
 
 const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
-    const { copiedId } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { copiedId } = useAppClipboard();
+    const dispatch = useAppDispatch();
     const [isCopying, setIsCopying] = useState(false);
 
     const handleCopy = async () => {
@@ -746,8 +716,8 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
 };
 
 const StatsPanel = memo(() => {
-    const { stats, isStatsCollapsed, isDarkMode, connectionValues } = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const { stats, isStatsCollapsed, isDarkMode, connectionValues } = useAppStats();
+    const dispatch = useAppDispatch();
     if (!stats) return null;
 
     const colorClasses = {
@@ -843,9 +813,11 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
     const cardStyle = {
         background: tint,
-        opacity: activeWord && !topLayer && !isSelf ? 0.35 : 1,
+        opacity: isSelf || topLayer ? 1 : activeWord ? 0.75 : 0.85,
         border: `2px solid ${borderColor}`,
-        cursor: 'pointer'
+        cursor: 'pointer',
+        contentVisibility: 'auto',
+        containIntrinsicSize: '84px',
     };
 
     const handleClick = (e) => {
@@ -882,6 +854,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 });
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
+    const { filters } = useAppFilters();
     const activeWord = pinnedWord || hoveredWord;
     const activeWordKey = activeWord?.word || null;
     const connectedWordsSet = useMemo(() => {
@@ -920,6 +893,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         key={dr}
                         ref={el => (clusterRefs.current[dr] = el)}
                         className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
+                        style={{ contentVisibility: 'auto', containIntrinsicSize: '460px' }}
                         onClick={unpinOnBackgroundClick}
                     >
                         <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
@@ -944,6 +918,154 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         </div>
     );
 });
+
+const BARNES_HUT_MAX_DEPTH = 12;
+const BARNES_HUT_MIN_SIZE = 1e-3;
+
+const createQuadNode = (x, y, size, depth) => ({
+    x,
+    y,
+    size,
+    depth,
+    node: null,
+    bucket: null,
+    children: null,
+    mass: 0,
+    centerX: 0,
+    centerY: 0,
+});
+
+const addMassToQuad = (quad, point) => {
+    const nextMass = quad.mass + 1;
+    quad.centerX = (quad.centerX * quad.mass + point.x) / nextMass;
+    quad.centerY = (quad.centerY * quad.mass + point.y) / nextMass;
+    quad.mass = nextMass;
+};
+
+const getQuadChildIndex = (quad, point) => {
+    const midX = quad.x + quad.size / 2;
+    const midY = quad.y + quad.size / 2;
+    const isRight = point.x >= midX ? 1 : 0;
+    const isBottom = point.y >= midY ? 1 : 0;
+    return isRight + isBottom * 2;
+};
+
+const ensureQuadChildren = (quad) => {
+    if (quad.children) return;
+    const half = quad.size / 2;
+    quad.children = [
+        createQuadNode(quad.x, quad.y, half, quad.depth + 1),
+        createQuadNode(quad.x + half, quad.y, half, quad.depth + 1),
+        createQuadNode(quad.x, quad.y + half, half, quad.depth + 1),
+        createQuadNode(quad.x + half, quad.y + half, half, quad.depth + 1),
+    ];
+};
+
+const insertPointToQuad = (quad, point) => {
+    addMassToQuad(quad, point);
+
+    if (quad.children) {
+        const idx = getQuadChildIndex(quad, point);
+        insertPointToQuad(quad.children[idx], point);
+        return;
+    }
+
+    if (!quad.node && !quad.bucket) {
+        quad.node = point;
+        return;
+    }
+
+    if (quad.depth >= BARNES_HUT_MAX_DEPTH || quad.size <= BARNES_HUT_MIN_SIZE) {
+        if (!quad.bucket) {
+            quad.bucket = [];
+            if (quad.node) {
+                quad.bucket.push(quad.node);
+                quad.node = null;
+            }
+        }
+        quad.bucket.push(point);
+        return;
+    }
+
+    const existing = quad.node;
+    quad.node = null;
+    ensureQuadChildren(quad);
+    if (existing) {
+        const existingIdx = getQuadChildIndex(quad, existing);
+        insertPointToQuad(quad.children[existingIdx], existing);
+    }
+    const idx = getQuadChildIndex(quad, point);
+    insertPointToQuad(quad.children[idx], point);
+};
+
+const buildQuadTree = (points) => {
+    if (!points.length) return null;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const point of points) {
+        if (point.x < minX) minX = point.x;
+        if (point.y < minY) minY = point.y;
+        if (point.x > maxX) maxX = point.x;
+        if (point.y > maxY) maxY = point.y;
+    }
+
+    const span = Math.max(maxX - minX, maxY - minY) || 1;
+    const padding = span * 0.05 + 1;
+    const root = createQuadNode(minX - padding, minY - padding, span + padding * 2, 0);
+
+    for (const point of points) insertPointToQuad(root, point);
+    return root;
+};
+
+const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
+    if (!quad || quad.mass === 0) return;
+
+    if (!quad.children) {
+        if (quad.bucket) {
+            for (const other of quad.bucket) {
+                if (other === point) continue;
+                const dx = point.x - other.x;
+                const dy = point.y - other.y;
+                const distSq = dx * dx + dy * dy + 1e-6;
+                const invDist = 1 / Math.sqrt(distSq);
+                const force = (repulsion * alpha) / distSq;
+                point.vx += dx * invDist * force;
+                point.vy += dy * invDist * force;
+            }
+            return;
+        }
+
+        if (!quad.node || quad.node === point) return;
+        const dx = point.x - quad.node.x;
+        const dy = point.y - quad.node.y;
+        const distSq = dx * dx + dy * dy + 1e-6;
+        const invDist = 1 / Math.sqrt(distSq);
+        const force = (repulsion * alpha) / distSq;
+        point.vx += dx * invDist * force;
+        point.vy += dy * invDist * force;
+        return;
+    }
+
+    const dx = point.x - quad.centerX;
+    const dy = point.y - quad.centerY;
+    const distSq = dx * dx + dy * dy + 1e-6;
+    const sizeSq = quad.size * quad.size;
+
+    if (sizeSq / distSq < thetaSq) {
+        const invDist = 1 / Math.sqrt(distSq);
+        const force = (repulsion * quad.mass * alpha) / distSq;
+        point.vx += dx * invDist * force;
+        point.vy += dy * invDist * force;
+        return;
+    }
+
+    for (const child of quad.children) {
+        applyBarnesHutRepulsion(point, child, repulsion, alpha, thetaSq);
+    }
+};
 
 const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
@@ -1187,19 +1309,34 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
         const tick = () => {
             const { width, height } = sizeRef;
             if (alpha > alphaMin) {
-                for (let i = 0; i < nodes.length; i++) {
-                    const a = nodes[i];
-                    for (let j = i + 1; j < nodes.length; j++) {
-                        const b = nodes[j];
-                        const dx = a.x - b.x;
-                        const dy = a.y - b.y;
-                        const distSq = dx * dx + dy * dy || 1;
-                        if (distSq > 250000) continue; 
-                        const force = (isLargeGraph ? 1000 : 2000) / distSq;
-                        const fx = (dx / Math.sqrt(distSq)) * force * alpha;
-                        const fy = (dy / Math.sqrt(distSq)) * force * alpha;
-                        a.vx += fx; a.vy += fy;
-                        b.vx -= fx; b.vy -= fy;
+                const useBarnesHut = nodes.length > 250;
+                if (useBarnesHut) {
+                    const repulsion = isLargeGraph ? 1000 : 2000;
+                    const thetaSq = isLargeGraph ? 0.8 * 0.8 : 0.65 * 0.65;
+                    const tree = buildQuadTree(nodes);
+                    if (tree) {
+                        for (const node of nodes) {
+                            applyBarnesHutRepulsion(node, tree, repulsion, alpha, thetaSq);
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < nodes.length; i += 1) {
+                        const a = nodes[i];
+                        for (let j = i + 1; j < nodes.length; j += 1) {
+                            const b = nodes[j];
+                            const dx = a.x - b.x;
+                            const dy = a.y - b.y;
+                            const distSq = dx * dx + dy * dy || 1;
+                            if (distSq > 250000) continue;
+                            const invDist = 1 / Math.sqrt(distSq);
+                            const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
+                            const fx = dx * invDist * force;
+                            const fy = dy * invDist * force;
+                            a.vx += fx;
+                            a.vy += fy;
+                            b.vx -= fx;
+                            b.vy -= fy;
+                        }
                     }
                 }
 
@@ -1446,6 +1583,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
 const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
+    const spatialRef = useRef({ cellSize: 24, grid: new Map() });
     const [hoverInfo, setHoverInfo] = useState(null);
 
     const dataPoints = useMemo(() => {
@@ -1482,12 +1620,31 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         return points;
     }, [coreResults, filters, selectedDR]);
 
+    const dataExtents = useMemo(() => {
+        let maxX = 0;
+        let maxY = 0;
+        for (const point of dataPoints) {
+            if (point.x > maxX) maxX = point.x;
+            if (point.y > maxY) maxY = point.y;
+        }
+        return { maxX, maxY: maxY * 1.1 };
+    }, [dataPoints]);
+
+    const sortedDataPoints = useMemo(() => [...dataPoints].sort((a, b) => b.radius - a.radius), [dataPoints]);
+
+    const wordLookup = useMemo(() => {
+        if (!coreResults) return new Map();
+        return new Map(coreResults.allWords.map((wordData) => [wordData.word, wordData]));
+    }, [coreResults]);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container || dataPoints.length === 0) return;
 
         const ctx = canvas.getContext('2d');
+        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+        const cellSize = 24;
 
         const render = () => {
             const width = container.clientWidth;
@@ -1498,16 +1655,16 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             canvas.height = height * dpr;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
-            const padding = { top: 20, right: 20, bottom: 40, left: 50 };
             const graphWidth = width - padding.left - padding.right;
             const graphHeight = height - padding.top - padding.bottom;
 
             ctx.clearRect(0, 0, width, height);
 
-            const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1; 
-            const maxX = Math.max(...dataPoints.map(p => p.x));
+            const maxY = dataExtents.maxY;
+            const maxX = dataExtents.maxX;
             
             // Safeguard against division by zero if empty or single point at 0
             if (maxX <= 0 || maxY <= 0) return;
@@ -1531,11 +1688,17 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.fillText(val, 5, y + 3);
             }
 
-            const sortedPoints = [...dataPoints].sort((a, b) => b.radius - a.radius);
+            const grid = new Map();
 
-            sortedPoints.forEach(p => {
+            sortedDataPoints.forEach((p) => {
                 const x = scaleX(p.x);
                 const y = scaleY(p.y);
+                const gx = Math.floor(x / cellSize);
+                const gy = Math.floor(y / cellSize);
+                const gridKey = `${gx}:${gy}`;
+                if (!grid.has(gridKey)) grid.set(gridKey, []);
+                grid.get(gridKey).push({ ...p, px: x, py: y });
+
                 const color = isDarkMode ? LAYER_COLORS[p.layer].light : LAYER_COLORS[p.layer].dark; 
                 
                 ctx.fillStyle = color;
@@ -1545,12 +1708,14 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.arc(x, y, p.radius, 0, 2 * Math.PI);
                 ctx.fill();
             });
+
+            spatialRef.current = { cellSize, grid };
         };
 
         render();
         window.addEventListener('resize', render);
         return () => window.removeEventListener('resize', render);
-    }, [dataPoints, isDarkMode, primeColor]);
+    }, [dataPoints, dataExtents, isDarkMode, primeColor, sortedDataPoints]);
 
     const handleInteraction = useCallback((e) => {
         const canvas = canvasRef.current;
@@ -1559,42 +1724,39 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        
-        const width = canvas.width / (window.devicePixelRatio || 1);
-        const height = canvas.height / (window.devicePixelRatio || 1);
-        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-        const graphWidth = width - padding.left - padding.right;
-        const graphHeight = height - padding.top - padding.bottom;
-        
-        const maxY = Math.max(...dataPoints.map(p => p.y)) * 1.1;
-        const maxX = Math.max(...dataPoints.map(p => p.x));
-        
-        if (maxX <= 0 || maxY <= 0) return; // Guard in interaction too
-
-        const scaleX = (x) => padding.left + (x / maxX) * graphWidth;
-        const scaleY = (y) => height - padding.bottom - (y / maxY) * graphHeight;
 
         let nearest = null;
-        let minDist = 20;
+        let minDistSq = 20 * 20;
 
-        for (const p of dataPoints) {
-            const px = scaleX(p.x);
-            const py = scaleY(p.y);
-            const dist = Math.sqrt((px - mouseX) ** 2 + (py - mouseY) ** 2);
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = { ...p, px, py };
+        const { cellSize, grid } = spatialRef.current;
+        const gx = Math.floor(mouseX / cellSize);
+        const gy = Math.floor(mouseY / cellSize);
+
+        for (let ix = gx - 1; ix <= gx + 1; ix += 1) {
+            for (let iy = gy - 1; iy <= gy + 1; iy += 1) {
+                const bucket = grid.get(`${ix}:${iy}`);
+                if (!bucket) continue;
+
+                for (const point of bucket) {
+                    const dx = point.px - mouseX;
+                    const dy = point.py - mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < minDistSq) {
+                        minDistSq = distSq;
+                        nearest = point;
+                    }
+                }
             }
         }
 
         setHoverInfo(nearest);
         
         if (e.type === 'click' && nearest) {
-            const wordData = coreResults.allWords.find(w => w.word === nearest.word);
-            if(wordData) onWordClick(wordData);
+            const wordData = wordLookup.get(nearest.word);
+            if (wordData) onWordClick(wordData);
         }
 
-    }, [dataPoints, coreResults, onWordClick]);
+    }, [dataPoints, onWordClick, wordLookup]);
 
     return (
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
@@ -1641,13 +1803,144 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 });
 
+const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
+    const textareaRef = useRef(null);
+    const draftRef = useRef(text);
+    const commitTimerRef = useRef(null);
+
+    const sanitizeHebrewInput = useCallback((value = '') => (
+        value
+            .replace(/\r\n?/g, '\n')
+            .replace(/[^\u05D0-\u05EA \n]/g, '')
+    ), []);
+
+    const clearCommitTimer = useCallback(() => {
+        if (commitTimerRef.current !== null) {
+            clearTimeout(commitTimerRef.current);
+            commitTimerRef.current = null;
+        }
+    }, []);
+
+    const commitChanges = useCallback(() => {
+        clearCommitTimer();
+        onTextChange(draftRef.current);
+    }, [clearCommitTimer, onTextChange]);
+
+    useEffect(() => {
+        const sanitized = sanitizeHebrewInput(text);
+        draftRef.current = sanitized;
+        if (textareaRef.current && textareaRef.current.value !== text) {
+            textareaRef.current.value = sanitized;
+        }
+    }, [sanitizeHebrewInput, text]);
+
+    useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
+
+    const scheduleCommit = useCallback((nextValue) => {
+        clearCommitTimer();
+        const debounceMs = nextValue.length === 0 ? 0 : 180;
+        commitTimerRef.current = setTimeout(() => {
+            commitTimerRef.current = null;
+            onTextChange(draftRef.current);
+        }, debounceMs);
+    }, [clearCommitTimer, onTextChange]);
+
+    const handleChange = useCallback((e) => {
+        const nextValue = sanitizeHebrewInput(e.target.value);
+        if (e.target.value !== nextValue) {
+            e.target.value = nextValue;
+        }
+        draftRef.current = nextValue;
+        scheduleCommit(nextValue);
+    }, [sanitizeHebrewInput, scheduleCommit]);
+
+    const handleKeyDown = useCallback((e) => {
+        const isMetaCombo = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+
+        if (isMetaCombo && key === 'a') {
+            e.preventDefault();
+            e.stopPropagation();
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+            textarea.focus();
+            textarea.setSelectionRange(0, textarea.value.length);
+            return;
+        }
+
+        if (isMetaCombo && key === 'enter') {
+            e.preventDefault();
+            commitChanges();
+            return;
+        }
+
+        if (isMetaCombo || e.altKey || key === 'shift' || key === 'alt' || key === 'control' || key === 'meta') {
+            return;
+        }
+
+        if (key === 'enter' || key === ' ') {
+            return;
+        }
+
+        if (e.key.length !== 1) {
+            return;
+        }
+
+        if (!/^[א-ת]$/i.test(e.key)) {
+            e.preventDefault();
+        }
+    }, [commitChanges]);
+
+    const handlePaste = useCallback((e) => {
+        const pasted = e.clipboardData?.getData('text') ?? '';
+        const sanitized = sanitizeHebrewInput(pasted);
+
+        e.preventDefault();
+
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        const current = textarea.value;
+        const nextValue = current.slice(0, start) + sanitized + current.slice(end);
+
+        textarea.value = nextValue;
+        draftRef.current = nextValue;
+        scheduleCommit(nextValue);
+
+        const nextPos = start + sanitized.length;
+        requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
+    }, [sanitizeHebrewInput, scheduleCommit]);
+
+    return (
+        <textarea
+            ref={textareaRef}
+            dir="rtl"
+            id="text-input"
+            className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows="5"
+            defaultValue={text}
+            onChange={handleChange}
+            onBlur={commitChanges}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            autoComplete="off"
+            placeholder="הזן טקסט לניתוח"
+        />
+    );
+});
+
 // -----------------------------------------------------------------------------
 // 8. Main App Component
 // -----------------------------------------------------------------------------
 const App = () => {
     // ... Context and Effects ...
-    const state = useContext(AppContext);
-    const dispatch = useContext(AppDispatchContext);
+    const state = useAppCoreState();
+    const dispatch = useAppDispatch();
     const {
         text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
         mode, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
@@ -1703,7 +1996,6 @@ const App = () => {
             savedText = null;
         }
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) dispatch({ type: 'SET_DARK_MODE', payload: true });
     }, [dispatch]);
     
     useEffect(() => {
@@ -1732,18 +2024,42 @@ const App = () => {
         return clusters;
     }, [coreResults, view]);
 
-    const hotValuesList = useMemo(() => {
-        if (!valueToWordsMap) return [];
-        const arr = [];
+    const isVisibleWord = useCallback(
+        (wordData) => isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR),
+        [filters, selectedDR]
+    );
+
+    const visibleAllWords = useMemo(() => {
+        if (!coreResults) return [];
+        return coreResults.allWords.filter(isVisibleWord);
+    }, [coreResults, isVisibleWord]);
+
+    const visibleWordsByLine = useMemo(() => {
+        if (!coreResults) return [];
+        return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
+    }, [coreResults, isVisibleWord]);
+
+    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, filters)), [hotWordsList, filters]);
+
+    const visibleValueToWordsMap = useMemo(() => {
+        if (!valueToWordsMap) return new Map();
+        const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
-            const visibleWords = words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-            if (visibleWords.length > 0) {
-                 const uniqueWordsCount = new Set(visibleWords.map(w => w.word)).size;
-                 arr.push({ value, count: uniqueWordsCount });
-            }
+            const visible = words.filter(isVisibleWord);
+            if (visible.length > 0) map.set(value, visible);
+        }
+        return map;
+    }, [valueToWordsMap, isVisibleWord]);
+
+    const hotValuesList = useMemo(() => {
+        if (!visibleValueToWordsMap) return [];
+        const arr = [];
+        for (const [value, visibleWords] of visibleValueToWordsMap.entries()) {
+            const uniqueWordsCount = new Set(visibleWords.map((w) => w.word)).size;
+            arr.push({ value, count: uniqueWordsCount });
         }
         return arr;
-    }, [valueToWordsMap, filters, selectedDR]);
+    }, [visibleValueToWordsMap]);
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
@@ -1751,11 +2067,11 @@ const App = () => {
         return Array.from(coreResults.wordCounts.entries())
             .filter(([word]) => {
                  const wordData = wordMap.get(word);
-                 return wordData && isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR);
+                 return wordData && isVisibleWord(wordData);
             })
             .map(([word, count]) => ({ word, count }))
             .sort((a, b) => b.count - a.count);
-    }, [coreResults, filters, selectedDR]);
+    }, [coreResults, isVisibleWord]);
 
     const sortedHotViewList = useMemo(() => {
         if (hotView === 'words') {
@@ -1794,7 +2110,7 @@ const App = () => {
             });
         }
         
-        filteredWords = filteredWords.filter(w => isWordVisible(w, filters));
+        filteredWords = filteredWords.filter(isVisibleWord);
 
         const regrouped = {};
         filteredWords.forEach(word => {
@@ -1802,18 +2118,18 @@ const App = () => {
             regrouped[word.dr].push(word);
         });
         return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, searchTerm, selectedDR, filters]);
+    }, [drClusters, view, searchTerm, selectedDR, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
             if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
             const relevantWords = [pinnedWord];
             Object.values(drClusters).flat().forEach(wordData => {
                  if (wordData.word !== pinnedWord.word && topConnectionLayer(pinnedWord, wordData)) {
-                     if (isWordVisible(wordData, filters)) relevantWords.push(wordData);
+                     if (isVisibleWord(wordData)) relevantWords.push(wordData);
                  }
             });
             return relevantWords;
-    }, [pinnedWord, view, drClusters, filters]);
+    }, [pinnedWord, view, drClusters, isVisibleWord]);
     
     // --- Data Preparation for Export ---
     const prepareAllDetailsText = useCallback(() => {
@@ -1840,8 +2156,7 @@ const App = () => {
 
         if (detailsView === 'words') {
              lines.push("סיכום מילים ייחודיות\n-------------------\n");
-             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-             visibleWords.forEach(w => {
+             visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
                 if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`אחדות: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
@@ -1854,7 +2169,7 @@ const App = () => {
 
         lines.push("פירוט שורות\n-------------------\n");
         coreResults.lines.forEach((line, index) => {
-            const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+            const visibleWords = visibleWordsByLine[index] || [];
             if (visibleWords.length === 0) return;
 
             lines.push(`\nשורה ${index + 1}: "${line.lineText}"`);
@@ -1888,7 +2203,7 @@ const App = () => {
             });
         }
         return lines.filter(Boolean).join('\n');
-    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView]);
+    }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView, visibleAllWords, visibleWordsByLine]);
 
     const prepareAllDetailsCSV = useCallback(() => {
         if (!coreResults) return "";
@@ -1896,8 +2211,7 @@ const App = () => {
         const rows = [];
         
         if (detailsView === 'words') {
-             const visibleWords = coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
-             visibleWords.forEach(w => {
+             visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 rows.push([
                     "-",
@@ -1914,7 +2228,7 @@ const App = () => {
             });
         } else {
             coreResults.lines.forEach((line, idx) => {
-                const visibleWords = line.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+                const visibleWords = visibleWordsByLine[idx] || [];
                 visibleWords.forEach(w => {
                     const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                     rows.push([
@@ -1933,7 +2247,7 @@ const App = () => {
             });
         }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, letterTable, filters, selectedDR, detailsView]);
+    }, [coreResults, letterTable, filters, detailsView, visibleAllWords, visibleWordsByLine]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
@@ -1996,7 +2310,6 @@ const App = () => {
         if (!coreResults || selectedHotValue === null) return "";
         const primeU = (w) => w.isPrimeU ? " ♢" : "";
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n===================\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
-        const visibleHotWords = hotWordsList.filter(w => isWordVisible(w, filters));
         visibleHotWords.forEach(w => {
             let parts = [];
             if(isValueVisible('U', w.isPrimeU, filters)) parts.push(`אחדות: ${w.units}${primeU(w)}`);
@@ -2006,18 +2319,17 @@ const App = () => {
             lines.push(`${w.word} | ${valuesString} | ש"ד: ${w.dr}`);
         });
         return lines.join('\n');
-    }, [coreResults, selectedHotValue, mode, hotWordsList, filters]);
+    }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
     const prepareHotWordsCSV = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
         const header = ["מילה", "אחדות", "עשרות", "מאות", "ש\"ד"];
         const rows = [];
-        const visibleHotWords = hotWordsList.filter(w => isWordVisible(w, filters));
         visibleHotWords.forEach(w => {
             rows.push([w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : "", w.dr]);
         });
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, selectedHotValue, hotWordsList, filters]);
+    }, [coreResults, selectedHotValue, visibleHotWords]);
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
@@ -2027,7 +2339,7 @@ const App = () => {
             // USE SORTED LIST
             const arr = sortedHotViewList; 
             arr.forEach(({ value, count }) => {
-                 const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join(', ');
+                 const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ');
                  if(words) lines.push(`ערך: ${value} | כמות: ${count}\nמילים: ${words}\n`);
             });
         } else {
@@ -2036,7 +2348,7 @@ const App = () => {
             sortedHotViewList.forEach(({ word, count }) => lines.push(`מילה: ${word}, שכיחות: ${count}`));
         }
         return lines.join('\n');
-    }, [coreResults, mode, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, mode, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
     const prepareFrequenciesCSV = useCallback(() => {
         if (!coreResults) return "";
@@ -2046,7 +2358,7 @@ const App = () => {
             header = ["ערך", "כמות", "מילים"];
              // USE SORTED LIST
             sortedHotViewList.forEach(({ value, count }) => {
-                const words = [...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map(w => w.word))].join('; ');
+                const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join('; ');
                 if(words) rows.push([value, count, `"${words}"`]); // quote words for CSV safety
             });
         } else {
@@ -2055,7 +2367,7 @@ const App = () => {
             sortedHotViewList.forEach(({ word, count }) => rows.push([word, count]));
         }
         return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, hotView, sortedHotViewList, valueToWordsMap, filters, selectedDR]);
+    }, [coreResults, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2072,6 +2384,9 @@ const App = () => {
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
     const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
+    const handleTextChange = useCallback((nextText) => {
+        dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
+    }, [dispatch]);
 
     return (
         <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
@@ -2085,11 +2400,11 @@ const App = () => {
                     <div className="flex items-center gap-4">
                         <Legend />
                         <div className="relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
-                            <button ref={valueTableButtonRef} onClick={handleTableIconClick} className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors noselect" aria-label="הצג טבלת ערכי אותיות">
+                            <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
-                        <button onClick={() => dispatch({ type: 'SET_DARK_MODE', payload: !isDarkMode })} className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full text-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors noselect">
+                        <button onClick={() => dispatch({ type: 'SET_DARK_MODE', payload: !isDarkMode })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
                             {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
                         </button>
                     </div>
@@ -2125,9 +2440,9 @@ const App = () => {
 
                     <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}>
                         <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700">
-                                <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>א:0</button>
-                                <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>א:1</button>
+                            <div className={`flex items-center p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                                <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
+                                <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
                         </div>
                         <textarea dir="rtl" id="text-input" className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`} rows="5" value={text} onChange={(e) => dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(e.target.value) })} placeholder="הזן טקסט לניתוח"></textarea>
@@ -2137,12 +2452,12 @@ const App = () => {
                     </div>
 
                     <div className="flex justify-center my-8">
-                        <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700 noselect">
-                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
-                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                            <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
-                            <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                        <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
+                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
+                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
+                            <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
+                            <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
                         </div>
                     </div>
 
@@ -2187,7 +2502,7 @@ const App = () => {
                                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} id='all-details' /></div>
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
                                                 <div className="flex-1 flex justify-end">
-                                                    <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700 noselect">
+                                                    <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                                         <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
                                                         <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                                     </div>
@@ -2230,11 +2545,15 @@ const App = () => {
                                     <div className="flex justify-end mb-4"><button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors noselect">{coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? 'קפל הכל' : 'פתח הכל'}</button></div>
                                     {coreResults.lines.map((lineResult, lineIndex) => {
                                         const isExpanded = !!expandedRows[lineIndex];
-                                        const visibleWords = lineResult.words.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR));
+                                        const visibleWords = visibleWordsByLine[lineIndex] || [];
                                         if (visibleWords.length === 0) return null;
 
                                         return (
-                                            <div key={lineIndex} className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}>
+                                            <div
+                                                key={lineIndex}
+                                                className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}
+                                                style={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
+                                            >
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
                                                     <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{lineResult.lineText}"</p>
@@ -2259,7 +2578,7 @@ const App = () => {
                                                                 </tr>
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
-                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
+                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
                                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
@@ -2281,7 +2600,7 @@ const App = () => {
                                         <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} id='all-details' /></div>
                                         <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום מילים ייחודיות ({coreResults.allWords.length} מילים)</h2></div>
                                         <div className="flex-1 flex justify-end">
-                                            <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700 noselect">
+                                            <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                                 <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
                                                 <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                             </div>
@@ -2299,8 +2618,8 @@ const App = () => {
                                                     <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider rounded-l-lg">ש"ד</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>{coreResults.allWords.filter(w => isWordVisible(w, filters) && (!selectedDR || w.dr === selectedDR)).map((res, index) => (
-                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`}>
+                                            <tbody>{visibleAllWords.map((res, index) => (
+                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-blue-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
@@ -2340,7 +2659,7 @@ const App = () => {
                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={selectedHotValue !== null ? prepareHotWordsText : prepareFrequenciesText} getCSV={selectedHotValue !== null ? prepareHotWordsCSV : prepareFrequenciesCSV} id='hot-words' /></div>
                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">ניתוח שכיחויות</h2></div>
                                 <div className="flex-1 flex justify-end">
-                                    <div className="flex items-center p-1 rounded-full bg-gray-200 dark:bg-gray-700 noselect">
+                                    <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                         <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'values' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'values' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>ערכים</button>
                                         <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                     </div>
@@ -2361,10 +2680,10 @@ const App = () => {
                                                 listHeight={384} 
                                                 getKey={(item) => item.value}
                                                 renderItem={({ value, count }) => (
-                                                    <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: valueToWordsMap.get(value) || [] } })}>
+                                                    <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
                                                         <div className="w-1/4 p-2 text-center">{count}</div>
-                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((valueToWordsMap.get(value) || []).filter(w => isWordVisible(w, filters)).map(w => w.word))].join(', ')}</div>
+                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
                                                     </div>
                                                 )}
                                             />
@@ -2376,7 +2695,7 @@ const App = () => {
                                                 <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
                                             </div>
                                             <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
-                                                {hotWordsList.filter(w => isWordVisible(w, filters)).map((wordData, index) => (
+                                                {visibleHotWords.map((wordData, index) => (
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
@@ -2440,104 +2759,6 @@ const App = () => {
                 )}
             </div>
         </div>
-    );
-};
-
-// -----------------------------------------------------------------------------
-// 9. App Provider & Wrapper
-// -----------------------------------------------------------------------------
-const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
-    const [isPending, startTransition] = useTransition();
-    const deferredText = useDeferredValue(state.text);
-    const versionRef = useRef(0);
-
-    useEffect(() => {
-        if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
-        
-        versionRef.current += 1;
-        const currentVersion = versionRef.current;
-        
-        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let timeoutId;
-        
-        const handler = () => {
-            timeoutId = requestIdle(() => {
-                startTransition(() => {
-                    const results = computeCoreResults(deferredText, state.mode);
-                    if (versionRef.current === currentVersion) {
-                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-                    }
-                });
-            });
-        };
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const initialTimeout = setTimeout(handler, delay);
-        return () => { clearTimeout(initialTimeout); if (timeoutId) cancelIdle(timeoutId); };
-    }, [deferredText, state.mode]);
-
-    const stats = useMemo(() => {
-        if (!state.coreResults) return null;
-        const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
-        return {
-            totalLines: state.coreResults.lines.length,
-            totalWords: state.coreResults.totalWordCount,
-            uniqueWords: state.coreResults.allWords.length,
-            primeLineTotals: primeLineCount,
-            drDistribution: state.coreResults.drDistribution,
-        };
-    }, [state.coreResults]);
-
-    const valueToWordsMap = useMemo(() => {
-        if (!state.coreResults) return new Map();
-        const map = new Map();
-        state.coreResults.allWords.forEach(wd => {
-            const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
-            uniqueValues.forEach(v => {
-                if (!map.has(v)) map.set(v, []);
-                map.get(v).push(wd);
-            });
-        });
-        return map;
-    }, [state.coreResults]);
-
-    const connectionValues = useMemo(() => {
-         if (!state.coreResults) return new Set();
-         const visibleConnections = new Set();
-         
-         const valCounts = new Map(); 
-         
-         state.coreResults.allWords.forEach(w => {
-             const values = getWordValues(w);
-             values.forEach(v => {
-                 if (isValueVisible(v.layer, v.isPrime, state.filters)) {
-                     if (!valCounts.has(v.value)) valCounts.set(v.value, new Set());
-                     valCounts.get(v.value).add(w.word);
-                 }
-             });
-         });
-
-         for (const [val, wordSet] of valCounts.entries()) {
-             if (wordSet.size > 1) visibleConnections.add(val);
-         }
-         return visibleConnections;
-    }, [state.coreResults, state.filters]);
-
-    const contextValue = useMemo(() => ({ 
-        ...state, 
-        stats, 
-        valueToWordsMap, 
-        connectionValues,
-        isPending
-    }), [state, stats, valueToWordsMap, connectionValues, isPending]);
-
-    return (
-        <AppContext.Provider value={contextValue}>
-            <AppDispatchContext.Provider value={dispatch}>
-                {children}
-            </AppDispatchContext.Provider>
-        </AppContext.Provider>
     );
 };
 
