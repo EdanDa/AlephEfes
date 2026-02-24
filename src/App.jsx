@@ -1408,19 +1408,23 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
 });
 
 const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
-    const [draftText, setDraftText] = useState(text);
+    const textareaRef = useRef(null);
+    const draftRef = useRef(text);
 
     useEffect(() => {
-        setDraftText(text);
+        draftRef.current = text;
+        if (textareaRef.current && textareaRef.current.value !== text) {
+            textareaRef.current.value = text;
+        }
     }, [text]);
 
-    const handleChange = useCallback((e) => {
-        setDraftText(e.target.value);
-    }, []);
-
     const commitChanges = useCallback(() => {
-        onTextChange(draftText);
-    }, [draftText, onTextChange]);
+        onTextChange(draftRef.current);
+    }, [onTextChange]);
+
+    const handleChange = useCallback((e) => {
+        draftRef.current = e.target.value;
+    }, []);
 
     const handleKeyDown = useCallback((e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1431,14 +1435,19 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
     return (
         <textarea
+            ref={textareaRef}
             dir="rtl"
             id="text-input"
             className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
             rows="5"
-            value={draftText}
+            defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
             onKeyDown={handleKeyDown}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            autoComplete="off"
             placeholder="הזן טקסט לניתוח"
         />
     );
