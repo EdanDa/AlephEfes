@@ -1407,6 +1407,43 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 });
 
+const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
+    const [draftText, setDraftText] = useState(text);
+
+    useEffect(() => {
+        setDraftText(text);
+    }, [text]);
+
+    const handleChange = useCallback((e) => {
+        setDraftText(e.target.value);
+    }, []);
+
+    const commitChanges = useCallback(() => {
+        onTextChange(draftText);
+    }, [draftText, onTextChange]);
+
+    const handleKeyDown = useCallback((e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            commitChanges();
+        }
+    }, [commitChanges]);
+
+    return (
+        <textarea
+            dir="rtl"
+            id="text-input"
+            className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows="5"
+            value={draftText}
+            onChange={handleChange}
+            onBlur={commitChanges}
+            onKeyDown={handleKeyDown}
+            placeholder="הזן טקסט לניתוח"
+        />
+    );
+});
+
 // -----------------------------------------------------------------------------
 // 8. Main App Component
 // -----------------------------------------------------------------------------
@@ -1850,6 +1887,9 @@ const App = () => {
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
     const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
+    const handleTextChange = useCallback((nextText) => {
+        dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
+    }, [dispatch]);
 
     return (
         <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
@@ -1908,7 +1948,7 @@ const App = () => {
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
                         </div>
-                        <textarea dir="rtl" id="text-input" className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`} rows="5" value={text} onChange={(e) => dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(e.target.value) })} placeholder="הזן טקסט לניתוח"></textarea>
+                        <MainTextInput text={text} isDarkMode={isDarkMode} onTextChange={handleTextChange} />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
                         </div>
