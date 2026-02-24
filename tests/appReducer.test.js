@@ -32,6 +32,19 @@ test('SET_VIEW clears transient state', () => {
     assert.equal(next.isValueTableOpen, false);
 });
 
+
+test('SET_TEXT keeps previous coreResults while new analysis is pending', () => {
+    const withResults = {
+        ...initialState,
+        text: 'ישן',
+        coreResults: { lines: [{ line: 1 }] },
+    };
+
+    const next = appReducer(withResults, { type: 'SET_TEXT', payload: 'חדש' });
+    assert.equal(next.text, 'חדש');
+    assert.deepEqual(next.coreResults, withResults.coreResults);
+});
+
 test('SET_SELECTED_DR toggles on same value', () => {
     const once = appReducer(initialState, { type: 'SET_SELECTED_DR', payload: 5 });
     assert.equal(once.selectedDR, 5);
