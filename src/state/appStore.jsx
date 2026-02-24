@@ -80,37 +80,22 @@ const AppProvider = ({ children }) => {
         versionRef.current += 1;
         const currentVersion = versionRef.current;
 
-        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let idleId = null;
-
-        const runWork = () => {
-            idleId = requestIdle(() => {
-                if (workerRef.current && !workerCrashedRef.current) {
-                    workerRef.current.postMessage({
-                        requestId: currentVersion,
-                        text: deferredText,
-                        mode: state.mode,
-                    });
-                    return;
-                }
-
-                startTransition(() => {
-                    const results = computeCoreResults(deferredText, state.mode);
-                    if (versionRef.current === currentVersion) {
-                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-                    }
-                });
+        if (workerRef.current && !workerCrashedRef.current) {
+            workerRef.current.postMessage({
+                requestId: currentVersion,
+                text: deferredText,
+                mode: state.mode,
             });
-        };
+            return;
+        }
 
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const timeoutId = setTimeout(runWork, delay);
-        return () => {
-            clearTimeout(timeoutId);
-            if (idleId !== null && idleId !== undefined) cancelIdle(idleId);
-        };
-    }, [deferredText, state.mode, startTransition]);
+        startTransition(() => {
+            const results = computeCoreResults(deferredText, state.mode);
+            if (versionRef.current === currentVersion) {
+                dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+            }
+        });
+    }, [deferredText, state.mode, startTransition, dispatch]);
 
     const stats = useMemo(() => {
         if (!state.coreResults) return null;

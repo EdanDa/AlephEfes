@@ -37,7 +37,16 @@ const initialState = {
 function appReducer(state, action) {
     switch (action.type) {
         case 'SET_TEXT':
-            return { ...state, text: action.payload, pinnedWord: null, selectedDR: null };
+            if (action.payload === state.text) return state;
+            return {
+                ...state,
+                text: action.payload,
+                coreResults: null,
+                pinnedWord: null,
+                selectedDR: null,
+                selectedHotValue: null,
+                hotWordsList: [],
+            };
         case 'SET_CORE_RESULTS':
             return { ...state, coreResults: action.payload };
         case 'SET_DARK_MODE':
