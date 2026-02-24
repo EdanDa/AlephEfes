@@ -1412,6 +1412,12 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
 
+    const sanitizeHebrewInput = useCallback((value = '') => (
+        value
+            .replace(/\r\n?/g, '\n')
+            .replace(/[^\u05D0-\u05EA \n]/g, '')
+    ), []);
+
     const clearCommitTimer = useCallback(() => {
         if (commitTimerRef.current !== null) {
             clearTimeout(commitTimerRef.current);
@@ -1425,11 +1431,12 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     }, [clearCommitTimer, onTextChange]);
 
     useEffect(() => {
-        draftRef.current = text;
+        const sanitized = sanitizeHebrewInput(text);
+        draftRef.current = sanitized;
         if (textareaRef.current && textareaRef.current.value !== text) {
-            textareaRef.current.value = text;
+            textareaRef.current.value = sanitized;
         }
-    }, [text]);
+    }, [sanitizeHebrewInput, text]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -1443,10 +1450,13 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     }, [clearCommitTimer, onTextChange]);
 
     const handleChange = useCallback((e) => {
-        const nextValue = e.target.value;
+        const nextValue = sanitizeHebrewInput(e.target.value);
+        if (e.target.value !== nextValue) {
+            e.target.value = nextValue;
+        }
         draftRef.current = nextValue;
         scheduleCommit(nextValue);
-    }, [scheduleCommit]);
+    }, [sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
@@ -1465,8 +1475,47 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         if (isMetaCombo && key === 'enter') {
             e.preventDefault();
             commitChanges();
+            return;
+        }
+
+        if (isMetaCombo || e.altKey || key === 'shift' || key === 'alt' || key === 'control' || key === 'meta') {
+            return;
+        }
+
+        if (key === 'enter' || key === ' ') {
+            return;
+        }
+
+        if (e.key.length !== 1) {
+            return;
+        }
+
+        if (!/^[א-ת]$/i.test(e.key)) {
+            e.preventDefault();
         }
     }, [commitChanges]);
+
+    const handlePaste = useCallback((e) => {
+        const pasted = e.clipboardData?.getData('text') ?? '';
+        const sanitized = sanitizeHebrewInput(pasted);
+
+        e.preventDefault();
+
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        const current = textarea.value;
+        const nextValue = current.slice(0, start) + sanitized + current.slice(end);
+
+        textarea.value = nextValue;
+        draftRef.current = nextValue;
+        scheduleCommit(nextValue);
+
+        const nextPos = start + sanitized.length;
+        requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
+    }, [sanitizeHebrewInput, scheduleCommit]);
 
     return (
         <textarea
@@ -1479,6 +1528,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             onChange={handleChange}
             onBlur={commitChanges}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
