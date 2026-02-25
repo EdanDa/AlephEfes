@@ -75,6 +75,15 @@ const EN_TO_HE_LETTER_MAP = Object.freeze({
 
 // Hebrew-letter keys that sit on punctuation in English layout
 const EN_TO_HE_PUNCT_LETTER_MAP = Object.freeze({ ';': 'ף', ',': 'ת', '.': 'ץ' });
+const EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP = Object.freeze({ ':': 'ף', '<': 'ת', '>': 'ץ' });
+
+// Physical-key map so transliteration works regardless of active OS keyboard layout.
+const KEYBOARD_CODE_TO_HE_LETTER_MAP = Object.freeze({
+    KeyE: 'ק', KeyR: 'ר', KeyT: 'א', KeyY: 'ט', KeyU: 'ו', KeyI: 'ן', KeyO: 'ם', KeyP: 'פ',
+    KeyA: 'ש', KeyS: 'ד', KeyD: 'ג', KeyF: 'כ', KeyG: 'ע', KeyH: 'י', KeyJ: 'ח', KeyK: 'ל', KeyL: 'ך',
+    KeyZ: 'ז', KeyX: 'ס', KeyC: 'ב', KeyV: 'ה', KeyB: 'נ', KeyN: 'מ', KeyM: 'צ',
+    Semicolon: 'ף', Comma: 'ת', Period: 'ץ'
+});
 
 // Combined Color Config: Darkened backgrounds for better visibility in light mode
 const LAYER_COLORS = {
@@ -1851,11 +1860,34 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
 
-    const sanitizeHebrewInput = useCallback((value = '') => (
-        value
-            .replace(/\r\n?/g, '\n')
-            .replace(/[^\u05D0-\u05EA \n]/g, '')
-    ), []);
+    const sanitizeHebrewInput = useCallback((value = '') => {
+        const normalized = value.replace(/\r\n?/g, '\n');
+        let output = '';
+
+        for (const ch of normalized) {
+            if (ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch)) {
+                output += ch;
+                continue;
+            }
+
+            const lower = ch.toLowerCase();
+            if (EN_TO_HE_LETTER_MAP[lower]) {
+                output += EN_TO_HE_LETTER_MAP[lower];
+                continue;
+            }
+
+            if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
+                output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
+                continue;
+            }
+
+            if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
+                output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+            }
+        }
+
+        return output;
+    }, []);
 
     const clearCommitTimer = useCallback(() => {
         if (commitTimerRef.current !== null) {
@@ -1890,9 +1922,14 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
     const handleChange = useCallback((e) => {
         const nextValue = sanitizeHebrewInput(e.target.value);
+
         if (e.target.value !== nextValue) {
+            const cursorStart = e.target.selectionStart ?? e.target.value.length;
+            const nextCursor = sanitizeHebrewInput(e.target.value.slice(0, cursorStart)).length;
             e.target.value = nextValue;
+            requestAnimationFrame(() => e.target.setSelectionRange(nextCursor, nextCursor));
         }
+
         draftRef.current = nextValue;
         scheduleCommit(nextValue);
     }, [sanitizeHebrewInput, scheduleCommit]);
@@ -1931,10 +1968,37 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
+        const mappedFromCode = KEYBOARD_CODE_TO_HE_LETTER_MAP[e.code];
+        const mappedFromKey = (!e.code || e.code === 'Unidentified')
+            ? (EN_TO_HE_LETTER_MAP[e.key.toLowerCase()]
+                || EN_TO_HE_PUNCT_LETTER_MAP[e.key]
+                || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[e.key])
+            : null;
+        const mappedLetter = mappedFromCode || mappedFromKey;
+
+        if (mappedLetter) {
+            e.preventDefault();
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+
+            const start = textarea.selectionStart ?? 0;
+            const end = textarea.selectionEnd ?? 0;
+            const current = textarea.value;
+            const nextValue = current.slice(0, start) + mappedLetter + current.slice(end);
+
+            textarea.value = nextValue;
+            draftRef.current = nextValue;
+            scheduleCommit(nextValue);
+
+            const nextPos = start + mappedLetter.length;
+            requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
+            return;
+        }
+
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [commitChanges]);
+    }, [commitChanges, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
