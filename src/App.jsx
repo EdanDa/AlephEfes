@@ -475,7 +475,9 @@ function appReducer(state, action) {
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
 		case 'SET_SEARCH_TERM': return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
-		case 'SET_HOVERED_WORD': return { ...state, hoveredWord: action.payload };
+		case 'SET_HOVERED_WORD':
+            if (state.hoveredWord?.word === action.payload?.word) return state;
+            return { ...state, hoveredWord: action.payload };
 		case 'SET_PINNED_WORD': return { ...state, pinnedWord: state.pinnedWord && state.pinnedWord.word === action.payload.word ? null : action.payload };
 		case 'UNPIN_WORD': return { ...state, pinnedWord: null, hoveredWord: null };
 		case 'SET_SELECTED_DR': 
@@ -581,19 +583,19 @@ const Legend = React.memo(() => {
                     <div className={filters['U'] ? "text-white" : "text-sky-600 dark:text-sky-400"}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
-                    <span>אחדות</span>
+                    <span className={filters['U'] ? "text-white" : "text-sky-700 dark:text-sky-300"}>אחדות</span>
                  </button>
                  <button onClick={() => toggleFilter('T')} className={getFilterStyle('T', 'flex items-center gap-2')}>
                     <div className={filters['T'] ? "text-white" : "text-emerald-600 dark:text-emerald-400"}>
                         <div className="w-3 h-3 border-2 border-current"></div>
                     </div>
-                    <span>עשרות</span>
+                    <span className={filters['T'] ? "text-white" : "text-emerald-700 dark:text-emerald-300"}>עשרות</span>
                  </button>
                  <button onClick={() => toggleFilter('H')} className={getFilterStyle('H', 'flex items-center gap-2')}>
                     <div className={filters['H'] ? "text-white" : "text-purple-600 dark:text-purple-400"}>
                         <div className="w-3 h-3 rounded-full border-2 border-current"></div>
                     </div>
-                    <span>מאות</span>
+                    <span className={filters['H'] ? "text-white" : "text-purple-700 dark:text-purple-300"}>מאות</span>
                  </button>
             </div>
             {isColorPickerOpen && (
@@ -635,8 +637,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
     return <p className={`text-3xl font-bold selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
 });
 
-const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
-    const { filters } = useAppFilters();
+const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor, filters }) => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const values = getWordValues(wordData);
     
@@ -804,13 +805,12 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch }) => {
-    const { filters } = useContext(AppContext);
+const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch, filters }) => {
     const isSelf = activeWord && activeWord.word === wordData.word;
     
     // Background color determination (for connected words)
     let topLayer = null;
-    if (activeWord && !isSelf) {
+    if (activeWord && !isSelf && isConnectedToActive) {
         // Find the highest layer in activeWord that connects to a VISIBLE layer in wordData.
         // This ensures hidden layers don't trigger background colors.
         const sourceLayers = [];
@@ -841,7 +841,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     }
     
     // matches is used to determine WHICH icon to light up (target perspective)
-    const matches = activeWord ? layersMatching(activeWord, wordData).filter(L => availableLayers(wordData).includes(L)) : [];
+    const matches = (activeWord && (isSelf || isConnectedToActive)) ? layersMatching(activeWord, wordData).filter(L => availableLayers(wordData).includes(L)) : [];
     
     // Reverted to pastel background logic
     const baseBg = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
@@ -865,7 +865,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
     const cardStyle = {
         background: tint,
-        opacity: isSelf || topLayer ? 1 : activeWord ? 0.75 : 0.85,
+        opacity: (isSelf || isConnectedToActive) ? 1 : 0.75,
         border: `2px solid ${borderColor}`,
         cursor: 'pointer',
         contentVisibility: 'auto',
@@ -889,7 +889,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
             onClick={handleClick}
         >
             <div className={`font-bold text-xl break-all ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{wordData.word}</div>
-            <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor}/>
+            <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor} filters={filters}/>
         </div>
     );
 }, (prev, next) => {
@@ -909,18 +909,59 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
     const { filters } = useAppFilters();
     const activeWord = pinnedWord || hoveredWord;
     const activeWordKey = activeWord?.word || null;
-    const connectedWordsSet = useMemo(() => {
-        if (!activeWord) return new Set();
-        const connected = new Set();
+
+    const wordsByVisibleValue = useMemo(() => {
+        const index = new Map();
         filteredWordsInView.forEach(({ words }) => {
             words.forEach((wordData) => {
-                if (wordData.word !== activeWord.word && topConnectionLayer(activeWord, wordData)) {
-                    connected.add(wordData.word);
-                }
+                const values = getWordValues(wordData);
+                values.forEach((v) => {
+                    if (!isValueVisible(v.layer, v.isPrime, filters)) return;
+                    if (!index.has(v.value)) index.set(v.value, []);
+                    index.get(v.value).push(wordData.word);
+                });
             });
         });
+        return index;
+    }, [filteredWordsInView, filters]);
+
+    const visibleValuesByWord = useMemo(() => {
+        const map = new Map();
+        filteredWordsInView.forEach(({ words }) => {
+            words.forEach((wordData) => {
+                const visibleValues = getWordValues(wordData)
+                    .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
+                    .map((v) => v.value);
+                map.set(wordData.word, visibleValues);
+            });
+        });
+        return map;
+    }, [filteredWordsInView, filters]);
+
+    const connectedWordsCacheRef = useRef(new Map());
+    useEffect(() => {
+        connectedWordsCacheRef.current.clear();
+    }, [wordsByVisibleValue, visibleValuesByWord]);
+
+    const connectedWordsSet = useMemo(() => {
+        if (!activeWord) return new Set();
+
+        const cached = connectedWordsCacheRef.current.get(activeWord.word);
+        if (cached) return cached;
+
+        const connected = new Set();
+        const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+        activeValues.forEach((value) => {
+            const hitList = wordsByVisibleValue.get(value);
+            if (!hitList) return;
+            hitList.forEach((word) => {
+                if (word !== activeWord.word) connected.add(word);
+            });
+        });
+
+        connectedWordsCacheRef.current.set(activeWord.word, connected);
         return connected;
-    }, [activeWord, filteredWordsInView]);
+    }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
@@ -961,6 +1002,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                                     primeColor={primeColor}
                                     connectionValues={connectionValues}
                                     dispatch={dispatch}
+                                    filters={filters}
                                 />
                             ))}
                         </div>
@@ -1913,7 +1955,11 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
     const scheduleCommit = useCallback((nextValue) => {
         clearCommitTimer();
-        const debounceMs = nextValue.length === 0 ? 0 : 180;
+        let debounceMs = 180;
+        if (nextValue.length === 0) debounceMs = 0;
+        else if (nextValue.length > 120_000) debounceMs = 420;
+        else if (nextValue.length > 40_000) debounceMs = 280;
+
         commitTimerRef.current = setTimeout(() => {
             commitTimerRef.current = null;
             onTextChange(draftRef.current);
@@ -2108,11 +2154,23 @@ const App = () => {
     }, [dispatch]);
     
     useEffect(() => {
-        try {
-            localStorage.setItem('alephCodeText', text);
-        } catch (_err) {
-            // Ignore storage write failures (private mode / blocked storage)
-        }
+        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
+        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
+        let idleId = null;
+        const timerId = setTimeout(() => {
+            idleId = requestIdle(() => {
+                try {
+                    localStorage.setItem('alephCodeText', text);
+                } catch (_err) {
+                    // Ignore storage write failures (private mode / blocked storage)
+                }
+            });
+        }, 450);
+
+        return () => {
+            clearTimeout(timerId);
+            if (idleId) cancelIdle(idleId);
+        };
     }, [text]);
     useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
 
@@ -2883,19 +2941,56 @@ function AppProvider({ children }) {
     const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
     const versionRef = useRef(0);
+    const workerRef = useRef(null);
+
+    useEffect(() => {
+        try {
+            workerRef.current = new Worker(new URL('./workers/coreResults.worker.js', import.meta.url), { type: 'module' });
+        } catch {
+            workerRef.current = null;
+        }
+
+        return () => {
+            if (workerRef.current) {
+                workerRef.current.terminate();
+                workerRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
-        
+
         versionRef.current += 1;
         const currentVersion = versionRef.current;
-        
+        const worker = workerRef.current;
+        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
         const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
         const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let timeoutId;
-        
-        const handler = () => {
-            timeoutId = requestIdle(() => {
+        let workerListener = null;
+        let idleId = null;
+
+        const timerId = setTimeout(() => {
+            if (worker) {
+                workerListener = (event) => {
+                    const { requestId, results, error } = event.data || {};
+                    if (requestId !== currentVersion) return;
+                    worker.removeEventListener('message', workerListener);
+                    workerListener = null;
+                    if (error) return;
+                    startTransition(() => {
+                        if (versionRef.current === currentVersion) {
+                            dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+                        }
+                    });
+                };
+
+                worker.addEventListener('message', workerListener);
+                worker.postMessage({ requestId: currentVersion, text: deferredText, mode: state.mode });
+                return;
+            }
+
+            idleId = requestIdle(() => {
                 startTransition(() => {
                     const results = computeCoreResults(deferredText, state.mode);
                     if (versionRef.current === currentVersion) {
@@ -2903,10 +2998,15 @@ function AppProvider({ children }) {
                     }
                 });
             });
+        }, delay);
+
+        return () => {
+            clearTimeout(timerId);
+            if (idleId) cancelIdle(idleId);
+            if (worker && workerListener) {
+                worker.removeEventListener('message', workerListener);
+            }
         };
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const initialTimeout = setTimeout(handler, delay);
-        return () => { clearTimeout(initialTimeout); if (timeoutId) cancelIdle(timeoutId); };
     }, [deferredText, state.mode]);
 
     const stats = useMemo(() => {
