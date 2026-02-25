@@ -2902,19 +2902,56 @@ function AppProvider({ children }) {
     const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
     const versionRef = useRef(0);
+    const workerRef = useRef(null);
+
+    useEffect(() => {
+        try {
+            workerRef.current = new Worker(new URL('./workers/coreResults.worker.js', import.meta.url), { type: 'module' });
+        } catch {
+            workerRef.current = null;
+        }
+
+        return () => {
+            if (workerRef.current) {
+                workerRef.current.terminate();
+                workerRef.current = null;
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
-        
+
         versionRef.current += 1;
         const currentVersion = versionRef.current;
-        
+        const worker = workerRef.current;
+        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
         const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
         const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let timeoutId;
-        
-        const handler = () => {
-            timeoutId = requestIdle(() => {
+        let workerListener = null;
+        let idleId = null;
+
+        const timerId = setTimeout(() => {
+            if (worker) {
+                workerListener = (event) => {
+                    const { requestId, results, error } = event.data || {};
+                    if (requestId !== currentVersion) return;
+                    worker.removeEventListener('message', workerListener);
+                    workerListener = null;
+                    if (error) return;
+                    startTransition(() => {
+                        if (versionRef.current === currentVersion) {
+                            dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+                        }
+                    });
+                };
+
+                worker.addEventListener('message', workerListener);
+                worker.postMessage({ requestId: currentVersion, text: deferredText, mode: state.mode });
+                return;
+            }
+
+            idleId = requestIdle(() => {
                 startTransition(() => {
                     const results = computeCoreResults(deferredText, state.mode);
                     if (versionRef.current === currentVersion) {
@@ -2922,10 +2959,15 @@ function AppProvider({ children }) {
                     }
                 });
             });
+        }, delay);
+
+        return () => {
+            clearTimeout(timerId);
+            if (idleId) cancelIdle(idleId);
+            if (worker && workerListener) {
+                worker.removeEventListener('message', workerListener);
+            }
         };
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const initialTimeout = setTimeout(handler, delay);
-        return () => { clearTimeout(initialTimeout); if (timeoutId) cancelIdle(timeoutId); };
     }, [deferredText, state.mode]);
 
     const stats = useMemo(() => {
