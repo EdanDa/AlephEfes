@@ -26,27 +26,27 @@ function useAppDispatch() {
 
 function useAppFilters() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         filters: state?.filters,
         primeColor: state?.primeColor,
-    };
+    }), [state?.filters, state?.primeColor]);
 }
 
 function useAppClipboard() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         copiedId: state?.copiedId,
-    };
+    }), [state?.copiedId]);
 }
 
 function useAppStats() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         stats: state?.stats,
         isStatsCollapsed: state?.isStatsCollapsed,
         isDarkMode: state?.isDarkMode,
         connectionValues: state?.connectionValues,
-    };
+    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues]);
 }
 
 // -----------------------------------------------------------------------------
@@ -3114,22 +3114,37 @@ function AppProvider({ children }) {
     const connectionValues = useMemo(() => {
          if (!state.coreResults) return new Set();
          const visibleConnections = new Set();
-         
-         const valCounts = new Map(); 
-         
-         state.coreResults.allWords.forEach(w => {
-             const values = getWordValues(w);
-             values.forEach(v => {
-                 if (isValueVisible(v.layer, v.isPrime, state.filters)) {
-                     if (!valCounts.has(v.value)) valCounts.set(v.value, new Set());
-                     valCounts.get(v.value).add(w.word);
-                 }
+         const valueCounts = new Map();
+
+         state.coreResults.allWords.forEach((word) => {
+             const visibleValues = [];
+
+             if (word.hundreds !== word.tens && isValueVisible('H', word.isPrimeH, state.filters)) {
+                 visibleValues.push(word.hundreds);
+             }
+             if (word.tens !== word.units && isValueVisible('T', word.isPrimeT, state.filters)) {
+                 visibleValues.push(word.tens);
+             }
+             if (isValueVisible('U', word.isPrimeU, state.filters)) {
+                 visibleValues.push(word.units);
+             }
+
+             if (visibleValues.length === 0) return;
+
+             if (visibleValues.length > 1) {
+                 visibleValues.sort((a, b) => a - b);
+             }
+
+             let prevValue;
+             visibleValues.forEach((value) => {
+                 if (value === prevValue) return;
+                 const nextCount = (valueCounts.get(value) || 0) + 1;
+                 valueCounts.set(value, nextCount);
+                 if (nextCount > 1) visibleConnections.add(value);
+                 prevValue = value;
              });
          });
 
-         for (const [val, wordSet] of valCounts.entries()) {
-             if (wordSet.size > 1) visibleConnections.add(val);
-         }
          return visibleConnections;
     }, [state.coreResults, state.filters]);
 
