@@ -77,6 +77,14 @@ const EN_TO_HE_LETTER_MAP = Object.freeze({
 const EN_TO_HE_PUNCT_LETTER_MAP = Object.freeze({ ';': 'ף', ',': 'ת', '.': 'ץ' });
 const EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP = Object.freeze({ ':': 'ף', '<': 'ת', '>': 'ץ' });
 
+// Physical-key map so transliteration works regardless of active OS keyboard layout.
+const KEYBOARD_CODE_TO_HE_LETTER_MAP = Object.freeze({
+    KeyE: 'ק', KeyR: 'ר', KeyT: 'א', KeyY: 'ט', KeyU: 'ו', KeyI: 'ן', KeyO: 'ם', KeyP: 'פ',
+    KeyA: 'ש', KeyS: 'ד', KeyD: 'ג', KeyF: 'כ', KeyG: 'ע', KeyH: 'י', KeyJ: 'ח', KeyK: 'ל', KeyL: 'ך',
+    KeyZ: 'ז', KeyX: 'ס', KeyC: 'ב', KeyV: 'ה', KeyB: 'נ', KeyN: 'מ', KeyM: 'צ',
+    Semicolon: 'ף', Comma: 'ת', Period: 'ץ'
+});
+
 // Combined Color Config: Darkened backgrounds for better visibility in light mode
 const LAYER_COLORS = {
 	U: { 
@@ -1960,9 +1968,13 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        const mappedLetter = EN_TO_HE_LETTER_MAP[e.key.toLowerCase()]
-            || EN_TO_HE_PUNCT_LETTER_MAP[e.key]
-            || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[e.key];
+        const mappedFromCode = KEYBOARD_CODE_TO_HE_LETTER_MAP[e.code];
+        const mappedFromKey = (!e.code || e.code === 'Unidentified')
+            ? (EN_TO_HE_LETTER_MAP[e.key.toLowerCase()]
+                || EN_TO_HE_PUNCT_LETTER_MAP[e.key]
+                || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[e.key])
+            : null;
+        const mappedLetter = mappedFromCode || mappedFromKey;
 
         if (mappedLetter) {
             e.preventDefault();
@@ -1986,7 +1998,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [commitChanges]);
+    }, [commitChanges, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
