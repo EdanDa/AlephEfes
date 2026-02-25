@@ -1900,6 +1900,8 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
         const key = e.key.toLowerCase();
+        const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+        const isSpaceKey = key === ' ' || key === 'space' || key === 'spacebar' || e.code === 'Space';
 
         if (isMetaCombo && key === 'a') {
             e.preventDefault();
@@ -1911,7 +1913,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        if (isMetaCombo && key === 'enter') {
+        if (isMetaCombo && isEnterKey) {
             e.preventDefault();
             commitChanges();
             return;
@@ -1921,7 +1923,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        if (key === 'enter' || key === ' ') {
+        if (isEnterKey || isSpaceKey) {
             return;
         }
 
@@ -2488,7 +2490,11 @@ const App = () => {
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
                         </div>
-                        <textarea dir="rtl" id="text-input" className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`} rows="5" value={text} onChange={(e) => dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(e.target.value) })} placeholder="הזן טקסט לניתוח"></textarea>
+                        <MainTextInput
+                            text={text}
+                            isDarkMode={isDarkMode}
+                            onTextChange={handleTextChange}
+                        />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
                         </div>
