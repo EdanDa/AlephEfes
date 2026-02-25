@@ -65,6 +65,12 @@ const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
 // Includes Hebrew maqaf (U+05BE): "־"
 const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
+const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
+
+const normalizeSearchInput = (value = '') => value
+    .replace(SEARCH_ALLOWED_CHARS_RE, '')
+    .replace(INPUT_MULTI_SPACE_RE, ' ')
+    .trimStart();
 
 // English keyboard -> Hebrew letters (letter keys)
 const EN_TO_HE_LETTER_MAP = Object.freeze({
@@ -474,7 +480,7 @@ function appReducer(state, action) {
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
-		case 'SET_SEARCH_TERM': return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
+		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
 		case 'SET_HOVERED_WORD':
             if (state.hoveredWord?.word === action.payload?.word) return state;
             return { ...state, hoveredWord: action.payload };
@@ -979,7 +985,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                  <div className="flex-1"></div>
             </div>
             <div className="mb-4">
-                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
+                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
             <div className="space-y-6">
                 {filteredWordsInView.map(({ dr, words }) => (
@@ -2266,14 +2272,15 @@ const App = () => {
         let filteredWords = allWordsInClusters;
 
         if (searchTerm.trim()) {
-            const searchTerms = searchTerm.toLowerCase().split(' ').filter(t => t);
+            const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
             filteredWords = filteredWords.filter(w => {
-                return searchTerms.some(term => {
+                return searchTerms.every(term => {
                     const isNumericTerm = /^\d+$/.test(term);
                     if (isNumericTerm) {
                         const num = parseInt(term, 10);
                         return w.units === num || w.tens === num || w.hundreds === num;
-                    } else return w.word.toLowerCase().includes(term);
+                    }
+                    return w.word.includes(term);
                 });
             });
         }
