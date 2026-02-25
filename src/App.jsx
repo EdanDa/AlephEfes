@@ -907,7 +907,8 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
-    const activeWord = pinnedWord || hoveredWord;
+    const deferredHoveredWord = useDeferredValue(hoveredWord);
+    const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
     const wordsByVisibleValue = useMemo(() => {
