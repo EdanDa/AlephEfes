@@ -65,6 +65,23 @@ const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
 // Includes Hebrew maqaf (U+05BE): "־"
 const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
+const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
+
+const mapCharToHebrewForSearch = (ch) => {
+    if (/^[א-תךםןףץ0-9 ]$/.test(ch)) return ch;
+    const lower = ch.toLowerCase();
+    return EN_TO_HE_LETTER_MAP[lower]
+        || EN_TO_HE_PUNCT_LETTER_MAP[ch]
+        || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]
+        || '';
+};
+
+const normalizeSearchInput = (value = '') => Array.from(value)
+    .map(mapCharToHebrewForSearch)
+    .join('')
+    .replace(SEARCH_ALLOWED_CHARS_RE, '')
+    .replace(INPUT_MULTI_SPACE_RE, ' ')
+    .trimStart();
 
 // English keyboard -> Hebrew letters (letter keys)
 const EN_TO_HE_LETTER_MAP = Object.freeze({
@@ -474,7 +491,7 @@ function appReducer(state, action) {
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
-		case 'SET_SEARCH_TERM': return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
+		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
 		case 'SET_HOVERED_WORD':
             if (state.hoveredWord?.word === action.payload?.word) return state;
             return { ...state, hoveredWord: action.payload };
@@ -907,6 +924,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
+    const searchInputRef = useRef(null);
     const deferredHoveredWord = useDeferredValue(hoveredWord);
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
@@ -963,6 +981,63 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         connectedWordsCacheRef.current.set(activeWord.word, connected);
         return connected;
     }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
+
+    const handleSearchChange = useCallback((e) => {
+        dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) });
+    }, [dispatch]);
+
+    const handleSearchKeyDown = useCallback((e) => {
+        if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === 'Enter') return;
+
+        const allowedNavKeys = new Set(['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab']);
+        if (allowedNavKeys.has(e.key)) return;
+
+        const mappedFromCode = KEYBOARD_CODE_TO_HE_LETTER_MAP[e.code];
+        const mappedFromKey = e.key.length === 1
+            ? (EN_TO_HE_LETTER_MAP[e.key.toLowerCase()]
+                || EN_TO_HE_PUNCT_LETTER_MAP[e.key]
+                || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[e.key])
+            : null;
+        const mappedLetter = mappedFromCode || mappedFromKey;
+
+        if (mappedLetter || /^\d$/.test(e.key) || e.key === ' ') {
+            e.preventDefault();
+            const input = searchInputRef.current;
+            if (!input) return;
+
+            const insertion = mappedLetter || e.key;
+            const start = input.selectionStart ?? 0;
+            const end = input.selectionEnd ?? 0;
+            const nextValue = normalizeSearchInput(input.value.slice(0, start) + insertion + input.value.slice(end));
+
+            dispatch({ type: 'SET_SEARCH_TERM', payload: nextValue });
+
+            const leftSanitized = normalizeSearchInput(input.value.slice(0, start) + insertion);
+            const nextPos = leftSanitized.length;
+            requestAnimationFrame(() => input.setSelectionRange(nextPos, nextPos));
+            return;
+        }
+
+        if (e.key.length === 1) e.preventDefault();
+    }, [dispatch]);
+
+    const handleSearchPaste = useCallback((e) => {
+        const pasted = e.clipboardData?.getData('text') ?? '';
+        const input = searchInputRef.current;
+        if (!input) return;
+
+        e.preventDefault();
+        const start = input.selectionStart ?? 0;
+        const end = input.selectionEnd ?? 0;
+        const nextValue = normalizeSearchInput(input.value.slice(0, start) + pasted + input.value.slice(end));
+
+        dispatch({ type: 'SET_SEARCH_TERM', payload: nextValue });
+
+        const leftSanitized = normalizeSearchInput(input.value.slice(0, start) + pasted);
+        const nextPos = leftSanitized.length;
+        requestAnimationFrame(() => input.setSelectionRange(nextPos, nextPos));
+    }, [dispatch]);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
@@ -979,7 +1054,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                  <div className="flex-1"></div>
             </div>
             <div className="mb-4">
-                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
+                <input ref={searchInputRef} dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={handleSearchChange} onKeyDown={handleSearchKeyDown} onPaste={handleSearchPaste} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
             <div className="space-y-6">
                 {filteredWordsInView.map(({ dr, words }) => (
@@ -2266,14 +2341,15 @@ const App = () => {
         let filteredWords = allWordsInClusters;
 
         if (searchTerm.trim()) {
-            const searchTerms = searchTerm.toLowerCase().split(' ').filter(t => t);
+            const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
             filteredWords = filteredWords.filter(w => {
                 return searchTerms.some(term => {
                     const isNumericTerm = /^\d+$/.test(term);
                     if (isNumericTerm) {
                         const num = parseInt(term, 10);
                         return w.units === num || w.tens === num || w.hundreds === num;
-                    } else return w.word.toLowerCase().includes(term);
+                    }
+                    return w.word.includes(term);
                 });
             });
         }
