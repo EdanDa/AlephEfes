@@ -637,8 +637,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
     return <p className={`text-3xl font-bold selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
 });
 
-const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor }) => {
-    const { filters } = useAppFilters();
+const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor, filters }) => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const values = getWordValues(wordData);
     
@@ -842,7 +841,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     }
     
     // matches is used to determine WHICH icon to light up (target perspective)
-    const matches = activeWord ? layersMatching(activeWord, wordData).filter(L => availableLayers(wordData).includes(L)) : [];
+    const matches = (activeWord && (isSelf || isConnectedToActive)) ? layersMatching(activeWord, wordData).filter(L => availableLayers(wordData).includes(L)) : [];
     
     // Reverted to pastel background logic
     const baseBg = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
@@ -890,7 +889,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
             onClick={handleClick}
         >
             <div className={`font-bold text-xl break-all ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{wordData.word}</div>
-            <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor}/>
+            <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor} filters={filters}/>
         </div>
     );
 }, (prev, next) => {
@@ -919,27 +918,51 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                 const values = getWordValues(wordData);
                 values.forEach((v) => {
                     if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-                    if (!index.has(v.value)) index.set(v.value, new Set());
-                    index.get(v.value).add(wordData.word);
+                    if (!index.has(v.value)) index.set(v.value, []);
+                    index.get(v.value).push(wordData.word);
                 });
             });
         });
         return index;
     }, [filteredWordsInView, filters]);
 
+    const visibleValuesByWord = useMemo(() => {
+        const map = new Map();
+        filteredWordsInView.forEach(({ words }) => {
+            words.forEach((wordData) => {
+                const visibleValues = getWordValues(wordData)
+                    .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
+                    .map((v) => v.value);
+                map.set(wordData.word, visibleValues);
+            });
+        });
+        return map;
+    }, [filteredWordsInView, filters]);
+
+    const connectedWordsCacheRef = useRef(new Map());
+    useEffect(() => {
+        connectedWordsCacheRef.current.clear();
+    }, [wordsByVisibleValue, visibleValuesByWord]);
+
     const connectedWordsSet = useMemo(() => {
         if (!activeWord) return new Set();
+
+        const cached = connectedWordsCacheRef.current.get(activeWord.word);
+        if (cached) return cached;
+
         const connected = new Set();
-        getWordValues(activeWord).forEach((v) => {
-            if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-            const hitSet = wordsByVisibleValue.get(v.value);
-            if (!hitSet) return;
-            hitSet.forEach((word) => {
+        const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+        activeValues.forEach((value) => {
+            const hitList = wordsByVisibleValue.get(value);
+            if (!hitList) return;
+            hitList.forEach((word) => {
                 if (word !== activeWord.word) connected.add(word);
             });
         });
+
+        connectedWordsCacheRef.current.set(activeWord.word, connected);
         return connected;
-    }, [activeWord, wordsByVisibleValue, filters]);
+    }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
