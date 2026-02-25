@@ -1900,6 +1900,8 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
         const key = e.key.toLowerCase();
+        const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+        const isSpaceKey = key === ' ' || key === 'space' || key === 'spacebar' || e.code === 'Space';
 
         if (isMetaCombo && key === 'a') {
             e.preventDefault();
@@ -1911,7 +1913,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        if (isMetaCombo && key === 'enter') {
+        if (isMetaCombo && isEnterKey) {
             e.preventDefault();
             commitChanges();
             return;
@@ -1921,7 +1923,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             return;
         }
 
-        if (key === 'enter' || key === ' ') {
+        if (isEnterKey || isSpaceKey) {
             return;
         }
 
