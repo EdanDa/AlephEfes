@@ -26,27 +26,27 @@ function useAppDispatch() {
 
 function useAppFilters() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         filters: state?.filters,
         primeColor: state?.primeColor,
-    };
+    }), [state?.filters, state?.primeColor]);
 }
 
 function useAppClipboard() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         copiedId: state?.copiedId,
-    };
+    }), [state?.copiedId]);
 }
 
 function useAppStats() {
     const state = useAppState();
-    return {
+    return useMemo(() => ({
         stats: state?.stats,
         isStatsCollapsed: state?.isStatsCollapsed,
         isDarkMode: state?.isDarkMode,
         connectionValues: state?.connectionValues,
-    };
+    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues]);
 }
 
 // -----------------------------------------------------------------------------
@@ -451,8 +451,10 @@ const getWordValues = ({ hundreds, tens, units, isPrimeH, isPrimeT, isPrimeU }) 
 };
 
 const isWordVisible = (word, filters) => {
-    const values = getWordValues(word);
-    return values.some(v => isValueVisible(v.layer, v.isPrime, filters));
+    if (isValueVisible('U', word.isPrimeU, filters)) return true;
+    if (word.tens !== word.units && isValueVisible('T', word.isPrimeT, filters)) return true;
+    if (word.hundreds !== word.tens && isValueVisible('H', word.isPrimeH, filters)) return true;
+    return false;
 };
 
 // -----------------------------------------------------------------------------
@@ -924,6 +926,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
+    const searchInputRef = useRef(null);
     const deferredHoveredWord = useDeferredValue(hoveredWord);
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
@@ -2280,6 +2283,18 @@ const App = () => {
         return arr;
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
 
+    const parsedSearchTerms = useMemo(() => {
+        if (!searchTerm) return [];
+        return searchTerm
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((term) => ({
+                raw: term,
+                numeric: /^\d+$/.test(term),
+                number: Number.parseInt(term, 10),
+            }));
+    }, [searchTerm]);
+
     const filteredWordsInView = useMemo(() => {
         if (view !== 'clusters' || !drClusters) return [];
         const allWordsInClusters = Object.entries(drClusters)
@@ -2299,18 +2314,16 @@ const App = () => {
                     }
                     return w.word.includes(term);
                 });
-            });
-        }
-        
-        filteredWords = filteredWords.filter(isVisibleWord);
 
-        const regrouped = {};
-        filteredWords.forEach(word => {
-            if (!regrouped[word.dr]) regrouped[word.dr] = [];
-            regrouped[word.dr].push(word);
-        });
+                if (!matchesSearch) continue;
+
+                if (!regrouped[word.dr]) regrouped[word.dr] = [];
+                regrouped[word.dr].push(word);
+            }
+        }
+
         return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, searchTerm, selectedDR, isVisibleWord]);
+    }, [drClusters, view, selectedDR, parsedSearchTerms, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
             if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
@@ -3062,22 +3075,37 @@ function AppProvider({ children }) {
     const connectionValues = useMemo(() => {
          if (!state.coreResults) return new Set();
          const visibleConnections = new Set();
-         
-         const valCounts = new Map(); 
-         
-         state.coreResults.allWords.forEach(w => {
-             const values = getWordValues(w);
-             values.forEach(v => {
-                 if (isValueVisible(v.layer, v.isPrime, state.filters)) {
-                     if (!valCounts.has(v.value)) valCounts.set(v.value, new Set());
-                     valCounts.get(v.value).add(w.word);
-                 }
+         const valueCounts = new Map();
+
+         state.coreResults.allWords.forEach((word) => {
+             const visibleValues = [];
+
+             if (word.hundreds !== word.tens && isValueVisible('H', word.isPrimeH, state.filters)) {
+                 visibleValues.push(word.hundreds);
+             }
+             if (word.tens !== word.units && isValueVisible('T', word.isPrimeT, state.filters)) {
+                 visibleValues.push(word.tens);
+             }
+             if (isValueVisible('U', word.isPrimeU, state.filters)) {
+                 visibleValues.push(word.units);
+             }
+
+             if (visibleValues.length === 0) return;
+
+             if (visibleValues.length > 1) {
+                 visibleValues.sort((a, b) => a - b);
+             }
+
+             let prevValue;
+             visibleValues.forEach((value) => {
+                 if (value === prevValue) return;
+                 const nextCount = (valueCounts.get(value) || 0) + 1;
+                 valueCounts.set(value, nextCount);
+                 if (nextCount > 1) visibleConnections.add(value);
+                 prevValue = value;
              });
          });
 
-         for (const [val, wordSet] of valCounts.entries()) {
-             if (wordSet.size > 1) visibleConnections.add(val);
-         }
          return visibleConnections;
     }, [state.coreResults, state.filters]);
 
