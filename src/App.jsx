@@ -2324,14 +2324,20 @@ const App = () => {
     }, [drClusters, view, selectedDR, parsedSearchTerms, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
-            if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
-            const relevantWords = [pinnedWord];
-            Object.values(drClusters).flat().forEach(wordData => {
-                 if (wordData.word !== pinnedWord.word && topConnectionLayer(pinnedWord, wordData)) {
-                     if (isVisibleWord(wordData)) relevantWords.push(wordData);
-                 }
-            });
-            return relevantWords;
+        if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
+
+        const relevantWords = [pinnedWord];
+        const clusterWords = Object.values(drClusters).flat();
+
+        for (const wordData of clusterWords) {
+            const isDifferentWord = wordData.word !== pinnedWord.word;
+            const isConnected = topConnectionLayer(pinnedWord, wordData);
+            if (isDifferentWord && isConnected && isVisibleWord(wordData)) {
+                relevantWords.push(wordData);
+            }
+        }
+
+        return relevantWords;
     }, [pinnedWord, view, drClusters, isVisibleWord]);
     
     // --- Data Preparation for Export ---
