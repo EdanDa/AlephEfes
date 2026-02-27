@@ -65,6 +65,23 @@ const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
 // Includes Hebrew maqaf (U+05BE): "־"
 const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
+const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
+
+const mapCharToHebrewForSearch = (ch) => {
+    if (/^[א-תךםןףץ0-9 ]$/.test(ch)) return ch;
+    const lower = ch.toLowerCase();
+    return EN_TO_HE_LETTER_MAP[lower]
+        || EN_TO_HE_PUNCT_LETTER_MAP[ch]
+        || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]
+        || '';
+};
+
+const normalizeSearchInput = (value = '') => Array.from(value)
+    .map(mapCharToHebrewForSearch)
+    .join('')
+    .replace(SEARCH_ALLOWED_CHARS_RE, '')
+    .replace(INPUT_MULTI_SPACE_RE, ' ')
+    .trimStart();
 
 // English keyboard -> Hebrew letters (letter keys)
 const EN_TO_HE_LETTER_MAP = Object.freeze({
@@ -172,10 +189,11 @@ function growSieveTo(limit) {
     next.fill(1, Math.max(2, oldLen));
     const sqrtTarget = Math.sqrt(target);
     for (let p = 2; p <= sqrtTarget; p++) {
-        if (next[p] === 0) continue;
-        let start = p * p;
-        if (start < oldLen) start = Math.ceil(oldLen / p) * p;
-        for (let i = start; i <= target; i += p) next[i] = 0;
+        if (next[p] !== 0) {
+            let start = p * p;
+            if (start < oldLen) start = Math.ceil(oldLen / p) * p;
+            for (let i = start; i <= target; i += p) next[i] = 0;
+        }
     }
     sieveArr = next;
 }
@@ -320,10 +338,11 @@ const makeWordComputer = (letterTable) => {
         
 		for (const ch of it) {
 			const rec = letterTable.get(ch);
-			if (!rec) continue; 
-			builtWord += ch;
-			u += rec.u; t += rec.t; h += rec.h;
+			if (rec) {
+				builtWord += ch;
+				u += rec.u; t += rec.t; h += rec.h;
             if (rec.u > maxU) maxU = rec.u;
+			}
 		}
         
 		if (builtWord.length === 0) { cache.set(it, null); return null; }
@@ -373,16 +392,17 @@ function computeCoreResults(text, mode) {
 
 		for (const raw of words) {
 			const wd = computeWord(raw);
-			if (!wd) continue;
-			totalWordCount++;
-			calcWords.push(wd);
-			lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
-			if (wd.maxLayer === 'H') lineMaxLayer = 'H';
-			else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
+			if (wd) {
+				totalWordCount++;
+				calcWords.push(wd);
+				lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
+				if (wd.maxLayer === 'H') lineMaxLayer = 'H';
+				else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
 
-			if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
-			drDistribution[wd.dr]++;
-			wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
+				if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
+				drDistribution[wd.dr]++;
+				wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
+			}
 		}
 		grandU += lineU; grandT += lineT; grandH += lineH;
 		growSieveTo(Math.max(lineU, lineT, lineH));
@@ -474,7 +494,7 @@ function appReducer(state, action) {
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
-		case 'SET_SEARCH_TERM': return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
+		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
 		case 'SET_HOVERED_WORD':
             if (state.hoveredWord?.word === action.payload?.word) return state;
             return { ...state, hoveredWord: action.payload };
@@ -963,6 +983,12 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         connectedWordsCacheRef.current.set(activeWord.word, connected);
         return connected;
     }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
+
+    const handleSearchChange = useCallback((e) => {
+        dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) });
+    }, [dispatch]);
+
+
     
     return (
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`} onClick={unpinOnBackgroundClick}>
@@ -979,7 +1005,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                  <div className="flex-1"></div>
             </div>
             <div className="mb-4">
-                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={(e) => dispatch({ type: 'SET_SEARCH_TERM', payload: e.target.value })} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
+                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-300'}`} />
             </div>
             <div className="space-y-6">
                 {filteredWordsInView.map(({ dr, words }) => (
@@ -1121,14 +1147,15 @@ const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
     if (!quad.children) {
         if (quad.bucket) {
             for (const other of quad.bucket) {
-                if (other === point) continue;
-                const dx = point.x - other.x;
-                const dy = point.y - other.y;
-                const distSq = dx * dx + dy * dy + 1e-6;
-                const invDist = 1 / Math.sqrt(distSq);
-                const force = (repulsion * alpha) / distSq;
-                point.vx += dx * invDist * force;
-                point.vy += dy * invDist * force;
+                if (other !== point) {
+                    const dx = point.x - other.x;
+                    const dy = point.y - other.y;
+                    const distSq = dx * dx + dy * dy + 1e-6;
+                    const invDist = 1 / Math.sqrt(distSq);
+                    const force = (repulsion * alpha) / distSq;
+                    point.vx += dx * invDist * force;
+                    point.vy += dy * invDist * force;
+                }
             }
             return;
         }
@@ -1422,15 +1449,16 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
                             const dx = a.x - b.x;
                             const dy = a.y - b.y;
                             const distSq = dx * dx + dy * dy || 1;
-                            if (distSq > 250000) continue;
-                            const invDist = 1 / Math.sqrt(distSq);
-                            const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
-                            const fx = dx * invDist * force;
-                            const fy = dy * invDist * force;
-                            a.vx += fx;
-                            a.vy += fy;
-                            b.vx -= fx;
-                            b.vy -= fy;
+                            if (distSq <= 250000) {
+                                const invDist = 1 / Math.sqrt(distSq);
+                                const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
+                                const fx = dx * invDist * force;
+                                const fy = dy * invDist * force;
+                                a.vx += fx;
+                                a.vy += fy;
+                                b.vx -= fx;
+                                b.vy -= fy;
+                            }
                         }
                     }
                 }
@@ -1830,15 +1858,15 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         for (let ix = gx - 1; ix <= gx + 1; ix += 1) {
             for (let iy = gy - 1; iy <= gy + 1; iy += 1) {
                 const bucket = grid.get(`${ix}:${iy}`);
-                if (!bucket) continue;
-
-                for (const point of bucket) {
-                    const dx = point.px - mouseX;
-                    const dy = point.py - mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    if (distSq < minDistSq) {
-                        minDistSq = distSq;
-                        nearest = point;
+                if (bucket) {
+                    for (const point of bucket) {
+                        const dx = point.px - mouseX;
+                        const dy = point.py - mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq < minDistSq) {
+                            minDistSq = distSq;
+                            nearest = point;
+                        }
                     }
                 }
             }
@@ -1910,22 +1938,15 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         for (const ch of normalized) {
             if (ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch)) {
                 output += ch;
-                continue;
-            }
-
-            const lower = ch.toLowerCase();
-            if (EN_TO_HE_LETTER_MAP[lower]) {
-                output += EN_TO_HE_LETTER_MAP[lower];
-                continue;
-            }
-
-            if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
-                output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
-                continue;
-            }
-
-            if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
-                output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+            } else {
+                const lower = ch.toLowerCase();
+                if (EN_TO_HE_LETTER_MAP[lower]) {
+                    output += EN_TO_HE_LETTER_MAP[lower];
+                } else if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
+                    output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
+                } else if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
+                    output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+                }
             }
         }
 
@@ -2266,14 +2287,15 @@ const App = () => {
         let filteredWords = allWordsInClusters;
 
         if (searchTerm.trim()) {
-            const searchTerms = searchTerm.toLowerCase().split(' ').filter(t => t);
+            const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
             filteredWords = filteredWords.filter(w => {
                 return searchTerms.some(term => {
                     const isNumericTerm = /^\d+$/.test(term);
                     if (isNumericTerm) {
                         const num = parseInt(term, 10);
                         return w.units === num || w.tens === num || w.hundreds === num;
-                    } else return w.word.toLowerCase().includes(term);
+                    }
+                    return w.word.includes(term);
                 });
             });
         }
