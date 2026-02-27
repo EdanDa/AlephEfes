@@ -189,10 +189,11 @@ function growSieveTo(limit) {
     next.fill(1, Math.max(2, oldLen));
     const sqrtTarget = Math.sqrt(target);
     for (let p = 2; p <= sqrtTarget; p++) {
-        if (next[p] === 0) continue;
-        let start = p * p;
-        if (start < oldLen) start = Math.ceil(oldLen / p) * p;
-        for (let i = start; i <= target; i += p) next[i] = 0;
+        if (next[p] !== 0) {
+            let start = p * p;
+            if (start < oldLen) start = Math.ceil(oldLen / p) * p;
+            for (let i = start; i <= target; i += p) next[i] = 0;
+        }
     }
     sieveArr = next;
 }
@@ -337,10 +338,11 @@ const makeWordComputer = (letterTable) => {
         
 		for (const ch of it) {
 			const rec = letterTable.get(ch);
-			if (!rec) continue; 
-			builtWord += ch;
-			u += rec.u; t += rec.t; h += rec.h;
+			if (rec) {
+				builtWord += ch;
+				u += rec.u; t += rec.t; h += rec.h;
             if (rec.u > maxU) maxU = rec.u;
+			}
 		}
         
 		if (builtWord.length === 0) { cache.set(it, null); return null; }
@@ -390,16 +392,17 @@ function computeCoreResults(text, mode) {
 
 		for (const raw of words) {
 			const wd = computeWord(raw);
-			if (!wd) continue;
-			totalWordCount++;
-			calcWords.push(wd);
-			lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
-			if (wd.maxLayer === 'H') lineMaxLayer = 'H';
-			else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
+			if (wd) {
+				totalWordCount++;
+				calcWords.push(wd);
+				lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
+				if (wd.maxLayer === 'H') lineMaxLayer = 'H';
+				else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
 
-			if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
-			drDistribution[wd.dr]++;
-			wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
+				if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
+				drDistribution[wd.dr]++;
+				wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
+			}
 		}
 		grandU += lineU; grandT += lineT; grandH += lineH;
 		growSieveTo(Math.max(lineU, lineT, lineH));
@@ -1147,14 +1150,15 @@ const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
     if (!quad.children) {
         if (quad.bucket) {
             for (const other of quad.bucket) {
-                if (other === point) continue;
-                const dx = point.x - other.x;
-                const dy = point.y - other.y;
-                const distSq = dx * dx + dy * dy + 1e-6;
-                const invDist = 1 / Math.sqrt(distSq);
-                const force = (repulsion * alpha) / distSq;
-                point.vx += dx * invDist * force;
-                point.vy += dy * invDist * force;
+                if (other !== point) {
+                    const dx = point.x - other.x;
+                    const dy = point.y - other.y;
+                    const distSq = dx * dx + dy * dy + 1e-6;
+                    const invDist = 1 / Math.sqrt(distSq);
+                    const force = (repulsion * alpha) / distSq;
+                    point.vx += dx * invDist * force;
+                    point.vy += dy * invDist * force;
+                }
             }
             return;
         }
@@ -1448,15 +1452,16 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
                             const dx = a.x - b.x;
                             const dy = a.y - b.y;
                             const distSq = dx * dx + dy * dy || 1;
-                            if (distSq > 250000) continue;
-                            const invDist = 1 / Math.sqrt(distSq);
-                            const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
-                            const fx = dx * invDist * force;
-                            const fy = dy * invDist * force;
-                            a.vx += fx;
-                            a.vy += fy;
-                            b.vx -= fx;
-                            b.vy -= fy;
+                            if (distSq <= 250000) {
+                                const invDist = 1 / Math.sqrt(distSq);
+                                const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
+                                const fx = dx * invDist * force;
+                                const fy = dy * invDist * force;
+                                a.vx += fx;
+                                a.vy += fy;
+                                b.vx -= fx;
+                                b.vy -= fy;
+                            }
                         }
                     }
                 }
@@ -1856,15 +1861,15 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         for (let ix = gx - 1; ix <= gx + 1; ix += 1) {
             for (let iy = gy - 1; iy <= gy + 1; iy += 1) {
                 const bucket = grid.get(`${ix}:${iy}`);
-                if (!bucket) continue;
-
-                for (const point of bucket) {
-                    const dx = point.px - mouseX;
-                    const dy = point.py - mouseY;
-                    const distSq = dx * dx + dy * dy;
-                    if (distSq < minDistSq) {
-                        minDistSq = distSq;
-                        nearest = point;
+                if (bucket) {
+                    for (const point of bucket) {
+                        const dx = point.px - mouseX;
+                        const dy = point.py - mouseY;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq < minDistSq) {
+                            minDistSq = distSq;
+                            nearest = point;
+                        }
                     }
                 }
             }
