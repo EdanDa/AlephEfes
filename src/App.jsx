@@ -1936,22 +1936,15 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         for (const ch of normalized) {
             if (ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch)) {
                 output += ch;
-                continue;
-            }
-
-            const lower = ch.toLowerCase();
-            if (EN_TO_HE_LETTER_MAP[lower]) {
-                output += EN_TO_HE_LETTER_MAP[lower];
-                continue;
-            }
-
-            if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
-                output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
-                continue;
-            }
-
-            if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
-                output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+            } else {
+                const lower = ch.toLowerCase();
+                if (EN_TO_HE_LETTER_MAP[lower]) {
+                    output += EN_TO_HE_LETTER_MAP[lower];
+                } else if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
+                    output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
+                } else if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
+                    output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+                }
             }
         }
 
