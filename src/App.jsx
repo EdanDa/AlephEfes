@@ -2303,22 +2303,27 @@ const App = () => {
 
         if (searchTerm.trim()) {
             const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
-            filteredWords = filteredWords.filter(w => {
-                return searchTerms.some(term => {
-                    const isNumericTerm = /^\d+$/.test(term);
-                    if (isNumericTerm) {
-                        const num = parseInt(term, 10);
-                        return w.units === num || w.tens === num || w.hundreds === num;
-                    }
-                    return w.word.includes(term);
-                });
+            const matchesSearchToken = (wordData, term) => {
+                if (/^\d+$/.test(term)) {
+                    const num = parseInt(term, 10);
+                    return wordData.units === num || wordData.tens === num || wordData.hundreds === num;
+                }
 
-                if (!matchesSearch) continue;
+                return wordData.word.includes(term);
+            };
 
-                if (!regrouped[word.dr]) regrouped[word.dr] = [];
-                regrouped[word.dr].push(word);
-            }
+            filteredWords = filteredWords.filter((wordData) => (
+                searchTerms.some((term) => matchesSearchToken(wordData, term))
+            ));
         }
+
+        const regrouped = {};
+        filteredWords.forEach((wordData) => {
+            if (isVisibleWord(wordData)) {
+                if (!regrouped[wordData.dr]) regrouped[wordData.dr] = [];
+                regrouped[wordData.dr].push(wordData);
+            }
+        });
 
         return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
     }, [drClusters, view, selectedDR, parsedSearchTerms, isVisibleWord]);
