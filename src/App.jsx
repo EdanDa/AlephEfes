@@ -150,6 +150,7 @@ const PRIME_COLOR_HEX = {
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
+const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
 
 const GlobalStyles = () => (
     <style>{`
@@ -2017,11 +2018,20 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     }, [clearCommitTimer, onTextChange]);
 
     const handleChange = useCallback((e) => {
-        const nextValue = sanitizeHebrewInput(e.target.value);
+        const rawValue = e.target.value;
+        const nativeInputEvent = e.nativeEvent;
+        const inputType = nativeInputEvent?.inputType || '';
+        const insertedData = nativeInputEvent?.data ?? null;
+        const isDeleteInput = inputType.startsWith('delete');
+        const isSimpleInsert = inputType === 'insertText' || inputType === 'insertLineBreak';
+        const isAllowedInsertedData = insertedData === null || insertedData === '\n' || insertedData === ' ' || /^[א-ת]$/.test(insertedData);
+        const canSkipFullSanitize = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD && (isDeleteInput || (isSimpleInsert && isAllowedInsertedData));
 
-        if (e.target.value !== nextValue) {
-            const cursorStart = e.target.selectionStart ?? e.target.value.length;
-            const nextCursor = sanitizeHebrewInput(e.target.value.slice(0, cursorStart)).length;
+        const nextValue = canSkipFullSanitize ? rawValue : sanitizeHebrewInput(rawValue);
+
+        if (rawValue !== nextValue) {
+            const cursorStart = e.target.selectionStart ?? rawValue.length;
+            const nextCursor = sanitizeHebrewInput(rawValue.slice(0, cursorStart)).length;
             e.target.value = nextValue;
             requestAnimationFrame(() => e.target.setSelectionRange(nextCursor, nextCursor));
         }
@@ -2226,7 +2236,7 @@ const App = () => {
 
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
-        if (!coreResults || view !== 'clusters') return {};
+        if (!coreResults || (view !== 'clusters' && view !== 'network')) return {};
         const clusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
         coreResults.allWords.forEach(wd => {
             if (wd.dr > 0) clusters[wd.dr].push(wd);
@@ -2248,25 +2258,28 @@ const App = () => {
 
     const visibleAllWords = useMemo(() => {
         if (!coreResults) return [];
+        if (view !== 'words' && view !== 'hot' && view !== 'details') return [];
         return coreResults.allWords.filter(isVisibleWord);
-    }, [coreResults, isVisibleWord]);
+    }, [coreResults, isVisibleWord, view]);
 
     const visibleWordsByLine = useMemo(() => {
         if (!coreResults) return [];
+        if (view !== 'lines' && view !== 'details') return [];
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
-    }, [coreResults, isVisibleWord]);
+    }, [coreResults, isVisibleWord, view]);
 
     const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, filters)), [hotWordsList, filters]);
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
+        if (view !== 'hot') return new Map();
         const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
             const visible = words.filter(isVisibleWord);
             if (visible.length > 0) map.set(value, visible);
         }
         return map;
-    }, [valueToWordsMap, isVisibleWord]);
+    }, [valueToWordsMap, isVisibleWord, view]);
 
     const hotValuesList = useMemo(() => {
         if (!visibleValueToWordsMap) return [];
@@ -2280,6 +2293,7 @@ const App = () => {
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
+        if (view !== 'hot' || hotView !== 'words') return [];
         const wordMap = coreResults.wordDataMap;
         return Array.from(coreResults.wordCounts.entries())
             .filter(([word]) => {
@@ -2288,7 +2302,7 @@ const App = () => {
             })
             .map(([word, count]) => ({ word, count }))
             .sort((a, b) => b.count - a.count);
-    }, [coreResults, isVisibleWord]);
+    }, [coreResults, isVisibleWord, view, hotView]);
 
     const sortedHotViewList = useMemo(() => {
         if (hotView === 'words') {
@@ -2305,18 +2319,6 @@ const App = () => {
         });
         return arr;
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
-
-    const parsedSearchTerms = useMemo(() => {
-        if (!searchTerm) return [];
-        return searchTerm
-            .split(/\s+/)
-            .filter(Boolean)
-            .map((term) => ({
-                raw: term,
-                numeric: /^\d+$/.test(term),
-                number: Number.parseInt(term, 10),
-            }));
-    }, [searchTerm]);
 
     const filteredWordsInView = useMemo(() => {
         if (view !== 'clusters' || !drClusters) return [];
@@ -2351,7 +2353,7 @@ const App = () => {
         });
 
         return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, selectedDR, parsedSearchTerms, isVisibleWord]);
+    }, [drClusters, view, selectedDR, searchTerm, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
