@@ -61,6 +61,8 @@ const PRIME_COLOR_HEX = Object.freeze({
     orange: '#F97316',
 });
 const DEFAULT_DR_ORDER = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+const MAX_WORD_CACHE_SIZE = 50_000;
+const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 
 const MAX_SIEVE_SIZE = 20_000_000;
 let sieveArr = new Uint8Array(256);
@@ -203,6 +205,10 @@ function getLetterDetails(word, letterTable) {
         if (rec) details.push({ char: ch, value: rec.u });
     }
     letterDetailsCache.set(key, details);
+    if (letterDetailsCache.size > MAX_LETTER_DETAILS_CACHE_SIZE) {
+        const oldestKey = letterDetailsCache.keys().next().value;
+        if (oldestKey) letterDetailsCache.delete(oldestKey);
+    }
     return details;
 }
 
@@ -229,10 +235,25 @@ function forceHebrewInput(raw) {
 
 function makeWordComputer(letterTable) {
     const cache = new Map();
+    const touchCacheEntry = (key, value) => {
+        cache.delete(key);
+        cache.set(key, value);
+    };
+
+    const pruneCacheIfNeeded = () => {
+        if (cache.size <= MAX_WORD_CACHE_SIZE) return;
+        const oldestKey = cache.keys().next().value;
+        if (oldestKey) cache.delete(oldestKey);
+    };
+
     const computer = (rawWord) => {
         const cleaned = cleanHebrewToken(rawWord);
         if (!cleaned) return null;
-        if (cache.has(cleaned)) return cache.get(cleaned);
+        const cached = cache.get(cleaned);
+        if (cached !== undefined) {
+            touchCacheEntry(cleaned, cached);
+            return cached;
+        }
 
         let units = 0;
         let tens = 0;
@@ -251,7 +272,8 @@ function makeWordComputer(letterTable) {
         }
 
         if (builtWord.length === 0) {
-            cache.set(cleaned, null);
+            touchCacheEntry(cleaned, null);
+            pruneCacheIfNeeded();
             return null;
         }
 
@@ -268,7 +290,8 @@ function makeWordComputer(letterTable) {
             isPrimeH: hundreds !== tens && isPrimeExpand(hundreds),
             maxLayer,
         };
-        cache.set(cleaned, res);
+        touchCacheEntry(cleaned, res);
+        pruneCacheIfNeeded();
         return res;
     };
 
@@ -283,7 +306,6 @@ const memoizedComputers = {
 
 function computeCoreResults(text, mode) {
     letterDetailsCache.clear();
-    memoizedComputers[mode].clear();
 
     const lines = text.split('\n').filter((line) => line.trim().length);
     const computeWord = memoizedComputers[mode];
