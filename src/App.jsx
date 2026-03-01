@@ -321,8 +321,7 @@ function forceHebrewInput(raw) {
     }).join('');
     return mapped
         .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
-        .replace(INPUT_MULTI_SPACE_RE, ' ')
-        .replace(/ +$/gm, '');
+        .replace(INPUT_MULTI_SPACE_RE, ' ');
 }
 
 const makeWordComputer = (letterTable) => {
