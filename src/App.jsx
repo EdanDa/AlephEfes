@@ -1987,6 +1987,15 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             .replace(/\n[ ]+/g, '\n');
     }, []);
 
+    const sanitizePastedHebrewInput = useCallback((value = '') => value
+        .replace(/\r\n?/g, '\n')
+        .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
+        .split('')
+        .filter((ch) => ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch))
+        .join('')
+        .replace(INPUT_MULTI_SPACE_RE, ' ')
+        .replace(/\n[ ]+/g, '\n'), []);
+
     const clearCommitTimer = useCallback(() => {
         if (commitTimerRef.current !== null) {
             clearTimeout(commitTimerRef.current);
@@ -2113,7 +2122,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
-        const sanitized = sanitizeHebrewInput(pasted);
+        const sanitized = sanitizePastedHebrewInput(pasted);
 
         e.preventDefault();
 
@@ -2131,7 +2140,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
         const nextPos = start + sanitized.length;
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [sanitizeHebrewInput, scheduleCommit]);
+    }, [sanitizePastedHebrewInput, scheduleCommit]);
 
     return (
         <textarea
