@@ -1961,7 +1961,10 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const commitTimerRef = useRef(null);
 
     const sanitizeHebrewInput = useCallback((value = '') => {
-        const normalized = value.replace(/\r\n?/g, '\n');
+        const normalized = value
+            .replace(/\r\n?/g, '\n')
+            .replace(INPUT_PUNCT_TO_SPACE_RE, ' ');
+        const hasHebrewLetters = /[א-תךםןףץ]/.test(normalized);
         let output = '';
 
         for (const ch of normalized) {
@@ -1971,15 +1974,17 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
                 const lower = ch.toLowerCase();
                 if (EN_TO_HE_LETTER_MAP[lower]) {
                     output += EN_TO_HE_LETTER_MAP[lower];
-                } else if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
+                } else if (!hasHebrewLetters && EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
                     output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
-                } else if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
+                } else if (!hasHebrewLetters && EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
                     output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
                 }
             }
         }
 
-        return output;
+        return output
+            .replace(INPUT_MULTI_SPACE_RE, ' ')
+            .replace(/\n[ ]+/g, '\n');
     }, []);
 
     const clearCommitTimer = useCallback(() => {
