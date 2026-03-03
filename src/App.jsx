@@ -1994,6 +1994,9 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
         .filter((ch) => ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch))
         .join('')
         .replace(INPUT_MULTI_SPACE_RE, ' ')
+        .replace(/\n[ ]+/g, '\n')
+        .replace(/(^|[ \n])[א-ת](?=($|[ \n]))/g, '$1')
+        .replace(INPUT_MULTI_SPACE_RE, ' ')
         .replace(/\n[ ]+/g, '\n'), []);
 
     const clearCommitTimer = useCallback(() => {
