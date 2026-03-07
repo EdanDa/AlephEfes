@@ -517,7 +517,7 @@ const initialState = {
 
 function appReducer(state, action) {
 	switch (action.type) {
-		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null };
+		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
