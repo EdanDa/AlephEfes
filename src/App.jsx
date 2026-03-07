@@ -2716,7 +2716,7 @@ const App = () => {
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
                             <label className="flex items-center gap-2 text-sm font-semibold noselect">
-                                <span>גודל טקסט</span>
+                                <span>גופן</span>
                                 <select
                                     dir="rtl"
                                     value={textSize}
