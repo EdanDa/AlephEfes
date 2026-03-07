@@ -65,6 +65,12 @@ test('SET_SELECTED_DR toggles on same value', () => {
     assert.equal(twice.selectedDR, null);
 });
 
+
+test('SET_TEXT_SIZE updates text size preference', () => {
+    const next = appReducer(initialState, { type: 'SET_TEXT_SIZE', payload: 'lg' });
+    assert.equal(next.textSize, 'lg');
+});
+
 test('TOGGLE_FILTER flips only selected filter key', () => {
     const next = appReducer(initialState, { type: 'TOGGLE_FILTER', payload: 'Prime' });
     assert.equal(next.filters.Prime, true);

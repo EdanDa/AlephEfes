@@ -17,6 +17,7 @@ const initialState = {
     isValueTableOpen: false,
     isValueTablePinned: false,
     mode: 'aleph-zero',
+    textSize: 'md',
     copiedId: null,
     view: 'clusters',
     hoveredWord: null,
@@ -67,6 +68,8 @@ function appReducer(state, action) {
             };
         case 'SET_MODE':
             return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
+        case 'SET_TEXT_SIZE':
+            return { ...state, textSize: action.payload };
         case 'SET_SEARCH_TERM':
             return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
         case 'SET_HOVERED_WORD':

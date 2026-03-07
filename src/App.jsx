@@ -66,6 +66,16 @@ const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
 // Includes Hebrew maqaf (U+05BE): "־"
 const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
+const TEXT_SIZE_CLASSNAMES = Object.freeze({
+    sm: 'text-base leading-6',
+    md: 'text-lg leading-7',
+    lg: 'text-xl leading-8',
+});
+const TEXT_SIZE_OPTIONS = Object.freeze([
+    { value: 'sm', label: 'קטן' },
+    { value: 'md', label: 'בינוני' },
+    { value: 'lg', label: 'גדול' },
+]);
 const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
 
 const mapCharToHebrewForSearch = (ch) => {
@@ -498,6 +508,7 @@ const initialState = {
 	isValueTableOpen: false,
 	isValueTablePinned: false,
 	mode: 'aleph-zero',
+	textSize: 'md',
 	copiedId: null,
 	view: 'clusters',
 	hoveredWord: null,
@@ -522,6 +533,7 @@ function appReducer(state, action) {
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
+		case 'SET_TEXT_SIZE': return { ...state, textSize: action.payload };
 		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
 		case 'SET_HOVERED_WORD':
             if (state.hoveredWord?.word === action.payload?.word) return state;
@@ -1955,7 +1967,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 });
 
-const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
+const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
@@ -2150,8 +2162,8 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-lg leading-7 text-right ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
-            rows="5"
+            className={`w-full min-h-[3rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows="1"
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
@@ -2175,7 +2187,7 @@ const App = () => {
     const dispatch = useAppDispatch();
     const {
         text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
-        mode, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
+        mode, textSize, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
@@ -2633,6 +2645,7 @@ const App = () => {
     const handleTableIconClick = () => dispatch({ type: 'TOGGLE_VALUE_TABLE_PIN' });
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
+    const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
     
     const handleDrillDown = useCallback((dr) => {
         // Toggle selected DR instead of switching view
@@ -2697,15 +2710,29 @@ const App = () => {
                     <StatsPanel />
 
                     <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg hover:shadow-xl'}`}>
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex justify-between items-center mb-2 gap-4">
                             <div className={`flex items-center p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
+                            <label className="flex items-center gap-2 text-sm font-semibold noselect">
+                                <span>גודל טקסט</span>
+                                <select
+                                    dir="rtl"
+                                    value={textSize}
+                                    onChange={handleTextSizeChange}
+                                    className={`px-3 py-1 rounded-md border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
+                                >
+                                    {TEXT_SIZE_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
+                                </select>
+                            </label>
                         </div>
                         <MainTextInput
                             text={text}
                             isDarkMode={isDarkMode}
+                            textSize={textSize}
                             onTextChange={handleTextChange}
                         />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
