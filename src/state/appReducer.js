@@ -43,6 +43,7 @@ function appReducer(state, action) {
                 text: action.payload,
                 pinnedWord: null,
                 selectedDR: null,
+                searchTerm: '',
                 selectedHotValue: null,
                 hotWordsList: [],
             };

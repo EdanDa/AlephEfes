@@ -517,7 +517,7 @@ const initialState = {
 
 function appReducer(state, action) {
 	switch (action.type) {
-		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null };
+		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
@@ -1961,7 +1961,10 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
     const commitTimerRef = useRef(null);
 
     const sanitizeHebrewInput = useCallback((value = '') => {
-        const normalized = value.replace(/\r\n?/g, '\n');
+        const normalized = value
+            .replace(/\r\n?/g, '\n')
+            .replace(INPUT_PUNCT_TO_SPACE_RE, ' ');
+        const hasHebrewLetters = /[א-תךםןףץ]/.test(normalized);
         let output = '';
 
         for (const ch of normalized) {
@@ -1971,16 +1974,30 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
                 const lower = ch.toLowerCase();
                 if (EN_TO_HE_LETTER_MAP[lower]) {
                     output += EN_TO_HE_LETTER_MAP[lower];
-                } else if (EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
+                } else if (!hasHebrewLetters && EN_TO_HE_PUNCT_LETTER_MAP[ch]) {
                     output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
-                } else if (EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
+                } else if (!hasHebrewLetters && EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
                     output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
                 }
             }
         }
 
-        return output;
+        return output
+            .replace(INPUT_MULTI_SPACE_RE, ' ')
+            .replace(/\n[ ]+/g, '\n');
     }, []);
+
+    const sanitizePastedHebrewInput = useCallback((value = '') => value
+        .replace(/\r\n?/g, '\n')
+        .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
+        .split('')
+        .filter((ch) => ch === ' ' || ch === '\n' || /^[א-ת]$/.test(ch))
+        .join('')
+        .replace(INPUT_MULTI_SPACE_RE, ' ')
+        .replace(/\n[ ]+/g, '\n')
+        .replace(/(^|[ \n])[א-ת](?=($|[ \n]))/g, '$1')
+        .replace(INPUT_MULTI_SPACE_RE, ' ')
+        .replace(/\n[ ]+/g, '\n'), []);
 
     const clearCommitTimer = useCallback(() => {
         if (commitTimerRef.current !== null) {
@@ -2108,7 +2125,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
-        const sanitized = sanitizeHebrewInput(pasted);
+        const sanitized = sanitizePastedHebrewInput(pasted);
 
         e.preventDefault();
 
@@ -2126,7 +2143,7 @@ const MainTextInput = memo(({ text, isDarkMode, onTextChange }) => {
 
         const nextPos = start + sanitized.length;
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [sanitizeHebrewInput, scheduleCommit]);
+    }, [sanitizePastedHebrewInput, scheduleCommit]);
 
     return (
         <textarea

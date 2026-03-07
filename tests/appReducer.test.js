@@ -45,6 +45,18 @@ test('SET_TEXT keeps previous coreResults while new analysis is pending', () => 
     assert.deepEqual(next.coreResults, withResults.coreResults);
 });
 
+
+test('SET_TEXT clears search term in clusters search bar', () => {
+    const withSearch = {
+        ...initialState,
+        text: 'ישן',
+        searchTerm: 'בראשית',
+    };
+
+    const next = appReducer(withSearch, { type: 'SET_TEXT', payload: 'חדש' });
+    assert.equal(next.searchTerm, '');
+});
+
 test('SET_SELECTED_DR toggles on same value', () => {
     const once = appReducer(initialState, { type: 'SET_SELECTED_DR', payload: 5 });
     assert.equal(once.selectedDR, 5);
