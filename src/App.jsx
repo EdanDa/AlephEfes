@@ -158,6 +158,7 @@ const PRIME_COLOR_HEX = {
     orange: '#F97316',
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
@@ -1038,7 +1039,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                     <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
-                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי (ש"ד)</h2>
+                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none noselect">
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
                     </div>
@@ -2287,13 +2288,13 @@ const App = () => {
 
     const visibleAllWords = useMemo(() => {
         if (!coreResults) return [];
-        if (view !== 'words' && view !== 'hot' && view !== 'details') return [];
+        if (view !== 'lines' && view !== 'hot-words') return [];
         return coreResults.allWords.filter(isVisibleWord);
     }, [coreResults, isVisibleWord, view]);
 
     const visibleWordsByLine = useMemo(() => {
         if (!coreResults) return [];
-        if (view !== 'lines' && view !== 'details') return [];
+        if (view !== 'lines') return [];
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
@@ -2301,7 +2302,7 @@ const App = () => {
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
-        if (view !== 'hot') return new Map();
+        if (view !== 'hot-words') return new Map();
         const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
             const visible = words.filter(isVisibleWord);
@@ -2322,7 +2323,7 @@ const App = () => {
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
-        if (view !== 'hot' || hotView !== 'words') return [];
+        if (view !== 'hot-words' || hotView !== 'words') return [];
         const wordMap = coreResults.wordDataMap;
         return Array.from(coreResults.wordCounts.entries())
             .filter(([word]) => {
@@ -2475,49 +2476,7 @@ const App = () => {
         return lines.filter(Boolean).join('\n');
     }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView, visibleAllWords, visibleWordsByLine]);
 
-    const prepareAllDetailsCSV = useCallback(() => {
-        if (!coreResults) return "";
-        const header = ["שורה", "מילה", "חישוב", "אחדות", "האם ראשוני (א)", "עשרות", "האם ראשוני (ע)", "מאות", "האם ראשוני (מ)", "ש\"ד"];
-        const rows = [];
-        
-        if (detailsView === 'words') {
-             visibleAllWords.forEach(w => {
-                const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
-                rows.push([
-                    "-",
-                    w.word,
-                    calc,
-                    isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
-                    isValueVisible('U', w.isPrimeU, filters) && w.isPrimeU ? "כן" : "לא",
-                    isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units ? w.tens : "",
-                    isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units && w.isPrimeT ? "כן" : "לא",
-                    isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens ? w.hundreds : "",
-                    isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens && w.isPrimeH ? "כן" : "לא",
-                    w.dr
-                ]);
-            });
-        } else {
-            coreResults.lines.forEach((line, idx) => {
-                const visibleWords = visibleWordsByLine[idx] || [];
-                visibleWords.forEach(w => {
-                    const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
-                    rows.push([
-                        idx + 1,
-                        w.word,
-                        calc,
-                        isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
-                        isValueVisible('U', w.isPrimeU, filters) && w.isPrimeU ? "כן" : "לא",
-                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units ? w.tens : "",
-                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units && w.isPrimeT ? "כן" : "לא",
-                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens ? w.hundreds : "",
-                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens && w.isPrimeH ? "כן" : "לא",
-                        w.dr
-                    ]);
-                });
-            });
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, letterTable, filters, detailsView, visibleAllWords, visibleWordsByLine]);
+    const prepareAllDetailsCSV = useCallback(() => prepareAllDetailsText(), [prepareAllDetailsText]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
@@ -2557,24 +2516,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, view, pinnedWord, getPinnedRelevantWords, selectedDR, searchTerm, filteredWordsInView, filters]);
 
-    const prepareSummaryCSV = useCallback(() => {
-        if (!coreResults) return "";
-        const header = ["ש\"ד", "מילה", "אחדות", "עשרות", "מאות"];
-        const rows = [];
-        if (view === 'clusters' && pinnedWord) {
-             const relevant = getPinnedRelevantWords() || [];
-             relevant.forEach(w => {
-                 rows.push([w.dr, w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : ""]);
-             });
-        } else {
-            filteredWordsInView.forEach(({ dr, words }) => {
-                words.forEach(w => {
-                    rows.push([dr, w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : ""]);
-                });
-            });
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, view, pinnedWord, getPinnedRelevantWords, filteredWordsInView]);
+    const prepareSummaryCSV = useCallback(() => prepareSummaryText(), [prepareSummaryText]);
 
     const prepareHotWordsText = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
@@ -2591,15 +2533,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
-    const prepareHotWordsCSV = useCallback(() => {
-        if (!coreResults || selectedHotValue === null) return "";
-        const header = ["מילה", "אחדות", "עשרות", "מאות", "ש\"ד"];
-        const rows = [];
-        visibleHotWords.forEach(w => {
-            rows.push([w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : "", w.dr]);
-        });
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, selectedHotValue, visibleHotWords]);
+    const prepareHotWordsCSV = useCallback(() => prepareHotWordsText(), [prepareHotWordsText]);
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
@@ -2620,24 +2554,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
-    const prepareFrequenciesCSV = useCallback(() => {
-        if (!coreResults) return "";
-        let header = [];
-        let rows = [];
-        if (hotView === 'values') {
-            header = ["ערך", "כמות", "מילים"];
-             // USE SORTED LIST
-            sortedHotViewList.forEach(({ value, count }) => {
-                const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join('; ');
-                if(words) rows.push([value, count, `"${words}"`]); // quote words for CSV safety
-            });
-        } else {
-            header = ["מילה", "שכיחות"];
-             // USE SORTED LIST
-            sortedHotViewList.forEach(({ word, count }) => rows.push([word, count]));
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, hotView, sortedHotViewList, visibleValueToWordsMap]);
+    const prepareFrequenciesCSV = useCallback(() => prepareFrequenciesText(), [prepareFrequenciesText]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2646,6 +2563,7 @@ const App = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
+    const drOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
     
     const handleDrillDown = useCallback((dr) => {
         if (!stats || (stats.drDistribution?.[dr] || 0) === 0) return;
@@ -2762,11 +2680,11 @@ const App = () => {
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
                             <div className="flex justify-between items-center mb-4 noselect">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים (ש"ד)</h3>
+                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
                             <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
-                                {DEFAULT_DR_ORDER.map((dr) => {
+                                {drOrder.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
                                     const hasWords = count > 0;
