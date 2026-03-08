@@ -1058,7 +1058,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         style={{ contentVisibility: 'auto', containIntrinsicSize: '460px' }}
                         onClick={unpinOnBackgroundClick}
                     >
-                        <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
+                        <h3 className="text-xl font-bold text-violet-900 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
                         <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                             {words.map((wordData, index) => (
                                 <WordCard 
@@ -1446,8 +1446,13 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
                     }
 
                     if (k > 0.6 || isHighlighted || isSelected) {
-                        ctx.fillStyle = isDarkMode ? 'white' : 'black';
                         ctx.font = '10px sans-serif';
+                        if (!isDarkMode) {
+                            ctx.lineWidth = 3 / k;
+                            ctx.strokeStyle = 'rgba(248,250,252,0.95)';
+                            ctx.strokeText(node.id, node.x + 8, node.y + 3);
+                        }
+                        ctx.fillStyle = isDarkMode ? 'white' : '#0f172a';
                         ctx.fillText(node.id, node.x + 8, node.y + 3);
                     }
                 } else {
@@ -1461,8 +1466,13 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
                         ctx.stroke();
                     }
                     if (k > 0.8 || isHighlighted || isSelected) {
-                        ctx.fillStyle = isDarkMode ? '#D1D5DB' : '#374151';
                         ctx.font = 'bold 9px monospace';
+                        if (!isDarkMode) {
+                            ctx.lineWidth = 2.5 / k;
+                            ctx.strokeStyle = 'rgba(248,250,252,0.95)';
+                            ctx.strokeText(node.value, node.x - 6, node.y - 6);
+                        }
+                        ctx.fillStyle = isDarkMode ? '#D1D5DB' : '#111827';
                         ctx.fillText(node.value, node.x - 6, node.y - 6);
                     }
                 }
@@ -1719,9 +1729,9 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
     return (
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <h2 className="text-2xl font-bold mb-4 text-center">מפת קשרים (רשת)</h2>
-            <div ref={containerRef} className="relative w-full h-[600px] cursor-move overflow-hidden bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div ref={containerRef} className="relative w-full h-[600px] cursor-move overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700">
                 <canvas ref={canvasRef} className="w-full h-full block" />
-                <div className="absolute top-2 right-2 text-xs text-gray-500 bg-white/80 dark:bg-black/50 p-2 rounded pointer-events-none select-none">
+                <div className="absolute top-2 right-2 text-xs text-slate-700 dark:text-gray-200 bg-white/90 dark:bg-black/50 p-2 rounded pointer-events-none select-none border border-slate-200 dark:border-gray-700">
                     <div>גלגלת: זום</div>
                     <div>גרירה ברקע: הזזה</div>
                     <div>קליק: בחירה</div>
@@ -2705,7 +2715,7 @@ const App = () => {
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-violet-900 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-700 dark:text-gray-400'}`}>ש"ד {dr}</div>
                                             </button>
                                         </div>
                                     );
@@ -2734,7 +2744,7 @@ const App = () => {
                                                 <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
                                                 {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
                                                 {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
-                                                <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
+                                                <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-violet-800 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
                                     )}
@@ -2806,7 +2816,7 @@ const App = () => {
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
                                                                     {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
-                                                                    <td className="px-4 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
+                                                                    <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                                 </tr>
                                                             ))}</tbody>
                                                         </table>
@@ -2847,7 +2857,7 @@ const App = () => {
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
                                                     {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
-                                                    <td className="px-4 py-3 text-center font-semibold text-purple-700 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
+                                                    <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                 </tr>
                                             ))}</tbody>
                                         </table>
