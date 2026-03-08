@@ -692,7 +692,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
     const primeColorClasses = COLOR_PALETTE[primeColor];
     
     if (!isVisible) {
-         return <p className="text-3xl font-bold text-gray-300 dark:text-gray-600 noselect">-</p>;
+         return <p className="text-3xl font-bold text-gray-500 dark:text-gray-500 noselect">-</p>;
     }
     // .selectable
     return <p className={`text-3xl font-bold selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
@@ -2731,10 +2731,10 @@ const App = () => {
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
-                                                <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
-                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
-                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
-                                                <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
+                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
+                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
                                     )}
@@ -2778,8 +2778,8 @@ const App = () => {
                                             >
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
-                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{lineResult.lineText}"</p>
-                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>סה"כ שורה: 
+                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
                                                         {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
@@ -2891,7 +2891,7 @@ const App = () => {
                                 <div>
                                     {selectedHotValue === null ? (
                                         <div>
-                                            <div className="flex text-right sticky top-0 bg-white dark:bg-gray-800 p-2 font-semibold border-b border-gray-200 dark:border-gray-700 noselect">
+                                            <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                                 <div className="w-1/4 cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })}>ערך {hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                                 <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                                 <div className="w-1/2">מילים</div>
@@ -2904,8 +2904,8 @@ const App = () => {
                                                 renderItem={({ value, count }) => (
                                                     <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
-                                                        <div className="w-1/4 p-2 text-center">{count}</div>
-                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
+                                                        <div className="w-1/4 p-2 text-center text-gray-900 dark:text-gray-100">{count}</div>
+                                                        <div className="w-1/2 p-2 text-sm text-gray-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
                                                     </div>
                                                 )}
                                             />
@@ -2935,14 +2935,14 @@ const App = () => {
                             )}
                             {hotView === 'words' && (
                                 <div>
-                                    <div className="flex text-right sticky top-0 bg-white dark:bg-gray-800 p-2 font-semibold border-b border-gray-200 dark:border-gray-700 noselect">
+                                    <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                         <div className="w-3/4">מילה</div>
                                         <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                     </div>
                                     <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
                                         <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
                                             <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
-                                            <div className="w-1/4 p-2 text-center font-mono">{count}</div>
+                                            <div className="w-1/4 p-2 text-center font-mono text-gray-900 dark:text-gray-100">{count}</div>
                                         </div>
                                     )} />
                                 </div>
