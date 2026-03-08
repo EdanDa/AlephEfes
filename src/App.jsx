@@ -2277,9 +2277,10 @@ const App = () => {
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
         if (!coreResults || (view !== 'clusters' && view !== 'network')) return {};
-        const clusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
-        coreResults.allWords.forEach(wd => {
-            if (wd.dr > 0) clusters[wd.dr].push(wd);
+        const activeDrOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
+        const clusters = Object.fromEntries(activeDrOrder.map((dr) => [dr, []]));
+        coreResults.allWords.forEach((wd) => {
+            if (Object.hasOwn(clusters, wd.dr)) clusters[wd.dr].push(wd);
         });
         for (const k in clusters) {
             clusters[k].sort((a, b) => {
@@ -2289,10 +2290,10 @@ const App = () => {
             });
         }
         return clusters;
-    }, [coreResults, view]);
+    }, [coreResults, mode, view]);
 
     const isVisibleWord = useCallback(
-        (wordData) => isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR),
+        (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
         [filters, selectedDR]
     );
 
@@ -2392,8 +2393,11 @@ const App = () => {
             }
         });
 
-        return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, selectedDR, searchTerm, isVisibleWord]);
+        const activeDrOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
+        return activeDrOrder
+            .map((dr) => ({ dr, words: regrouped[dr] || [] }))
+            .filter(({ dr, words }) => words.length > 0 || (mode === 'aleph-zero' && selectedDR === null && dr === 0));
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
@@ -2511,14 +2515,14 @@ const App = () => {
                 if (txt) lines.push(txt);
             });
         } else if (view === 'clusters') {
-            const drHeader = selectedDR ? `סיכום קיבוץ שורש דיגיטלי ${selectedDR}` : `סיכום כללי - קיבוץ לפי שורש דיגיטלי`;
+            const drHeader = selectedDR !== null ? `סיכום קיבוץ שורש דיגיטלי ${selectedDR}` : `סיכום כללי - קיבוץ לפי שורש דיגיטלי`;
             if (searchTerm) lines.push(`סיכום תוצאות חיפוש "${searchTerm}"\n==============================\n`);
             else lines.push(`${drHeader}\n==============================\n`);
             
             filteredWordsInView.forEach(({ dr, words }) => {
                 const visibleWords = words.map(formatWord).filter(Boolean);
                 if (visibleWords.length > 0) {
-                    if (!selectedDR) lines.push(`\nש"ד ${dr} (${visibleWords.length} מילים)\n---------------------------\n`);
+                    if (selectedDR === null) lines.push(`\nש"ד ${dr} (${visibleWords.length} מילים)\n---------------------------\n`);
                     visibleWords.forEach(line => lines.push(line));
                 }
             });
@@ -2582,9 +2586,9 @@ const App = () => {
     }, [dispatch, stats]);
 
     useEffect(() => {
-        if (!stats || !selectedDR) return;
+        if (selectedDR === null || !stats) return;
         if ((stats.drDistribution?.[selectedDR] || 0) === 0) {
-            dispatch({ type: 'SET_SELECTED_DR', payload: selectedDR });
+            dispatch({ type: 'SET_SELECTED_DR', payload: null });
         }
     }, [dispatch, selectedDR, stats]);
 
@@ -2596,13 +2600,13 @@ const App = () => {
     }, [dispatch]);
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#e0f2fe] text-slate-900'}`}>
+        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
                         <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-slate-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <Legend />
@@ -2693,7 +2697,7 @@ const App = () => {
                                 <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
-                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}`}>
+                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
                                 {drOrder.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
@@ -2715,7 +2719,7 @@ const App = () => {
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-violet-900 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-700 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
                                             </button>
                                         </div>
                                     );
@@ -2741,10 +2745,10 @@ const App = () => {
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
-                                                <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
-                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
-                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
-                                                <div className="p-4 rounded-lg bg-slate-100 dark:bg-gray-700/50"> <p className="text-sm text-slate-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-violet-800 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
+                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
+                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
                                     )}
@@ -2788,8 +2792,8 @@ const App = () => {
                                             >
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
-                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-slate-700'}`}>"{lineResult.lineText}"</p>
-                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-100 text-slate-900'}`}>סה"כ שורה: 
+                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
                                                         {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
@@ -2914,8 +2918,8 @@ const App = () => {
                                                 renderItem={({ value, count }) => (
                                                     <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
-                                                        <div className="w-1/4 p-2 text-center text-slate-900 dark:text-gray-100">{count}</div>
-                                                        <div className="w-1/2 p-2 text-sm text-slate-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
+                                                        <div className="w-1/4 p-2 text-center text-gray-900 dark:text-gray-100">{count}</div>
+                                                        <div className="w-1/2 p-2 text-sm text-gray-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
                                                     </div>
                                                 )}
                                             />
@@ -2952,7 +2956,7 @@ const App = () => {
                                     <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
                                         <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
                                             <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
-                                            <div className="w-1/4 p-2 text-center font-mono text-slate-900 dark:text-gray-100">{count}</div>
+                                            <div className="w-1/4 p-2 text-center font-mono text-gray-900 dark:text-gray-100">{count}</div>
                                         </div>
                                     )} />
                                 </div>
