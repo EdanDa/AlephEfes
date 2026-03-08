@@ -2648,9 +2648,17 @@ const App = () => {
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
     
     const handleDrillDown = useCallback((dr) => {
+        if (!stats || (stats.drDistribution?.[dr] || 0) === 0) return;
         // Toggle selected DR instead of switching view
         dispatch({ type: 'SET_SELECTED_DR', payload: dr });
-    }, [dispatch]);
+    }, [dispatch, stats]);
+
+    useEffect(() => {
+        if (!stats || !selectedDR) return;
+        if ((stats.drDistribution?.[selectedDR] || 0) === 0) {
+            dispatch({ type: 'SET_SELECTED_DR', payload: selectedDR });
+        }
+    }, [dispatch, selectedDR, stats]);
 
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
     const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
@@ -2660,13 +2668,13 @@ const App = () => {
     }, [dispatch]);
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
+        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
                         <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <Legend />
@@ -2757,7 +2765,7 @@ const App = () => {
                                 <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים (ש"ד)</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
-                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
                                 {DEFAULT_DR_ORDER.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
@@ -2768,12 +2776,19 @@ const App = () => {
                                     
                                     return (
                                         <div key={dr} className="flex flex-col items-center w-1/12 h-full justify-center group">
-                                            <div className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all cursor-pointer ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`} onClick={() => handleDrillDown(dr)}>
+                                            <button
+                                                type="button"
+                                                disabled={!hasWords}
+                                                className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all ${hasWords ? 'cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-600/40' : 'cursor-not-allowed opacity-45'} ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`}
+                                                onClick={() => handleDrillDown(dr)}
+                                                aria-label={`ש"ד ${dr}${hasWords ? '' : ' (ללא תוצאות)'}`}
+                                                title={hasWords ? `סינון לפי ש"ד ${dr}` : `ש"ד ${dr} - ללא מילים`}
+                                            >
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-500 dark:text-gray-400'}`}>ש"ד {dr}</div>
-                                            </div>
+                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                            </button>
                                         </div>
                                     );
                                 })}
