@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
+import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -760,7 +761,7 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
         await new Promise(resolve => setTimeout(resolve, 10)); 
 
         try {
-            const text = getText();
+            const text = stripTrailingSpacesPerLine(getText());
             if (!text || text.trim().length === 0) throw new Error("No visible text generated based on current filters");
             
             let success = false;
@@ -797,7 +798,7 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
 
     const handleCSV = () => {
         try {
-            const content = getCSV();
+            const content = stripTrailingSpacesPerLine(getCSV());
             if (!content) return;
             // Add BOM for Excel Hebrew support
             const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
