@@ -158,6 +158,7 @@ const PRIME_COLOR_HEX = {
     orange: '#F97316',
 };
 const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
@@ -504,6 +505,7 @@ const initialState = {
 	coreResults: null,
 	selectedDR: null,
 	isDarkMode: false,
+	hasExplicitThemeChoice: false,
 	searchTerm: '',
 	isValueTableOpen: false,
 	isValueTablePinned: false,
@@ -531,6 +533,8 @@ function appReducer(state, action) {
 		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
+		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
+		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
 		case 'SET_TEXT_SIZE': return { ...state, textSize: action.payload };
@@ -691,7 +695,7 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
     const primeColorClasses = COLOR_PALETTE[primeColor];
     
     if (!isVisible) {
-         return <p className="text-3xl font-bold text-gray-300 dark:text-gray-600 noselect">-</p>;
+         return <p className="text-3xl font-bold text-gray-500 dark:text-gray-500 noselect">-</p>;
     }
     // .selectable
     return <p className={`text-3xl font-bold selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-800 dark:text-gray-200'}`}>{value} {isPrimeFlag && <span className="mr-2 text-xl">♢</span>}</p>;
@@ -1038,7 +1042,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                     <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
-                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי (ש"ד)</h2>
+                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none noselect">
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
                     </div>
@@ -1257,7 +1261,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
 
         coreResults.allWords.forEach(wordData => {
             if (!isWordVisible(wordData, filters)) return;
-            if (selectedDR && wordData.dr !== selectedDR) return;
+            if (selectedDR !== null && wordData.dr !== selectedDR) return;
             
             if (!wordNodesMap.has(wordData.word)) {
                 const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
@@ -1758,7 +1762,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             line.words.forEach(wordData => {
                 wordIndex++;
                 if (!isWordVisible(wordData, filters)) return;
-                if (selectedDR && wordData.dr !== selectedDR) return;
+                if (selectedDR !== null && wordData.dr !== selectedDR) return;
 
                 const values = getWordValues(wordData);
                 values.forEach(v => {
@@ -2162,8 +2166,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full min-h-[3rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
-            rows="1"
+            className={`w-full min-h-[8rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows="4"
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
@@ -2191,7 +2195,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        isPending 
+        hasExplicitThemeChoice, isPending 
     } = state;
 
     const clusterRefs = useRef({});
@@ -2201,7 +2205,7 @@ const App = () => {
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
     useLayoutEffect(() => {
-        if (view !== 'clusters' || !selectedDR) return;
+        if (view !== 'clusters' || selectedDR === null) return;
         const el = clusterRefs.current[selectedDR];
         if (!el) return;
         requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -2241,7 +2245,35 @@ const App = () => {
         }
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
     }, [dispatch]);
+
+    useEffect(() => {
+        let savedTheme = null;
+        try {
+            savedTheme = localStorage.getItem('alephThemeMode');
+        } catch (_err) {
+            savedTheme = null;
+        }
+
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+            dispatch({ type: 'SET_DARK_MODE', payload: savedTheme === 'dark' });
+            dispatch({ type: 'SET_EXPLICIT_THEME_CHOICE', payload: true });
+            return;
+        }
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        dispatch({ type: 'SET_DARK_MODE', payload: mediaQuery.matches });
+        dispatch({ type: 'SET_EXPLICIT_THEME_CHOICE', payload: false });
+    }, [dispatch]);
     
+    useEffect(() => {
+        if (!hasExplicitThemeChoice) return;
+        try {
+            localStorage.setItem('alephThemeMode', isDarkMode ? 'dark' : 'light');
+        } catch (_err) {
+            // Ignore storage write failures (private mode / blocked storage)
+        }
+    }, [hasExplicitThemeChoice, isDarkMode]);
+
     useEffect(() => {
         const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
         const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
@@ -2262,13 +2294,29 @@ const App = () => {
         };
     }, [text]);
     useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        if (hasExplicitThemeChoice) return;
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const applyTheme = (event) => dispatch({ type: 'SET_DARK_MODE', payload: event.matches });
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', applyTheme);
+            return () => mediaQuery.removeEventListener('change', applyTheme);
+        }
+
+        mediaQuery.addListener(applyTheme);
+        return () => mediaQuery.removeListener(applyTheme);
+    }, [dispatch, hasExplicitThemeChoice]);
+
 
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
         if (!coreResults || (view !== 'clusters' && view !== 'network')) return {};
-        const clusters = Object.fromEntries(Array.from({ length: 9 }, (_, i) => [i + 1, []]));
-        coreResults.allWords.forEach(wd => {
-            if (wd.dr > 0) clusters[wd.dr].push(wd);
+        const activeDrOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
+        const clusters = Object.fromEntries(activeDrOrder.map((dr) => [dr, []]));
+        coreResults.allWords.forEach((wd) => {
+            if (Object.hasOwn(clusters, wd.dr)) clusters[wd.dr].push(wd);
         });
         for (const k in clusters) {
             clusters[k].sort((a, b) => {
@@ -2278,22 +2326,22 @@ const App = () => {
             });
         }
         return clusters;
-    }, [coreResults, view]);
+    }, [coreResults, mode, view]);
 
     const isVisibleWord = useCallback(
-        (wordData) => isWordVisible(wordData, filters) && (!selectedDR || wordData.dr === selectedDR),
+        (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
         [filters, selectedDR]
     );
 
     const visibleAllWords = useMemo(() => {
         if (!coreResults) return [];
-        if (view !== 'words' && view !== 'hot' && view !== 'details') return [];
+        if (view !== 'lines' && view !== 'hot-words') return [];
         return coreResults.allWords.filter(isVisibleWord);
     }, [coreResults, isVisibleWord, view]);
 
     const visibleWordsByLine = useMemo(() => {
         if (!coreResults) return [];
-        if (view !== 'lines' && view !== 'details') return [];
+        if (view !== 'lines') return [];
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
@@ -2301,7 +2349,7 @@ const App = () => {
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
-        if (view !== 'hot') return new Map();
+        if (view !== 'hot-words') return new Map();
         const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
             const visible = words.filter(isVisibleWord);
@@ -2322,7 +2370,7 @@ const App = () => {
 
     const sortedWordCounts = useMemo(() => {
         if (!coreResults || !coreResults.wordCounts) return [];
-        if (view !== 'hot' || hotView !== 'words') return [];
+        if (view !== 'hot-words' || hotView !== 'words') return [];
         const wordMap = coreResults.wordDataMap;
         return Array.from(coreResults.wordCounts.entries())
             .filter(([word]) => {
@@ -2381,8 +2429,11 @@ const App = () => {
             }
         });
 
-        return Object.entries(regrouped).map(([dr, words]) => ({ dr, words }));
-    }, [drClusters, view, selectedDR, searchTerm, isVisibleWord]);
+        const activeDrOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
+        return activeDrOrder
+            .map((dr) => ({ dr, words: regrouped[dr] || [] }))
+            .filter(({ words }) => words.length > 0);
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
@@ -2406,7 +2457,7 @@ const App = () => {
         if (!coreResults || !stats) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
         const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
-        const filterText = selectedDR ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
+        const filterText = selectedDR !== null ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
         const lines = [
             `${modeText}${filterText}\n===================\n`,
             "ניתוח סטטיסטי\n-------------------\n",
@@ -2475,49 +2526,7 @@ const App = () => {
         return lines.filter(Boolean).join('\n');
     }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView, visibleAllWords, visibleWordsByLine]);
 
-    const prepareAllDetailsCSV = useCallback(() => {
-        if (!coreResults) return "";
-        const header = ["שורה", "מילה", "חישוב", "אחדות", "האם ראשוני (א)", "עשרות", "האם ראשוני (ע)", "מאות", "האם ראשוני (מ)", "ש\"ד"];
-        const rows = [];
-        
-        if (detailsView === 'words') {
-             visibleAllWords.forEach(w => {
-                const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
-                rows.push([
-                    "-",
-                    w.word,
-                    calc,
-                    isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
-                    isValueVisible('U', w.isPrimeU, filters) && w.isPrimeU ? "כן" : "לא",
-                    isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units ? w.tens : "",
-                    isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units && w.isPrimeT ? "כן" : "לא",
-                    isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens ? w.hundreds : "",
-                    isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens && w.isPrimeH ? "כן" : "לא",
-                    w.dr
-                ]);
-            });
-        } else {
-            coreResults.lines.forEach((line, idx) => {
-                const visibleWords = visibleWordsByLine[idx] || [];
-                visibleWords.forEach(w => {
-                    const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
-                    rows.push([
-                        idx + 1,
-                        w.word,
-                        calc,
-                        isValueVisible('U', w.isPrimeU, filters) ? w.units : "",
-                        isValueVisible('U', w.isPrimeU, filters) && w.isPrimeU ? "כן" : "לא",
-                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units ? w.tens : "",
-                        isValueVisible('T', w.isPrimeT, filters) && w.tens !== w.units && w.isPrimeT ? "כן" : "לא",
-                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens ? w.hundreds : "",
-                        isValueVisible('H', w.isPrimeH, filters) && w.hundreds !== w.tens && w.isPrimeH ? "כן" : "לא",
-                        w.dr
-                    ]);
-                });
-            });
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, letterTable, filters, detailsView, visibleAllWords, visibleWordsByLine]);
+    const prepareAllDetailsCSV = useCallback(() => prepareAllDetailsText(), [prepareAllDetailsText]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
@@ -2542,14 +2551,14 @@ const App = () => {
                 if (txt) lines.push(txt);
             });
         } else if (view === 'clusters') {
-            const drHeader = selectedDR ? `סיכום קיבוץ שורש דיגיטלי ${selectedDR}` : `סיכום כללי - קיבוץ לפי שורש דיגיטלי`;
+            const drHeader = selectedDR !== null ? `סיכום קיבוץ שורש דיגיטלי ${selectedDR}` : `סיכום כללי - קיבוץ לפי שורש דיגיטלי`;
             if (searchTerm) lines.push(`סיכום תוצאות חיפוש "${searchTerm}"\n==============================\n`);
             else lines.push(`${drHeader}\n==============================\n`);
             
             filteredWordsInView.forEach(({ dr, words }) => {
                 const visibleWords = words.map(formatWord).filter(Boolean);
                 if (visibleWords.length > 0) {
-                    if (!selectedDR) lines.push(`\nש"ד ${dr} (${visibleWords.length} מילים)\n---------------------------\n`);
+                    if (selectedDR === null) lines.push(`\nש"ד ${dr} (${visibleWords.length} מילים)\n---------------------------\n`);
                     visibleWords.forEach(line => lines.push(line));
                 }
             });
@@ -2557,24 +2566,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, view, pinnedWord, getPinnedRelevantWords, selectedDR, searchTerm, filteredWordsInView, filters]);
 
-    const prepareSummaryCSV = useCallback(() => {
-        if (!coreResults) return "";
-        const header = ["ש\"ד", "מילה", "אחדות", "עשרות", "מאות"];
-        const rows = [];
-        if (view === 'clusters' && pinnedWord) {
-             const relevant = getPinnedRelevantWords() || [];
-             relevant.forEach(w => {
-                 rows.push([w.dr, w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : ""]);
-             });
-        } else {
-            filteredWordsInView.forEach(({ dr, words }) => {
-                words.forEach(w => {
-                    rows.push([dr, w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : ""]);
-                });
-            });
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, view, pinnedWord, getPinnedRelevantWords, filteredWordsInView]);
+    const prepareSummaryCSV = useCallback(() => prepareSummaryText(), [prepareSummaryText]);
 
     const prepareHotWordsText = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
@@ -2591,15 +2583,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
-    const prepareHotWordsCSV = useCallback(() => {
-        if (!coreResults || selectedHotValue === null) return "";
-        const header = ["מילה", "אחדות", "עשרות", "מאות", "ש\"ד"];
-        const rows = [];
-        visibleHotWords.forEach(w => {
-            rows.push([w.word, w.units, w.tens !== w.units ? w.tens : "", w.hundreds !== w.tens ? w.hundreds : "", w.dr]);
-        });
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, selectedHotValue, visibleHotWords]);
+    const prepareHotWordsCSV = useCallback(() => prepareHotWordsText(), [prepareHotWordsText]);
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
@@ -2620,24 +2604,7 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
-    const prepareFrequenciesCSV = useCallback(() => {
-        if (!coreResults) return "";
-        let header = [];
-        let rows = [];
-        if (hotView === 'values') {
-            header = ["ערך", "כמות", "מילים"];
-             // USE SORTED LIST
-            sortedHotViewList.forEach(({ value, count }) => {
-                const words = [...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join('; ');
-                if(words) rows.push([value, count, `"${words}"`]); // quote words for CSV safety
-            });
-        } else {
-            header = ["מילה", "שכיחות"];
-             // USE SORTED LIST
-            sortedHotViewList.forEach(({ word, count }) => rows.push([word, count]));
-        }
-        return [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-    }, [coreResults, hotView, sortedHotViewList, visibleValueToWordsMap]);
+    const prepareFrequenciesCSV = useCallback(() => prepareFrequenciesText(), [prepareFrequenciesText]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2646,11 +2613,20 @@ const App = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
+    const drOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
     
     const handleDrillDown = useCallback((dr) => {
+        if (!stats || (stats.drDistribution?.[dr] || 0) === 0) return;
         // Toggle selected DR instead of switching view
         dispatch({ type: 'SET_SELECTED_DR', payload: dr });
-    }, [dispatch]);
+    }, [dispatch, stats]);
+
+    useEffect(() => {
+        if (selectedDR === null || !stats) return;
+        if ((stats.drDistribution?.[selectedDR] || 0) === 0) {
+            dispatch({ type: 'SET_SELECTED_DR', payload: null });
+        }
+    }, [dispatch, selectedDR, stats]);
 
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
     const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
@@ -2660,13 +2636,13 @@ const App = () => {
     }, [dispatch]);
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800'}`}>
+        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div className="text-right">
                         <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <Legend />
@@ -2675,7 +2651,7 @@ const App = () => {
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
-                        <button onClick={() => dispatch({ type: 'SET_DARK_MODE', payload: !isDarkMode })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
+                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
                             {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
                         </button>
                     </div>
@@ -2754,11 +2730,11 @@ const App = () => {
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'}`}>
                             <div className="flex justify-between items-center mb-4 noselect">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים (ש"ד)</h3>
+                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
-                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                                {DEFAULT_DR_ORDER.map((dr) => {
+                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                                {drOrder.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
                                     const hasWords = count > 0;
@@ -2768,12 +2744,19 @@ const App = () => {
                                     
                                     return (
                                         <div key={dr} className="flex flex-col items-center w-1/12 h-full justify-center group">
-                                            <div className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all cursor-pointer ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`} onClick={() => handleDrillDown(dr)}>
+                                            <button
+                                                type="button"
+                                                disabled={!hasWords}
+                                                className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all ${hasWords ? 'cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-600/40' : 'cursor-not-allowed opacity-45'} ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`}
+                                                onClick={() => handleDrillDown(dr)}
+                                                aria-label={`ש"ד ${dr}${hasWords ? '' : ' (ללא תוצאות)'}`}
+                                                title={hasWords ? `סינון לפי ש"ד ${dr}` : `ש"ד ${dr} - ללא מילים`}
+                                            >
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-500 dark:text-gray-400'}`}>ש"ד {dr}</div>
-                                            </div>
+                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                            </button>
                                         </div>
                                     );
                                 })}
@@ -2798,10 +2781,10 @@ const App = () => {
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
-                                                <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
-                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
-                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
-                                                <div className="p-4 rounded-lg bg-gray-100 dark:bg-gray-700/50"> <p className="text-sm text-gray-500 dark:text-gray-400 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
+                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
+                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
                                     )}
@@ -2845,8 +2828,8 @@ const App = () => {
                                             >
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
-                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{lineResult.lineText}"</p>
-                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>סה"כ שורה: 
+                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
                                                         {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
@@ -2958,7 +2941,7 @@ const App = () => {
                                 <div>
                                     {selectedHotValue === null ? (
                                         <div>
-                                            <div className="flex text-right sticky top-0 bg-white dark:bg-gray-800 p-2 font-semibold border-b border-gray-200 dark:border-gray-700 noselect">
+                                            <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                                 <div className="w-1/4 cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })}>ערך {hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                                 <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                                 <div className="w-1/2">מילים</div>
@@ -2971,8 +2954,8 @@ const App = () => {
                                                 renderItem={({ value, count }) => (
                                                     <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
-                                                        <div className="w-1/4 p-2 text-center">{count}</div>
-                                                        <div className="w-1/2 p-2 text-sm text-gray-600 dark:text-gray-400 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
+                                                        <div className="w-1/4 p-2 text-center text-gray-900 dark:text-gray-100">{count}</div>
+                                                        <div className="w-1/2 p-2 text-sm text-gray-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
                                                     </div>
                                                 )}
                                             />
@@ -3002,14 +2985,14 @@ const App = () => {
                             )}
                             {hotView === 'words' && (
                                 <div>
-                                    <div className="flex text-right sticky top-0 bg-white dark:bg-gray-800 p-2 font-semibold border-b border-gray-200 dark:border-gray-700 noselect">
+                                    <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                         <div className="w-3/4">מילה</div>
                                         <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
                                     </div>
                                     <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
                                         <div className="flex items-center text-right hover:bg-gray-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
                                             <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
-                                            <div className="w-1/4 p-2 text-center font-mono">{count}</div>
+                                            <div className="w-1/4 p-2 text-center font-mono text-gray-900 dark:text-gray-100">{count}</div>
                                         </div>
                                     )} />
                                 </div>
