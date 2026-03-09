@@ -505,6 +505,7 @@ const initialState = {
 	coreResults: null,
 	selectedDR: null,
 	isDarkMode: false,
+	hasExplicitThemeChoice: false,
 	searchTerm: '',
 	isValueTableOpen: false,
 	isValueTablePinned: false,
@@ -532,6 +533,8 @@ function appReducer(state, action) {
 		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
+		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
+		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
 		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
 		case 'SET_TEXT_SIZE': return { ...state, textSize: action.payload };
@@ -1258,7 +1261,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
 
         coreResults.allWords.forEach(wordData => {
             if (!isWordVisible(wordData, filters)) return;
-            if (selectedDR && wordData.dr !== selectedDR) return;
+            if (selectedDR !== null && wordData.dr !== selectedDR) return;
             
             if (!wordNodesMap.has(wordData.word)) {
                 const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
@@ -1769,7 +1772,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             line.words.forEach(wordData => {
                 wordIndex++;
                 if (!isWordVisible(wordData, filters)) return;
-                if (selectedDR && wordData.dr !== selectedDR) return;
+                if (selectedDR !== null && wordData.dr !== selectedDR) return;
 
                 const values = getWordValues(wordData);
                 values.forEach(v => {
@@ -2173,8 +2176,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full min-h-[3rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-slate-300'}`}
-            rows="1"
+            className={`w-full min-h-[8rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows="4"
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
@@ -2202,7 +2205,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        isPending 
+        hasExplicitThemeChoice, isPending 
     } = state;
 
     const clusterRefs = useRef({});
@@ -2212,7 +2215,7 @@ const App = () => {
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
     useLayoutEffect(() => {
-        if (view !== 'clusters' || !selectedDR) return;
+        if (view !== 'clusters' || selectedDR === null) return;
         const el = clusterRefs.current[selectedDR];
         if (!el) return;
         requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -2252,7 +2255,35 @@ const App = () => {
         }
         if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
     }, [dispatch]);
+
+    useEffect(() => {
+        let savedTheme = null;
+        try {
+            savedTheme = localStorage.getItem('alephThemeMode');
+        } catch (_err) {
+            savedTheme = null;
+        }
+
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+            dispatch({ type: 'SET_DARK_MODE', payload: savedTheme === 'dark' });
+            dispatch({ type: 'SET_EXPLICIT_THEME_CHOICE', payload: true });
+            return;
+        }
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        dispatch({ type: 'SET_DARK_MODE', payload: mediaQuery.matches });
+        dispatch({ type: 'SET_EXPLICIT_THEME_CHOICE', payload: false });
+    }, [dispatch]);
     
+    useEffect(() => {
+        if (!hasExplicitThemeChoice) return;
+        try {
+            localStorage.setItem('alephThemeMode', isDarkMode ? 'dark' : 'light');
+        } catch (_err) {
+            // Ignore storage write failures (private mode / blocked storage)
+        }
+    }, [hasExplicitThemeChoice, isDarkMode]);
+
     useEffect(() => {
         const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
         const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
@@ -2273,6 +2304,21 @@ const App = () => {
         };
     }, [text]);
     useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        if (hasExplicitThemeChoice) return;
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const applyTheme = (event) => dispatch({ type: 'SET_DARK_MODE', payload: event.matches });
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', applyTheme);
+            return () => mediaQuery.removeEventListener('change', applyTheme);
+        }
+
+        mediaQuery.addListener(applyTheme);
+        return () => mediaQuery.removeListener(applyTheme);
+    }, [dispatch, hasExplicitThemeChoice]);
+
 
     // ... Memos for clusters, hot values, word counts ...
     const drClusters = useMemo(() => {
@@ -2396,7 +2442,7 @@ const App = () => {
         const activeDrOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
         return activeDrOrder
             .map((dr) => ({ dr, words: regrouped[dr] || [] }))
-            .filter(({ dr, words }) => words.length > 0 || (mode === 'aleph-zero' && selectedDR === null && dr === 0));
+            .filter(({ words }) => words.length > 0);
     }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord]);
 
     const getPinnedRelevantWords = useCallback(() => {
@@ -2421,7 +2467,7 @@ const App = () => {
         if (!coreResults || !stats) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
         const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
-        const filterText = selectedDR ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
+        const filterText = selectedDR !== null ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
         const lines = [
             `${modeText}${filterText}\n===================\n`,
             "ניתוח סטטיסטי\n-------------------\n",
@@ -2615,7 +2661,7 @@ const App = () => {
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
-                        <button onClick={() => dispatch({ type: 'SET_DARK_MODE', payload: !isDarkMode })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`}>
+                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
                             {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
                         </button>
                     </div>
