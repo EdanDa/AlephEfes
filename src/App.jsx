@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
+import { matchesSearchQuery } from './core/searchQuery';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -77,7 +78,7 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
     { value: 'md', label: 'בינוני' },
     { value: 'lg', label: 'גדול' },
 ]);
-const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
+const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 +]+/g;
 
 const mapCharToHebrewForSearch = (ch) => {
     if (/^[א-תךםןףץ0-9 ]$/.test(ch)) return ch;
@@ -2417,19 +2418,8 @@ const App = () => {
         let filteredWords = allWordsInClusters;
 
         if (searchTerm.trim()) {
-            const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
-            const matchesSearchToken = (wordData, term) => {
-                if (/^\d+$/.test(term)) {
-                    const num = parseInt(term, 10);
-                    return wordData.units === num || wordData.tens === num || wordData.hundreds === num;
-                }
-
-                return wordData.word.includes(term);
-            };
-
-            filteredWords = filteredWords.filter((wordData) => (
-                searchTerms.some((term) => matchesSearchToken(wordData, term))
-            ));
+            const normalizedSearch = normalizeSearchInput(searchTerm);
+            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, filters));
         }
 
         const regrouped = {};
@@ -2444,7 +2434,7 @@ const App = () => {
         return activeDrOrder
             .map((dr) => ({ dr, words: regrouped[dr] || [] }))
             .filter(({ words }) => words.length > 0);
-    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord]);
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, filters]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
