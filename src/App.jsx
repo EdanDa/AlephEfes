@@ -2979,6 +2979,7 @@ const App = () => {
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
                                                         dispatch={dispatch}
+                                                        filters={filters}
                                                     />
                                                 ))}
                                             </div>
