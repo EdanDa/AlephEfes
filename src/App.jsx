@@ -533,7 +533,9 @@ const initialState = {
 
 function appReducer(state, action) {
 	switch (action.type) {
-		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
+		case 'SET_TEXT':
+            if (action.payload === state.text) return state;
+            return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '', selectedHotValue: null, hotWordsList: [] };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
@@ -2951,9 +2953,6 @@ const App = () => {
                                                         <div className={`text-sm px-3 py-1 rounded-full border ${isDarkMode ? 'bg-amber-900/40 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
                                                             מילה נעוצה: {pinnedWord.word}
                                                         </div>
-                                                    )}
-                                                    {pinnedWord && (
-                                                        <button onClick={() => dispatch({ type: 'UNPIN_WORD' })} className="bg-amber-200 dark:bg-amber-800/60 text-amber-900 dark:text-amber-100 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-amber-300 dark:hover:bg-amber-700 transition-colors">שחרר נעיצה</button>
                                                     )}
                                                     <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
                                                 </div>
