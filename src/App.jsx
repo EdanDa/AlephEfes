@@ -962,6 +962,8 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     if (prev.wordData !== next.wordData) return false;
     if (prev.isDarkMode !== next.isDarkMode) return false;
     if (prev.primeColor !== next.primeColor) return false;
+    if (prev.filters !== next.filters) return false;
+    if (prev.connectionValues !== next.connectionValues) return false;
     if (prev.activeWordKey !== next.activeWordKey) {
         const wasAffected = prev.isConnectedToActive || (prev.wordData.word === prev.activeWordKey);
         const isAffected = next.isConnectedToActive || (next.wordData.word === next.activeWordKey);
@@ -2340,6 +2342,10 @@ const App = () => {
         return clusters;
     }, [coreResults, mode, view]);
 
+    const deferredHoveredWord = useDeferredValue(hoveredWord);
+    const activeWord = pinnedWord || deferredHoveredWord;
+    const activeWordKey = activeWord?.word || null;
+
     const isVisibleWord = useCallback(
         (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
         [filters, selectedDR]
@@ -2408,6 +2414,48 @@ const App = () => {
         });
         return arr;
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
+
+    const hotWordsByVisibleValue = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null) return new Map();
+        const index = new Map();
+        visibleHotWords.forEach((wordData) => {
+            getWordValues(wordData).forEach((v) => {
+                if (!isValueVisible(v.layer, v.isPrime, filters)) return;
+                if (!index.has(v.value)) index.set(v.value, []);
+                index.get(v.value).push(wordData.word);
+            });
+        });
+        return index;
+    }, [view, selectedHotValue, visibleHotWords, filters]);
+
+    const hotVisibleValuesByWord = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null) return new Map();
+        const map = new Map();
+        visibleHotWords.forEach((wordData) => {
+            const visibleValues = getWordValues(wordData)
+                .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
+                .map((v) => v.value);
+            map.set(wordData.word, visibleValues);
+        });
+        return map;
+    }, [view, selectedHotValue, visibleHotWords, filters]);
+
+    const hotConnectedWordsSet = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null || !activeWord) return new Set();
+        if (!hotVisibleValuesByWord.has(activeWord.word)) return new Set();
+
+        const connected = new Set();
+        const activeValues = hotVisibleValuesByWord.get(activeWord.word) || [];
+        activeValues.forEach((value) => {
+            const hitList = hotWordsByVisibleValue.get(value);
+            if (!hitList) return;
+            hitList.forEach((word) => {
+                if (word !== activeWord.word) connected.add(word);
+            });
+        });
+
+        return connected;
+    }, [view, selectedHotValue, activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue]);
 
     const filteredWordsInView = useMemo(() => {
         if (view !== 'clusters' || !drClusters) return [];
@@ -2974,7 +3022,9 @@ const App = () => {
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
-                                                        activeWord={pinnedWord || hoveredWord}
+                                                        activeWord={activeWord}
+                                                        activeWordKey={activeWordKey}
+                                                        isConnectedToActive={hotConnectedWordsSet.has(wordData.word)}
                                                         isDarkMode={isDarkMode}
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
