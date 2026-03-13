@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredVa
 import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
+import { buildWordConnectionIndex, computeConnectedWordsSet } from './core/wordConnections';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -980,58 +981,20 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
-    const wordsByVisibleValue = useMemo(() => {
-        const index = new Map();
-        filteredWordsInView.forEach(({ words }) => {
-            words.forEach((wordData) => {
-                const values = getWordValues(wordData);
-                values.forEach((v) => {
-                    if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-                    if (!index.has(v.value)) index.set(v.value, []);
-                    index.get(v.value).push(wordData.word);
-                });
-            });
-        });
-        return index;
-    }, [filteredWordsInView, filters]);
+    const clusterVisibleWords = useMemo(
+        () => filteredWordsInView.flatMap(({ words }) => words),
+        [filteredWordsInView]
+    );
 
-    const visibleValuesByWord = useMemo(() => {
-        const map = new Map();
-        filteredWordsInView.forEach(({ words }) => {
-            words.forEach((wordData) => {
-                const visibleValues = getWordValues(wordData)
-                    .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
-                    .map((v) => v.value);
-                map.set(wordData.word, visibleValues);
-            });
-        });
-        return map;
-    }, [filteredWordsInView, filters]);
+    const { wordsByVisibleValue, visibleValuesByWord } = useMemo(
+        () => buildWordConnectionIndex(clusterVisibleWords, filters),
+        [clusterVisibleWords, filters]
+    );
 
-    const connectedWordsCacheRef = useRef(new Map());
-    useEffect(() => {
-        connectedWordsCacheRef.current.clear();
-    }, [wordsByVisibleValue, visibleValuesByWord]);
-
-    const connectedWordsSet = useMemo(() => {
-        if (!activeWord) return new Set();
-
-        const cached = connectedWordsCacheRef.current.get(activeWord.word);
-        if (cached) return cached;
-
-        const connected = new Set();
-        const activeValues = visibleValuesByWord.get(activeWord.word) || [];
-        activeValues.forEach((value) => {
-            const hitList = wordsByVisibleValue.get(value);
-            if (!hitList) return;
-            hitList.forEach((word) => {
-                if (word !== activeWord.word) connected.add(word);
-            });
-        });
-
-        connectedWordsCacheRef.current.set(activeWord.word, connected);
-        return connected;
-    }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
+    const connectedWordsSet = useMemo(
+        () => computeConnectedWordsSet(activeWord, visibleValuesByWord, wordsByVisibleValue),
+        [activeWord, visibleValuesByWord, wordsByVisibleValue]
+    );
 
     const handleSearchChange = useCallback((e) => {
         dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) });
@@ -2415,46 +2378,14 @@ const App = () => {
         return arr;
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
 
-    const hotWordsByVisibleValue = useMemo(() => {
-        if (view !== 'hot-words' || selectedHotValue === null) return new Map();
-        const index = new Map();
-        visibleHotWords.forEach((wordData) => {
-            getWordValues(wordData).forEach((v) => {
-                if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-                if (!index.has(v.value)) index.set(v.value, []);
-                index.get(v.value).push(wordData.word);
-            });
-        });
-        return index;
-    }, [view, selectedHotValue, visibleHotWords, filters]);
-
-    const hotVisibleValuesByWord = useMemo(() => {
-        if (view !== 'hot-words' || selectedHotValue === null) return new Map();
-        const map = new Map();
-        visibleHotWords.forEach((wordData) => {
-            const visibleValues = getWordValues(wordData)
-                .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
-                .map((v) => v.value);
-            map.set(wordData.word, visibleValues);
-        });
-        return map;
+    const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
+        return buildWordConnectionIndex(visibleHotWords, filters);
     }, [view, selectedHotValue, visibleHotWords, filters]);
 
     const hotConnectedWordsSet = useMemo(() => {
-        if (view !== 'hot-words' || selectedHotValue === null || !activeWord) return new Set();
-        if (!hotVisibleValuesByWord.has(activeWord.word)) return new Set();
-
-        const connected = new Set();
-        const activeValues = hotVisibleValuesByWord.get(activeWord.word) || [];
-        activeValues.forEach((value) => {
-            const hitList = hotWordsByVisibleValue.get(value);
-            if (!hitList) return;
-            hitList.forEach((word) => {
-                if (word !== activeWord.word) connected.add(word);
-            });
-        });
-
-        return connected;
+        if (view !== 'hot-words' || selectedHotValue === null) return new Set();
+        return computeConnectedWordsSet(activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue);
     }, [view, selectedHotValue, activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue]);
 
     const filteredWordsInView = useMemo(() => {
@@ -3013,10 +2944,25 @@ const App = () => {
                                         </div>
                                     ) : (
                                         <div>
-                                            <div className="flex justify-between items-center mb-4 noselect">
+                                            <div className="flex justify-between items-center mb-4 noselect gap-3 flex-wrap">
                                                 <h3 className="text-xl font-bold">מילים עם הערך {selectedHotValue}</h3>
-                                                <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
+                                                <div className="flex items-center gap-2">
+                                                    {pinnedWord && (
+                                                        <div className={`text-sm px-3 py-1 rounded-full border ${isDarkMode ? 'bg-amber-900/40 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
+                                                            מילה נעוצה: {pinnedWord.word}
+                                                        </div>
+                                                    )}
+                                                    {pinnedWord && (
+                                                        <button onClick={() => dispatch({ type: 'UNPIN_WORD' })} className="bg-amber-200 dark:bg-amber-800/60 text-amber-900 dark:text-amber-100 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-amber-300 dark:hover:bg-amber-700 transition-colors">שחרר נעיצה</button>
+                                                    )}
+                                                    <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
+                                                </div>
                                             </div>
+                                            {visibleHotWords.length === 0 ? (
+                                                <div className={`rounded-lg border p-4 text-sm ${isDarkMode ? 'bg-gray-900/40 border-gray-700 text-gray-300' : 'bg-slate-100 border-slate-300 text-slate-700'}`}>
+                                                    אין ערכים גלויים תחת הסינון הנוכחי. נסו להפעיל שכבות נוספות באגדת הסינון.
+                                                </div>
+                                            ) : (
                                             <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                                                 {visibleHotWords.map((wordData, index) => (
                                                     <WordCard 
@@ -3033,6 +2979,7 @@ const App = () => {
                                                     />
                                                 ))}
                                             </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
