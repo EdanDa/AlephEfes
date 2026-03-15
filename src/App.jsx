@@ -2009,8 +2009,20 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
         draftRef.current = sanitized;
-        if (textareaRef.current && textareaRef.current.value !== text) {
-            textareaRef.current.value = sanitized;
+
+        const textarea = textareaRef.current;
+        if (!textarea || textarea.value === sanitized) return;
+
+        const isFocused = document.activeElement === textarea;
+        const selectionStart = textarea.selectionStart ?? sanitized.length;
+        const selectionEnd = textarea.selectionEnd ?? sanitized.length;
+
+        textarea.value = sanitized;
+
+        if (isFocused) {
+            const nextStart = Math.min(selectionStart, sanitized.length);
+            const nextEnd = Math.min(selectionEnd, sanitized.length);
+            requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
     }, [sanitizeHebrewInput, text]);
 
