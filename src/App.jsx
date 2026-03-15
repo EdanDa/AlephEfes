@@ -2009,8 +2009,20 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
         draftRef.current = sanitized;
-        if (textareaRef.current && textareaRef.current.value !== text) {
-            textareaRef.current.value = sanitized;
+
+        const textarea = textareaRef.current;
+        if (!textarea || textarea.value === sanitized) return;
+
+        const isFocused = document.activeElement === textarea;
+        const selectionStart = textarea.selectionStart ?? sanitized.length;
+        const selectionEnd = textarea.selectionEnd ?? sanitized.length;
+
+        textarea.value = sanitized;
+
+        if (isFocused) {
+            const nextStart = Math.min(selectionStart, sanitized.length);
+            const nextEnd = Math.min(selectionEnd, sanitized.length);
+            requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
     }, [sanitizeHebrewInput, text]);
 
@@ -2597,6 +2609,7 @@ const App = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
+    const handleClearText = useCallback(() => dispatch({ type: 'SET_TEXT', payload: '' }), [dispatch]);
     const drOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
     
     const handleDrillDown = useCallback((dr) => {
@@ -2670,12 +2683,22 @@ const App = () => {
                     <StatsPanel />
 
                     <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
-                        <div className="flex justify-between items-center mb-2 gap-4">
-                            <div className={`flex items-center p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
+                            <div className={`flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
-                            <label className="flex items-center gap-2 text-sm font-semibold noselect">
+                            <div className="flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={handleClearText}
+                                    disabled={!text}
+                                    className={`px-4 py-1 text-sm font-semibold rounded-md border transition-colors noselect ${!text ? 'opacity-50 cursor-not-allowed' : ''} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 disabled:hover:bg-white'}`}
+                                >
+                                    אפס
+                                </button>
+                            </div>
+                            <label className="flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
                                 <span>גופן</span>
                                 <select
                                     dir="rtl"
