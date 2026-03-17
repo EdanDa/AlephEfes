@@ -1202,6 +1202,42 @@ const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
     }
 };
 
+const buildWordConnectionIndex = (coreResults, filters, selectedDR) => {
+    if (!coreResults) return { nodes: [], links: [] };
+
+    const nodes = [];
+    const links = [];
+    const wordNodesMap = new Map();
+    const valueNodesMap = new Map();
+
+    coreResults.allWords.forEach(wordData => {
+        if (!isWordVisible(wordData, filters)) return;
+        if (selectedDR !== null && wordData.dr !== selectedDR) return;
+
+        if (!wordNodesMap.has(wordData.word)) {
+            const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
+            wordNodesMap.set(wordData.word, node);
+            nodes.push(node);
+        }
+
+        const values = getWordValues(wordData);
+        values.forEach(v => {
+            if (!isValueVisible(v.layer, v.isPrime, filters)) return;
+
+            const valKey = `val-${v.value}`;
+            if (!valueNodesMap.has(valKey)) {
+                const node = { id: valKey, type: 'value', value: v.value, isPrime: v.isPrime, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
+                valueNodesMap.set(valKey, node);
+                nodes.push(node);
+            }
+
+            links.push({ source: wordData.word, target: valKey, layer: v.layer });
+        });
+    });
+
+    return { nodes, links };
+};
+
 const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -1219,41 +1255,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
         setHoverInfo(info);
     };
 
-    const graphData = useMemo(() => {
-        if (!coreResults) return { nodes: [], links: [] };
-        
-        const nodes = [];
-        const links = [];
-        const wordNodesMap = new Map();
-        const valueNodesMap = new Map();
-
-        coreResults.allWords.forEach(wordData => {
-            if (!isWordVisible(wordData, filters)) return;
-            if (selectedDR !== null && wordData.dr !== selectedDR) return;
-            
-            if (!wordNodesMap.has(wordData.word)) {
-                const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-                wordNodesMap.set(wordData.word, node);
-                nodes.push(node);
-            }
-
-            const values = getWordValues(wordData);
-            values.forEach(v => {
-                if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-                
-                const valKey = `val-${v.value}`;
-                if (!valueNodesMap.has(valKey)) {
-                    const node = { id: valKey, type: 'value', value: v.value, isPrime: v.isPrime, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-                    valueNodesMap.set(valKey, node);
-                    nodes.push(node);
-                }
-                
-                links.push({ source: wordData.word, target: valKey, layer: v.layer });
-            });
-        });
-
-        return { nodes, links };
-    }, [coreResults, filters, selectedDR]);
+    const graphData = useMemo(() => buildWordConnectionIndex(coreResults, filters, selectedDR), [coreResults, filters, selectedDR]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
