@@ -30,3 +30,13 @@ test('numeric matching respects active layer filters', () => {
     assert.equal(matchesSearchQuery(sampleWord, '365', filtersOnlyUnits), false);
     assert.equal(matchesSearchQuery(sampleWord, '59', filtersOnlyUnits), true);
 });
+
+test('string matching is exact and does not return partial matches', () => {
+    const israel = { word: 'ישראל', units: 1, tens: 2, hundreds: 3 };
+    const prefixed = { word: 'וישראל', units: 1, tens: 2, hundreds: 3 };
+
+    assert.equal(matchesSearchQuery(israel, 'ישראל', filtersAll), true);
+    assert.equal(matchesSearchQuery(prefixed, 'ישראל', filtersAll), false);
+    assert.equal(matchesSearchQuery({ word: 'דבשת', units: 4, tens: 5, hundreds: 6 }, 'שת', filtersAll), false);
+    assert.equal(matchesSearchQuery({ word: 'שת', units: 4, tens: 5, hundreds: 6 }, 'שת', filtersAll), true);
+});
