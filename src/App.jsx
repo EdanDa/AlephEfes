@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredVa
 import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
-import { buildWordConnectionIndex, computeConnectedWordsSet } from './core/wordConnections';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -82,7 +81,7 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
 const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 +]+/g;
 
 const mapCharToHebrewForSearch = (ch) => {
-    if (/^[א-תךםןףץ0-9 ]$/.test(ch)) return ch;
+    if (/^[א-תךםןףץ0-9 +]$/.test(ch)) return ch;
     const lower = ch.toLowerCase();
     return EN_TO_HE_LETTER_MAP[lower]
         || EN_TO_HE_PUNCT_LETTER_MAP[ch]
