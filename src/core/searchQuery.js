@@ -28,7 +28,7 @@ function groupMatchesWord(wordData, groupTerms, filters) {
             return visibleValueSet.has(Number.parseInt(term, 10));
         }
 
-        return wordData.word === term;
+        return wordData.word.includes(term);
     });
 
     if (!allPartsMatch) return false;
