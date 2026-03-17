@@ -57,6 +57,20 @@ test('SET_TEXT clears search term in clusters search bar', () => {
     assert.equal(next.searchTerm, '');
 });
 
+
+test('SET_TEXT clears hot-words drilldown selection state', () => {
+    const withHotSelection = {
+        ...initialState,
+        text: 'ישן',
+        selectedHotValue: 59,
+        hotWordsList: [{ word: 'ישראל' }],
+    };
+
+    const next = appReducer(withHotSelection, { type: 'SET_TEXT', payload: 'חדש' });
+    assert.equal(next.selectedHotValue, null);
+    assert.deepEqual(next.hotWordsList, []);
+});
+
 test('SET_SELECTED_DR toggles on same value', () => {
     const once = appReducer(initialState, { type: 'SET_SELECTED_DR', payload: 5 });
     assert.equal(once.selectedDR, 5);
