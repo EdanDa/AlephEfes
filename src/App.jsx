@@ -502,6 +502,43 @@ const isWordVisible = (word, filters) => {
 // -----------------------------------------------------------------------------
 // 4. Initial State & Reducer
 // -----------------------------------------------------------------------------
+const createFallbackGrandTotals = () => ({
+    units: 0,
+    tens: 0,
+    hundreds: 0,
+    dr: 0,
+    isPrime: { U: false, T: false, H: false },
+});
+
+const normalizeCoreResults = (results) => {
+    if (!results || typeof results !== 'object') return null;
+
+    const allWords = Array.isArray(results.allWords) ? results.allWords : [];
+    const primeSummary = Array.isArray(results.primeSummary) ? results.primeSummary : [];
+    const lines = Array.isArray(results.lines)
+        ? results.lines.map((line) => ({
+            ...line,
+            words: Array.isArray(line?.words) ? line.words : [],
+        }))
+        : [];
+
+    return {
+        ...results,
+        allWords,
+        primeSummary,
+        lines,
+        grandTotals: results.grandTotals && typeof results.grandTotals === 'object'
+            ? results.grandTotals
+            : createFallbackGrandTotals(),
+        wordDataMap: results.wordDataMap instanceof Map
+            ? results.wordDataMap
+            : new Map(allWords.map((wordData) => [wordData.word, wordData])),
+        wordCounts: results.wordCounts instanceof Map ? results.wordCounts : new Map(),
+        drDistribution: results.drDistribution ?? new Uint32Array(10),
+        totalWordCount: Number.isFinite(results.totalWordCount) ? results.totalWordCount : allWords.length,
+    };
+};
+
 const initialState = {
 	text: "",
 	coreResults: null,
@@ -532,10 +569,8 @@ const initialState = {
 
 function appReducer(state, action) {
 	switch (action.type) {
-		case 'SET_TEXT':
-            if (action.payload === state.text) return state;
-            return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '', selectedHotValue: null, hotWordsList: [] };
-		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
+		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
+		case 'SET_CORE_RESULTS': return { ...state, coreResults: normalizeCoreResults(action.payload) };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
 		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
@@ -566,7 +601,7 @@ function appReducer(state, action) {
 		case 'TOGGLE_ALL_ROWS':
 			const areAllExpanded = state.coreResults && Object.keys(state.expandedRows).length === state.coreResults.lines.length && Object.values(state.expandedRows).every(v => v);
 			if (areAllExpanded) return { ...state, expandedRows: {} };
-			const allExpanded = {}; state.coreResults.lines.forEach((_, index) => { allExpanded[index] = true; });
+			const allExpanded = {}; (state.coreResults?.lines || []).forEach((_, index) => { allExpanded[index] = true; });
 			return { ...state, expandedRows: allExpanded };
 		case 'SET_PRIME_COLOR': return { ...state, primeColor: action.payload };
 		case 'SET_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: action.payload.value, hotWordsList: action.payload.list };
@@ -1210,7 +1245,9 @@ const buildWordConnectionIndex = (coreResults, filters, selectedDR) => {
     const wordNodesMap = new Map();
     const valueNodesMap = new Map();
 
-    coreResults.allWords.forEach(wordData => {
+    const allWords = Array.isArray(coreResults.allWords) ? coreResults.allWords : [];
+
+    allWords.forEach(wordData => {
         if (!isWordVisible(wordData, filters)) return;
         if (selectedDR !== null && wordData.dr !== selectedDR) return;
 
