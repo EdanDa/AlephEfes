@@ -1010,6 +1010,27 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     return true;
 });
 
+const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValuesByWord, cacheRef) => {
+    if (!activeWord) return new Set();
+
+    const cache = cacheRef?.current;
+    const cached = cache?.get(activeWord.word);
+    if (cached) return cached;
+
+    const connected = new Set();
+    const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+    activeValues.forEach((value) => {
+        const hitList = wordsByVisibleValue.get(value);
+        if (!hitList) return;
+        hitList.forEach((word) => {
+            if (word !== activeWord.word) connected.add(word);
+        });
+    });
+
+    cache?.set(activeWord.word, connected);
+    return connected;
+};
+
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
     const searchInputRef = useRef(null);
@@ -1022,14 +1043,14 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         [filteredWordsInView]
     );
 
-    const { wordsByVisibleValue, visibleValuesByWord } = useMemo(
-        () => buildWordConnectionIndex(clusterVisibleWords, filters),
-        [clusterVisibleWords, filters]
-    );
+    const connectedWordsCacheRef = useRef(new Map());
+    useEffect(() => {
+        connectedWordsCacheRef.current.clear();
+    }, [wordsByVisibleValue, visibleValuesByWord]);
 
     const connectedWordsSet = useMemo(
-        () => computeConnectedWordsSet(activeWord, visibleValuesByWord, wordsByVisibleValue),
-        [activeWord, visibleValuesByWord, wordsByVisibleValue]
+        () => computeConnectedWordsSet(activeWord, wordsByVisibleValue, visibleValuesByWord, connectedWordsCacheRef),
+        [activeWord, wordsByVisibleValue, visibleValuesByWord]
     );
 
     const handleSearchChange = useCallback((e) => {
