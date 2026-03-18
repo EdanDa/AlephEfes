@@ -999,6 +999,8 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     if (prev.wordData !== next.wordData) return false;
     if (prev.isDarkMode !== next.isDarkMode) return false;
     if (prev.primeColor !== next.primeColor) return false;
+    if (prev.filters !== next.filters) return false;
+    if (prev.connectionValues !== next.connectionValues) return false;
     if (prev.activeWordKey !== next.activeWordKey) {
         const wasAffected = prev.isConnectedToActive || (prev.wordData.word === prev.activeWordKey);
         const isAffected = next.isConnectedToActive || (next.wordData.word === next.activeWordKey);
@@ -1007,6 +1009,27 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     if (prev.isConnectedToActive !== next.isConnectedToActive) return false;
     return true;
 });
+
+const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValuesByWord, cacheRef) => {
+    if (!activeWord) return new Set();
+
+    const cache = cacheRef?.current;
+    const cached = cache?.get(activeWord.word);
+    if (cached) return cached;
+
+    const connected = new Set();
+    const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+    activeValues.forEach((value) => {
+        const hitList = wordsByVisibleValue.get(value);
+        if (!hitList) return;
+        hitList.forEach((word) => {
+            if (word !== activeWord.word) connected.add(word);
+        });
+    });
+
+    cache?.set(activeWord.word, connected);
+    return connected;
+};
 
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
@@ -2073,8 +2096,20 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
         draftRef.current = sanitized;
-        if (textareaRef.current && textareaRef.current.value !== text) {
-            textareaRef.current.value = sanitized;
+
+        const textarea = textareaRef.current;
+        if (!textarea || textarea.value === sanitized) return;
+
+        const isFocused = document.activeElement === textarea;
+        const selectionStart = textarea.selectionStart ?? sanitized.length;
+        const selectionEnd = textarea.selectionEnd ?? sanitized.length;
+
+        textarea.value = sanitized;
+
+        if (isFocused) {
+            const nextStart = Math.min(selectionStart, sanitized.length);
+            const nextEnd = Math.min(selectionEnd, sanitized.length);
+            requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
     }, [sanitizeHebrewInput, text]);
 
@@ -2371,6 +2406,10 @@ const App = () => {
         return clusters;
     }, [coreResults, mode, view]);
 
+    const deferredHoveredWord = useDeferredValue(hoveredWord);
+    const activeWord = pinnedWord || deferredHoveredWord;
+    const activeWordKey = activeWord?.word || null;
+
     const isVisibleWord = useCallback(
         (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
         [filters, selectedDR]
@@ -2439,6 +2478,16 @@ const App = () => {
         });
         return arr;
     }, [hotView, sortedWordCounts, hotValuesList, hotSort]);
+
+    const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
+        return buildWordConnectionIndex(visibleHotWords, filters);
+    }, [view, selectedHotValue, visibleHotWords, filters]);
+
+    const hotConnectedWordsSet = useMemo(() => {
+        if (view !== 'hot-words' || selectedHotValue === null) return new Set();
+        return computeConnectedWordsSet(activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue);
+    }, [view, selectedHotValue, activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue]);
 
     const filteredWordsInView = useMemo(() => {
         if (view !== 'clusters' || !drClusters) return [];
@@ -2647,6 +2696,7 @@ const App = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
+    const handleClearText = useCallback(() => dispatch({ type: 'SET_TEXT', payload: '' }), [dispatch]);
     const drOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
     
     const handleDrillDown = useCallback((dr) => {
@@ -2720,12 +2770,22 @@ const App = () => {
                     <StatsPanel />
 
                     <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
-                        <div className="flex justify-between items-center mb-2 gap-4">
-                            <div className={`flex items-center p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
+                            <div className={`flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
-                            <label className="flex items-center gap-2 text-sm font-semibold noselect">
+                            <div className="flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={handleClearText}
+                                    disabled={!text}
+                                    className={`px-4 py-1 text-sm font-semibold rounded-md border transition-colors noselect ${!text ? 'opacity-50 cursor-not-allowed' : ''} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 disabled:hover:bg-white'}`}
+                                >
+                                    אפס
+                                </button>
+                            </div>
+                            <label className="flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
                                 <span>גופן</span>
                                 <select
                                     dir="rtl"
@@ -2864,10 +2924,11 @@ const App = () => {
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
                                                     <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
                                                     {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
+                                                        {lineResult.words.length > 1 && <span className="mx-2">({lineResult.words.length} מילים)</span>}
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
                                                         {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
-                                                        <span className="mx-2">ש"ד={lineResult.totalsDR}{lineResult.words.length > 1 ? ` (${lineResult.words.length} מילים)` : ''}</span>
+                                                        <span className="mx-2">ש"ד={lineResult.totalsDR}</span>
                                                     </div>}
                                                 </div>
                                                 {isExpanded && (
@@ -2996,23 +3057,39 @@ const App = () => {
                                         </div>
                                     ) : (
                                         <div>
-                                            <div className="flex justify-between items-center mb-4 noselect">
+                                            <div className="flex justify-between items-center mb-4 noselect gap-3 flex-wrap">
                                                 <h3 className="text-xl font-bold">מילים עם הערך {selectedHotValue}</h3>
-                                                <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
+                                                <div className="flex items-center gap-2">
+                                                    {pinnedWord && (
+                                                        <div className={`text-sm px-3 py-1 rounded-full border ${isDarkMode ? 'bg-amber-900/40 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
+                                                            מילה נעוצה: {pinnedWord.word}
+                                                        </div>
+                                                    )}
+                                                    <button onClick={() => dispatch({ type: 'CLEAR_SELECTED_HOT_VALUE' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-700 dark:text-gray-300 px-4 py-2 rounded-lg text-base font-semibold hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors">חזור לרשימה</button>
+                                                </div>
                                             </div>
+                                            {visibleHotWords.length === 0 ? (
+                                                <div className={`rounded-lg border p-4 text-sm ${isDarkMode ? 'bg-gray-900/40 border-gray-700 text-gray-300' : 'bg-slate-100 border-slate-300 text-slate-700'}`}>
+                                                    אין ערכים גלויים תחת הסינון הנוכחי. נסו להפעיל שכבות נוספות באגדת הסינון.
+                                                </div>
+                                            ) : (
                                             <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                                                 {visibleHotWords.map((wordData, index) => (
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
-                                                        activeWord={pinnedWord || hoveredWord}
+                                                        activeWord={activeWord}
+                                                        activeWordKey={activeWordKey}
+                                                        isConnectedToActive={hotConnectedWordsSet.has(wordData.word)}
                                                         isDarkMode={isDarkMode}
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
                                                         dispatch={dispatch}
+                                                        filters={filters}
                                                     />
                                                 ))}
                                             </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
