@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
+import { matchesSearchQuery } from './core/searchQuery';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -77,10 +78,10 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
     { value: 'md', label: 'בינוני' },
     { value: 'lg', label: 'גדול' },
 ]);
-const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 ]+/g;
+const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 +]+/g;
 
 const mapCharToHebrewForSearch = (ch) => {
-    if (/^[א-תךםןףץ0-9 ]$/.test(ch)) return ch;
+    if (/^[א-תךםןףץ0-9 +]$/.test(ch)) return ch;
     const lower = ch.toLowerCase();
     return EN_TO_HE_LETTER_MAP[lower]
         || EN_TO_HE_PUNCT_LETTER_MAP[ch]
@@ -501,6 +502,43 @@ const isWordVisible = (word, filters) => {
 // -----------------------------------------------------------------------------
 // 4. Initial State & Reducer
 // -----------------------------------------------------------------------------
+const createFallbackGrandTotals = () => ({
+    units: 0,
+    tens: 0,
+    hundreds: 0,
+    dr: 0,
+    isPrime: { U: false, T: false, H: false },
+});
+
+const normalizeCoreResults = (results) => {
+    if (!results || typeof results !== 'object') return null;
+
+    const allWords = Array.isArray(results.allWords) ? results.allWords : [];
+    const primeSummary = Array.isArray(results.primeSummary) ? results.primeSummary : [];
+    const lines = Array.isArray(results.lines)
+        ? results.lines.map((line) => ({
+            ...line,
+            words: Array.isArray(line?.words) ? line.words : [],
+        }))
+        : [];
+
+    return {
+        ...results,
+        allWords,
+        primeSummary,
+        lines,
+        grandTotals: results.grandTotals && typeof results.grandTotals === 'object'
+            ? results.grandTotals
+            : createFallbackGrandTotals(),
+        wordDataMap: results.wordDataMap instanceof Map
+            ? results.wordDataMap
+            : new Map(allWords.map((wordData) => [wordData.word, wordData])),
+        wordCounts: results.wordCounts instanceof Map ? results.wordCounts : new Map(),
+        drDistribution: results.drDistribution ?? new Uint32Array(10),
+        totalWordCount: Number.isFinite(results.totalWordCount) ? results.totalWordCount : allWords.length,
+    };
+};
+
 const initialState = {
 	text: "",
 	coreResults: null,
@@ -532,7 +570,7 @@ const initialState = {
 function appReducer(state, action) {
 	switch (action.type) {
 		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
-		case 'SET_CORE_RESULTS': return { ...state, coreResults: action.payload };
+		case 'SET_CORE_RESULTS': return { ...state, coreResults: normalizeCoreResults(action.payload) };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
 		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
@@ -563,7 +601,7 @@ function appReducer(state, action) {
 		case 'TOGGLE_ALL_ROWS':
 			const areAllExpanded = state.coreResults && Object.keys(state.expandedRows).length === state.coreResults.lines.length && Object.values(state.expandedRows).every(v => v);
 			if (areAllExpanded) return { ...state, expandedRows: {} };
-			const allExpanded = {}; state.coreResults.lines.forEach((_, index) => { allExpanded[index] = true; });
+			const allExpanded = {}; (state.coreResults?.lines || []).forEach((_, index) => { allExpanded[index] = true; });
 			return { ...state, expandedRows: allExpanded };
 		case 'SET_PRIME_COLOR': return { ...state, primeColor: action.payload };
 		case 'SET_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: action.payload.value, hotWordsList: action.payload.list };
@@ -970,6 +1008,27 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     return true;
 });
 
+const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValuesByWord, cacheRef) => {
+    if (!activeWord) return new Set();
+
+    const cache = cacheRef?.current;
+    const cached = cache?.get(activeWord.word);
+    if (cached) return cached;
+
+    const connected = new Set();
+    const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+    activeValues.forEach((value) => {
+        const hitList = wordsByVisibleValue.get(value);
+        if (!hitList) return;
+        hitList.forEach((word) => {
+            if (word !== activeWord.word) connected.add(word);
+        });
+    });
+
+    cache?.set(activeWord.word, connected);
+    return connected;
+};
+
 const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
     const searchInputRef = useRef(null);
@@ -1010,25 +1069,10 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         connectedWordsCacheRef.current.clear();
     }, [wordsByVisibleValue, visibleValuesByWord]);
 
-    const connectedWordsSet = useMemo(() => {
-        if (!activeWord) return new Set();
-
-        const cached = connectedWordsCacheRef.current.get(activeWord.word);
-        if (cached) return cached;
-
-        const connected = new Set();
-        const activeValues = visibleValuesByWord.get(activeWord.word) || [];
-        activeValues.forEach((value) => {
-            const hitList = wordsByVisibleValue.get(value);
-            if (!hitList) return;
-            hitList.forEach((word) => {
-                if (word !== activeWord.word) connected.add(word);
-            });
-        });
-
-        connectedWordsCacheRef.current.set(activeWord.word, connected);
-        return connected;
-    }, [activeWord, wordsByVisibleValue, visibleValuesByWord]);
+    const connectedWordsSet = useMemo(
+        () => computeConnectedWordsSet(activeWord, wordsByVisibleValue, visibleValuesByWord, connectedWordsCacheRef),
+        [activeWord, wordsByVisibleValue, visibleValuesByWord]
+    );
 
     const handleSearchChange = useCallback((e) => {
         dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) });
@@ -1235,6 +1279,44 @@ const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
     }
 };
 
+const buildWordConnectionIndex = (coreResults, filters, selectedDR) => {
+    if (!coreResults) return { nodes: [], links: [] };
+
+    const nodes = [];
+    const links = [];
+    const wordNodesMap = new Map();
+    const valueNodesMap = new Map();
+
+    const allWords = Array.isArray(coreResults.allWords) ? coreResults.allWords : [];
+
+    allWords.forEach(wordData => {
+        if (!isWordVisible(wordData, filters)) return;
+        if (selectedDR !== null && wordData.dr !== selectedDR) return;
+
+        if (!wordNodesMap.has(wordData.word)) {
+            const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
+            wordNodesMap.set(wordData.word, node);
+            nodes.push(node);
+        }
+
+        const values = getWordValues(wordData);
+        values.forEach(v => {
+            if (!isValueVisible(v.layer, v.isPrime, filters)) return;
+
+            const valKey = `val-${v.value}`;
+            if (!valueNodesMap.has(valKey)) {
+                const node = { id: valKey, type: 'value', value: v.value, isPrime: v.isPrime, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
+                valueNodesMap.set(valKey, node);
+                nodes.push(node);
+            }
+
+            links.push({ source: wordData.word, target: valKey, layer: v.layer });
+        });
+    });
+
+    return { nodes, links };
+};
+
 const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -1252,41 +1334,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
         setHoverInfo(info);
     };
 
-    const graphData = useMemo(() => {
-        if (!coreResults) return { nodes: [], links: [] };
-        
-        const nodes = [];
-        const links = [];
-        const wordNodesMap = new Map();
-        const valueNodesMap = new Map();
-
-        coreResults.allWords.forEach(wordData => {
-            if (!isWordVisible(wordData, filters)) return;
-            if (selectedDR !== null && wordData.dr !== selectedDR) return;
-            
-            if (!wordNodesMap.has(wordData.word)) {
-                const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-                wordNodesMap.set(wordData.word, node);
-                nodes.push(node);
-            }
-
-            const values = getWordValues(wordData);
-            values.forEach(v => {
-                if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-                
-                const valKey = `val-${v.value}`;
-                if (!valueNodesMap.has(valKey)) {
-                    const node = { id: valKey, type: 'value', value: v.value, isPrime: v.isPrime, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-                    valueNodesMap.set(valKey, node);
-                    nodes.push(node);
-                }
-                
-                links.push({ source: wordData.word, target: valKey, layer: v.layer });
-            });
-        });
-
-        return { nodes, links };
-    }, [coreResults, filters, selectedDR]);
+    const graphData = useMemo(() => buildWordConnectionIndex(coreResults, filters, selectedDR), [coreResults, filters, selectedDR]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -2417,19 +2465,8 @@ const App = () => {
         let filteredWords = allWordsInClusters;
 
         if (searchTerm.trim()) {
-            const searchTerms = normalizeSearchInput(searchTerm).split(/\s+/).filter(Boolean);
-            const matchesSearchToken = (wordData, term) => {
-                if (/^\d+$/.test(term)) {
-                    const num = parseInt(term, 10);
-                    return wordData.units === num || wordData.tens === num || wordData.hundreds === num;
-                }
-
-                return wordData.word.includes(term);
-            };
-
-            filteredWords = filteredWords.filter((wordData) => (
-                searchTerms.some((term) => matchesSearchToken(wordData, term))
-            ));
+            const normalizedSearch = normalizeSearchInput(searchTerm);
+            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, filters));
         }
 
         const regrouped = {};
@@ -2444,7 +2481,7 @@ const App = () => {
         return activeDrOrder
             .map((dr) => ({ dr, words: regrouped[dr] || [] }))
             .filter(({ words }) => words.length > 0);
-    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord]);
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, filters]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
