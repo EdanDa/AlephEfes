@@ -1038,20 +1038,48 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
-    const clusterVisibleWords = useMemo(
-        () => filteredWordsInView.flatMap(({ words }) => words),
-        [filteredWordsInView]
-    );
-
     const connectedWordsCacheRef = useRef(new Map());
     useEffect(() => {
         connectedWordsCacheRef.current.clear();
-    }, [wordsByVisibleValue, visibleValuesByWord]);
+    }, [filteredWordsInView, filters]);
 
-    const connectedWordsSet = useMemo(
-        () => computeConnectedWordsSet(activeWord, wordsByVisibleValue, visibleValuesByWord, connectedWordsCacheRef),
-        [activeWord, wordsByVisibleValue, visibleValuesByWord]
-    );
+    const connectedWordsSet = useMemo(() => {
+        if (!activeWord) return new Set();
+
+        const cached = connectedWordsCacheRef.current.get(activeWord.word);
+        if (cached) return cached;
+
+        const wordsByVisibleValue = new Map();
+        const visibleValuesByWord = new Map();
+
+        filteredWordsInView.forEach(({ words }) => {
+            words.forEach((wordData) => {
+                const visibleValues = getWordValues(wordData)
+                    .filter((v) => isValueVisible(v.layer, v.isPrime, filters))
+                    .map((v) => v.value);
+
+                visibleValuesByWord.set(wordData.word, visibleValues);
+
+                visibleValues.forEach((value) => {
+                    if (!wordsByVisibleValue.has(value)) wordsByVisibleValue.set(value, []);
+                    wordsByVisibleValue.get(value).push(wordData.word);
+                });
+            });
+        });
+
+        const connected = new Set();
+        const activeValues = visibleValuesByWord.get(activeWord.word) || [];
+        activeValues.forEach((value) => {
+            const hitList = wordsByVisibleValue.get(value);
+            if (!hitList) return;
+            hitList.forEach((word) => {
+                if (word !== activeWord.word) connected.add(word);
+            });
+        });
+
+        connectedWordsCacheRef.current.set(activeWord.word, connected);
+        return connected;
+    }, [activeWord, filteredWordsInView, filters]);
 
     const handleSearchChange = useCallback((e) => {
         dispatch({ type: 'SET_SEARCH_TERM', payload: normalizeSearchInput(e.target.value) });
