@@ -23,6 +23,16 @@ test('forceHebrewInput transliterates and normalizes spacing/punctuation', () =>
     assert.equal(value, 'שנב גקכ עין');
 });
 
+test('forceHebrewInput converts slash and non-letter separators into spaces', () => {
+    const value = forceHebrewInput('חודש/ירח — אחדות…איחוד');
+    assert.equal(value, 'חודש ירח אחדות איחוד');
+});
+
+test('forceHebrewInput preserves Hebrew abbreviations joined by quotes', () => {
+    const value = forceHebrewInput('שם / שת\nהם יחד בש״ד 5');
+    assert.equal(value, 'שם שת\nהם יחד בשד ');
+});
+
 test('computeCoreResults returns stable totals and distributions', () => {
     const results = computeCoreResults('אבג דה\nאבג', 'aleph-one');
 
