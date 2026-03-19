@@ -66,7 +66,7 @@ const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
 // Hebrew cantillation + nikkud marks (intentionally excludes maqaf U+05BE)
 const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
 // Includes Hebrew maqaf (U+05BE): "־"
-const INPUT_PUNCT_TO_SPACE_RE = /[,.\-:;\u05BE–—]+/g;
+const INPUT_PUNCT_TO_SPACE_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5\n ]+/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
 const TEXT_SIZE_CLASSNAMES = Object.freeze({
     sm: 'text-base leading-6',
@@ -2060,6 +2060,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                     output += EN_TO_HE_PUNCT_LETTER_MAP[ch];
                 } else if (!hasHebrewLetters && EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]) {
                     output += EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch];
+                } else {
+                    output += ' ';
                 }
             }
         }
