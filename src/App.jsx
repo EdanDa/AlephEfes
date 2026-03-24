@@ -2045,7 +2045,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const commitTimerRef = useRef(null);
 
     const sanitizeHebrewInput = useCallback((value = '') => {
-        const normalized = value
+        const normalized = (value.normalize ? value.normalize('NFKD') : value)
+            .replace(HEB_MARKS_RE, '')
             .replace(/\r\n?/g, '\n')
             .replace(INPUT_HEBREW_JOINERS_RE, '$1')
             .replace(INPUT_PUNCT_TO_SPACE_RE, ' ');
@@ -2074,7 +2075,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             .replace(/\n[ ]+/g, '\n');
     }, []);
 
-    const sanitizePastedHebrewInput = useCallback((value = '') => value
+    const sanitizePastedHebrewInput = useCallback((value = '') => (value.normalize ? value.normalize('NFKD') : value)
+        .replace(HEB_MARKS_RE, '')
         .replace(/\r\n?/g, '\n')
         .replace(INPUT_HEBREW_JOINERS_RE, '$1')
         .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')

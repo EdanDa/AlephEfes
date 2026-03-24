@@ -33,6 +33,11 @@ test('forceHebrewInput preserves Hebrew abbreviations joined by quotes', () => {
     assert.equal(value, 'שם שת\nהם יחד בשד ');
 });
 
+test('forceHebrewInput strips Hebrew marks without splitting words', () => {
+    const value = forceHebrewInput('צוֹר, תְּעוּדָה; חֲתוֹם');
+    assert.equal(value, 'צור תעודה חתום');
+});
+
 test('computeCoreResults returns stable totals and distributions', () => {
     const results = computeCoreResults('אבג דה\nאבג', 'aleph-one');
 
