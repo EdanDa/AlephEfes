@@ -639,6 +639,7 @@ const Icon = React.memo(({ name, className }) => {
 const Legend = React.memo(() => {
     const { primeColor, filters } = useAppFilters();
     const dispatch = useAppDispatch();
+    const [, startTransition] = useTransition();
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
 
@@ -664,7 +665,9 @@ const Legend = React.memo(() => {
     };
 
     const toggleFilter = (filterKey) => {
-        dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
+        startTransition(() => {
+            dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
+        });
     };
 
     const primeColorClasses = COLOR_PALETTE[primeColor];
@@ -2415,12 +2418,13 @@ const App = () => {
     }, [coreResults, mode, view]);
 
     const deferredHoveredWord = useDeferredValue(hoveredWord);
+    const deferredFilters = useDeferredValue(filters);
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
     const isVisibleWord = useCallback(
-        (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
-        [filters, selectedDR]
+        (wordData) => isWordVisible(wordData, deferredFilters) && (selectedDR === null || wordData.dr === selectedDR),
+        [deferredFilters, selectedDR]
     );
 
     const visibleAllWords = useMemo(() => {
@@ -2435,7 +2439,7 @@ const App = () => {
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
-    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, filters)), [hotWordsList, filters]);
+    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters)), [hotWordsList, deferredFilters]);
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
@@ -2489,8 +2493,8 @@ const App = () => {
 
     const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
-        return buildWordConnectionIndex(visibleHotWords, filters);
-    }, [view, selectedHotValue, visibleHotWords, filters]);
+        return buildWordConnectionIndex(visibleHotWords, deferredFilters);
+    }, [view, selectedHotValue, visibleHotWords, deferredFilters]);
 
     const hotConnectedWordsSet = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return new Set();
@@ -2507,7 +2511,7 @@ const App = () => {
 
         if (searchTerm.trim()) {
             const normalizedSearch = normalizeSearchInput(searchTerm);
-            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, filters));
+            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, deferredFilters));
         }
 
         const regrouped = {};
@@ -2522,7 +2526,7 @@ const App = () => {
         return activeDrOrder
             .map((dr) => ({ dr, words: regrouped[dr] || [] }))
             .filter(({ words }) => words.length > 0);
-    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, filters]);
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, deferredFilters]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
@@ -3097,7 +3101,7 @@ const App = () => {
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
                                                         dispatch={dispatch}
-                                                        filters={filters}
+                                                        filters={deferredFilters}
                                                     />
                                                 ))}
                                             </div>
@@ -3126,7 +3130,7 @@ const App = () => {
                     {view === 'graph' && coreResults && (
                         <GraphView 
                             coreResults={coreResults}
-                            filters={filters}
+                            filters={deferredFilters}
                             isDarkMode={isDarkMode}
                             primeColor={primeColor}
                             onWordClick={handleWordClick}
@@ -3137,7 +3141,7 @@ const App = () => {
                     {view === 'network' && coreResults && (
                         <NetworkView 
                             coreResults={coreResults}
-                            filters={filters}
+                            filters={deferredFilters}
                             isDarkMode={isDarkMode}
                             primeColor={primeColor}
                             onWordClick={handleWordClick}
