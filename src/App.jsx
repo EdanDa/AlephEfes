@@ -2101,8 +2101,10 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     const commitChanges = useCallback(() => {
         clearCommitTimer();
-        onTextChange(draftRef.current);
-    }, [clearCommitTimer, onTextChange]);
+        const committedValue = sanitizeHebrewInput(draftRef.current);
+        draftRef.current = committedValue;
+        onTextChange(committedValue);
+    }, [clearCommitTimer, onTextChange, sanitizeHebrewInput]);
 
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
@@ -2135,9 +2137,11 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         commitTimerRef.current = setTimeout(() => {
             commitTimerRef.current = null;
-            onTextChange(draftRef.current);
+            const committedValue = sanitizeHebrewInput(draftRef.current);
+            draftRef.current = committedValue;
+            onTextChange(committedValue);
         }, debounceMs);
-    }, [clearCommitTimer, onTextChange]);
+    }, [clearCommitTimer, onTextChange, sanitizeHebrewInput]);
 
     const handleChange = useCallback((e) => {
         const rawValue = e.target.value;
@@ -2146,8 +2150,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const insertedData = nativeInputEvent?.data ?? null;
         const isDeleteInput = inputType.startsWith('delete');
         const isSimpleInsert = inputType === 'insertText' || inputType === 'insertLineBreak';
+        const isLargeInput = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD;
         const isAllowedInsertedData = insertedData === null || insertedData === '\n' || insertedData === ' ' || /^[א-ת]$/.test(insertedData);
-        const canSkipFullSanitize = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD && (isDeleteInput || (isSimpleInsert && isAllowedInsertedData));
+        const canSkipFullSanitize = isLargeInput && (isDeleteInput || isSimpleInsert || isAllowedInsertedData);
 
         const nextValue = canSkipFullSanitize ? rawValue : sanitizeHebrewInput(rawValue);
 
@@ -2184,6 +2189,12 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             return;
         }
 
+        const textarea = textareaRef.current;
+        const currentLength = textarea?.value.length ?? draftRef.current.length;
+        if (currentLength > LARGE_INPUT_SANITIZE_THRESHOLD) {
+            return;
+        }
+
         if (isMetaCombo || e.altKey || key === 'shift' || key === 'alt' || key === 'control' || key === 'meta') {
             return;
         }
@@ -2206,7 +2217,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         if (mappedLetter) {
             e.preventDefault();
-            const textarea = textareaRef.current;
             if (!textarea) return;
 
             const start = textarea.selectionStart ?? 0;
