@@ -131,12 +131,12 @@ Certain values recur as **cultural attractors**—numbers that mattered across L
 
 These are not isolated hits: they form **clusters** that map cleanly onto the calendar seam:
 
-* **52** ↔ weeks in a solar year (365 ≈ 52×7 + 1).
+* **52** ↔ weeks in a solar year (365 = 52×7 + 1).
 * **354** ↔ lunar year (12 lunar months).
 * **364** ↔ schematic/Enochic solar calendar (52×7).
 * **360/365** ↔ the base-60 circle-year vs. the 12×30+5 civil year structure (360 + 5 epagomenal days).
 
-**Solar deities:** the “52 bucket” is not just “שמש.” When we transliterate a set of **solar deities across cultures**, many of them converge on **U=52** in א=0 (e.g., Šimegi → שימגי, Vishnu → וישנו, Sekhmet → סקמט, Mithra → מיטרה, Helios → היליוס, Tabiti → תבתי). This looks less like a coincidence and more like a **deliberately loaded residue class**.
+**Solar deities:** the “52 bucket” is not just “שמש.” When we transliterate a set of **solar deities across cultures**, the following converge on **U=52** in א=0 (e.g., Šimegi → שימגי, Vishnu → וישנו, Sekhmet → סקמט, Mithra → מיטרה, Helios → היליוס, sūryo → סוריו, ṛtam → רתאם). "אדני" has **T=52**.
 
 A second striking seam is the **59↔354 bridge**:
 **ישראל = 59** (U), while **ישרון = 354** (H), and **354 = 59×6**.

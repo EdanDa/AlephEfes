@@ -165,6 +165,8 @@ const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
+const MIN_INPUT_ROWS = 4;
+const MAX_INPUT_ROWS = 18;
 
 const GlobalStyles = () => (
     <style>{`
@@ -184,6 +186,10 @@ const GlobalStyles = () => (
             -webkit-user-select: text;
             user-select: text;
             cursor: auto;
+        }
+        input, textarea {
+            direction: rtl;
+            text-align: right;
         }
     `}</style>
 );
@@ -639,6 +645,7 @@ const Icon = React.memo(({ name, className }) => {
 const Legend = React.memo(() => {
     const { primeColor, filters } = useAppFilters();
     const dispatch = useAppDispatch();
+    const [, startTransition] = useTransition();
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerTimeoutRef = useRef(null);
 
@@ -664,7 +671,9 @@ const Legend = React.memo(() => {
     };
 
     const toggleFilter = (filterKey) => {
-        dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
+        startTransition(() => {
+            dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
+        });
     };
 
     const primeColorClasses = COLOR_PALETTE[primeColor];
@@ -2045,7 +2054,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const commitTimerRef = useRef(null);
 
     const sanitizeHebrewInput = useCallback((value = '') => {
-        const normalized = value
+        const normalized = (value.normalize ? value.normalize('NFKD') : value)
+            .replace(HEB_MARKS_RE, '')
             .replace(/\r\n?/g, '\n')
             .replace(INPUT_HEBREW_JOINERS_RE, '$1')
             .replace(INPUT_PUNCT_TO_SPACE_RE, ' ');
@@ -2074,7 +2084,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             .replace(/\n[ ]+/g, '\n');
     }, []);
 
-    const sanitizePastedHebrewInput = useCallback((value = '') => value
+    const sanitizePastedHebrewInput = useCallback((value = '') => (value.normalize ? value.normalize('NFKD') : value)
+        .replace(HEB_MARKS_RE, '')
         .replace(/\r\n?/g, '\n')
         .replace(INPUT_HEBREW_JOINERS_RE, '$1')
         .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
@@ -2094,10 +2105,32 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
+    const applyTextareaRowBounds = useCallback((target) => {
+        const textarea = target || textareaRef.current;
+        if (!textarea) return;
+
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+        const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+        const chromeHeight = paddingTop + paddingBottom + borderTop + borderBottom;
+        const minHeight = (lineHeight * MIN_INPUT_ROWS) + chromeHeight;
+        const maxHeight = (lineHeight * MAX_INPUT_ROWS) + chromeHeight;
+
+        textarea.style.minHeight = `${minHeight}px`;
+        textarea.style.maxHeight = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+    }, []);
+    const adjustTextareaHeight = applyTextareaRowBounds;
+
     const commitChanges = useCallback(() => {
         clearCommitTimer();
-        onTextChange(draftRef.current);
-    }, [clearCommitTimer, onTextChange]);
+        const committedValue = sanitizeHebrewInput(draftRef.current);
+        draftRef.current = committedValue;
+        onTextChange(committedValue);
+    }, [clearCommitTimer, onTextChange, sanitizeHebrewInput]);
 
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
@@ -2111,13 +2144,28 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const selectionEnd = textarea.selectionEnd ?? sanitized.length;
 
         textarea.value = sanitized;
-
         if (isFocused) {
             const nextStart = Math.min(selectionStart, sanitized.length);
             const nextEnd = Math.min(selectionEnd, sanitized.length);
             requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
-    }, [sanitizeHebrewInput, text]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, text]);
+
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [adjustTextareaHeight, textSize]);
+
+    useEffect(() => {
+        applyTextareaRowBounds();
+    }, [applyTextareaRowBounds, textSize]);
+
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [adjustTextareaHeight, textSize]);
+
+    useEffect(() => {
+        applyTextareaRowBounds();
+    }, [applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -2130,9 +2178,11 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         commitTimerRef.current = setTimeout(() => {
             commitTimerRef.current = null;
-            onTextChange(draftRef.current);
+            const committedValue = sanitizeHebrewInput(draftRef.current);
+            draftRef.current = committedValue;
+            onTextChange(committedValue);
         }, debounceMs);
-    }, [clearCommitTimer, onTextChange]);
+    }, [clearCommitTimer, onTextChange, sanitizeHebrewInput]);
 
     const handleChange = useCallback((e) => {
         const rawValue = e.target.value;
@@ -2141,8 +2191,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const insertedData = nativeInputEvent?.data ?? null;
         const isDeleteInput = inputType.startsWith('delete');
         const isSimpleInsert = inputType === 'insertText' || inputType === 'insertLineBreak';
+        const isLargeInput = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD;
         const isAllowedInsertedData = insertedData === null || insertedData === '\n' || insertedData === ' ' || /^[א-ת]$/.test(insertedData);
-        const canSkipFullSanitize = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD && (isDeleteInput || (isSimpleInsert && isAllowedInsertedData));
+        const canSkipFullSanitize = isLargeInput && (isDeleteInput || isSimpleInsert || isAllowedInsertedData);
 
         const nextValue = canSkipFullSanitize ? rawValue : sanitizeHebrewInput(rawValue);
 
@@ -2154,8 +2205,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
 
         draftRef.current = nextValue;
+        adjustTextareaHeight(e.target);
         scheduleCommit(nextValue);
-    }, [sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
@@ -2176,6 +2228,12 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (isMetaCombo && isEnterKey) {
             e.preventDefault();
             commitChanges();
+            return;
+        }
+
+        const textarea = textareaRef.current;
+        const currentLength = textarea?.value.length ?? draftRef.current.length;
+        if (currentLength > LARGE_INPUT_SANITIZE_THRESHOLD) {
             return;
         }
 
@@ -2201,7 +2259,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         if (mappedLetter) {
             e.preventDefault();
-            const textarea = textareaRef.current;
             if (!textarea) return;
 
             const start = textarea.selectionStart ?? 0;
@@ -2211,6 +2268,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
             textarea.value = nextValue;
             draftRef.current = nextValue;
+            adjustTextareaHeight(textarea);
             scheduleCommit(nextValue);
 
             const nextPos = start + mappedLetter.length;
@@ -2221,7 +2279,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [commitChanges, scheduleCommit]);
+    }, [adjustTextareaHeight, commitChanges, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
@@ -2239,19 +2297,20 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         textarea.value = nextValue;
         draftRef.current = nextValue;
+        adjustTextareaHeight(textarea);
         scheduleCommit(nextValue);
 
         const nextPos = start + sanitized.length;
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [sanitizePastedHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
     return (
         <textarea
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full min-h-[8rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
-            rows="4"
+            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows={MIN_INPUT_ROWS}
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
@@ -2413,12 +2472,13 @@ const App = () => {
     }, [coreResults, mode, view]);
 
     const deferredHoveredWord = useDeferredValue(hoveredWord);
+    const deferredFilters = useDeferredValue(filters);
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
     const isVisibleWord = useCallback(
-        (wordData) => isWordVisible(wordData, filters) && (selectedDR === null || wordData.dr === selectedDR),
-        [filters, selectedDR]
+        (wordData) => isWordVisible(wordData, deferredFilters) && (selectedDR === null || wordData.dr === selectedDR),
+        [deferredFilters, selectedDR]
     );
 
     const visibleAllWords = useMemo(() => {
@@ -2433,7 +2493,7 @@ const App = () => {
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
-    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, filters)), [hotWordsList, filters]);
+    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters)), [hotWordsList, deferredFilters]);
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
@@ -2487,8 +2547,8 @@ const App = () => {
 
     const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
-        return buildWordConnectionIndex(visibleHotWords, filters);
-    }, [view, selectedHotValue, visibleHotWords, filters]);
+        return buildWordConnectionIndex(visibleHotWords, deferredFilters);
+    }, [view, selectedHotValue, visibleHotWords, deferredFilters]);
 
     const hotConnectedWordsSet = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return new Set();
@@ -2505,7 +2565,7 @@ const App = () => {
 
         if (searchTerm.trim()) {
             const normalizedSearch = normalizeSearchInput(searchTerm);
-            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, filters));
+            filteredWords = filteredWords.filter((wordData) => matchesSearchQuery(wordData, normalizedSearch, deferredFilters));
         }
 
         const regrouped = {};
@@ -2520,7 +2580,7 @@ const App = () => {
         return activeDrOrder
             .map((dr) => ({ dr, words: regrouped[dr] || [] }))
             .filter(({ words }) => words.length > 0);
-    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, filters]);
+    }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, deferredFilters]);
 
     const getPinnedRelevantWords = useCallback(() => {
         if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
@@ -2724,6 +2784,7 @@ const App = () => {
     const handleTextChange = useCallback((nextText) => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
     }, [dispatch]);
+    const hasInput = text.trim().length > 0;
 
     return (
         <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
@@ -2816,15 +2877,17 @@ const App = () => {
                         </div>
                     </div>
 
-                    <div className="flex justify-center my-8">
-                        <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                            <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
-                            <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                            <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                            <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
-                            <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                    {hasInput && (
+                        <div className="flex justify-center my-8">
+                            <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                                <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
+                                <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
+                                <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
+                                <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
+                                <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {stats && (
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
@@ -2918,6 +2981,7 @@ const App = () => {
                                     {coreResults.lines.map((lineResult, lineIndex) => {
                                         const isExpanded = !!expandedRows[lineIndex];
                                         const visibleWords = visibleWordsByLine[lineIndex] || [];
+                                        const showTotalsLine = !isExpanded || lineResult.words.length > 1;
                                         if (visibleWords.length === 0) return null;
 
                                         return (
@@ -2929,7 +2993,7 @@ const App = () => {
                                                 <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">תוצאות עבור שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
                                                     <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
-                                                    {!isExpanded && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
+                                                    {showTotalsLine && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {lineResult.words.length > 1 && <span className="mx-2">({lineResult.words.length} מילים)</span>}
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
@@ -3091,7 +3155,7 @@ const App = () => {
                                                         primeColor={primeColor}
                                                         connectionValues={connectionValues}
                                                         dispatch={dispatch}
-                                                        filters={filters}
+                                                        filters={deferredFilters}
                                                     />
                                                 ))}
                                             </div>
@@ -3120,7 +3184,7 @@ const App = () => {
                     {view === 'graph' && coreResults && (
                         <GraphView 
                             coreResults={coreResults}
-                            filters={filters}
+                            filters={deferredFilters}
                             isDarkMode={isDarkMode}
                             primeColor={primeColor}
                             onWordClick={handleWordClick}
@@ -3131,7 +3195,7 @@ const App = () => {
                     {view === 'network' && coreResults && (
                         <NetworkView 
                             coreResults={coreResults}
-                            filters={filters}
+                            filters={deferredFilters}
                             isDarkMode={isDarkMode}
                             primeColor={primeColor}
                             onWordClick={handleWordClick}
