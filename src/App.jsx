@@ -2105,7 +2105,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
-    const applyTextareaRowBounds = useCallback((target) => {
+    const adjustTextareaHeight = useCallback((target) => {
         const textarea = target || textareaRef.current;
         if (!textarea) return;
 
@@ -2157,6 +2157,10 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         applyTextareaRowBounds();
     }, [applyTextareaRowBounds, textSize]);
+
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [adjustTextareaHeight, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
