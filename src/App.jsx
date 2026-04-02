@@ -2105,7 +2105,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
-    const adjustTextareaHeight = useCallback((target) => {
+    const applyTextareaRowBounds = useCallback((target) => {
         const textarea = target || textareaRef.current;
         if (!textarea) return;
 
@@ -2123,6 +2123,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         textarea.style.maxHeight = `${maxHeight}px`;
         textarea.style.overflowY = 'auto';
     }, []);
+    const adjustTextareaHeight = applyTextareaRowBounds;
 
     const commitChanges = useCallback(() => {
         clearCommitTimer();
@@ -2161,6 +2162,10 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         adjustTextareaHeight();
     }, [adjustTextareaHeight, textSize]);
+
+    useEffect(() => {
+        applyTextareaRowBounds();
+    }, [applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
