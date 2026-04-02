@@ -2148,7 +2148,11 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             const nextEnd = Math.min(selectionEnd, sanitized.length);
             requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
-    }, [sanitizeHebrewInput, text]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, text]);
+
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [adjustTextareaHeight, textSize]);
 
     useEffect(() => {
         applyTextareaRowBounds();
@@ -2192,8 +2196,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
 
         draftRef.current = nextValue;
+        adjustTextareaHeight(e.target);
         scheduleCommit(nextValue);
-    }, [sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
@@ -2254,6 +2259,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
             textarea.value = nextValue;
             draftRef.current = nextValue;
+            adjustTextareaHeight(textarea);
             scheduleCommit(nextValue);
 
             const nextPos = start + mappedLetter.length;
@@ -2264,7 +2270,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [commitChanges, scheduleCommit]);
+    }, [adjustTextareaHeight, commitChanges, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
@@ -2282,11 +2288,12 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         textarea.value = nextValue;
         draftRef.current = nextValue;
+        adjustTextareaHeight(textarea);
         scheduleCommit(nextValue);
 
         const nextPos = start + sanitized.length;
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [sanitizePastedHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
     return (
         <textarea
