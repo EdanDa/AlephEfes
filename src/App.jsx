@@ -2105,19 +2105,23 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
-    const adjustTextareaHeight = useCallback((target) => {
+    const applyTextareaRowBounds = useCallback((target) => {
         const textarea = target || textareaRef.current;
         if (!textarea) return;
 
-        textarea.style.height = 'auto';
         const computedStyle = window.getComputedStyle(textarea);
         const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
-        const minHeight = lineHeight * MIN_INPUT_ROWS;
-        const maxHeight = lineHeight * MAX_INPUT_ROWS;
-        const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+        const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+        const chromeHeight = paddingTop + paddingBottom + borderTop + borderBottom;
+        const minHeight = (lineHeight * MIN_INPUT_ROWS) + chromeHeight;
+        const maxHeight = (lineHeight * MAX_INPUT_ROWS) + chromeHeight;
 
-        textarea.style.height = `${nextHeight}px`;
-        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+        textarea.style.minHeight = `${minHeight}px`;
+        textarea.style.maxHeight = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
     }, []);
 
     const commitChanges = useCallback(() => {
@@ -2139,8 +2143,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const selectionEnd = textarea.selectionEnd ?? sanitized.length;
 
         textarea.value = sanitized;
-        adjustTextareaHeight(textarea);
-
         if (isFocused) {
             const nextStart = Math.min(selectionStart, sanitized.length);
             const nextEnd = Math.min(selectionEnd, sanitized.length);
@@ -2151,6 +2153,10 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => {
         adjustTextareaHeight();
     }, [adjustTextareaHeight, textSize]);
+
+    useEffect(() => {
+        applyTextareaRowBounds();
+    }, [applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -2294,7 +2300,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
             rows={MIN_INPUT_ROWS}
             defaultValue={text}
             onChange={handleChange}
