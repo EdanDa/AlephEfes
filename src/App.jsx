@@ -165,6 +165,8 @@ const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
+const MIN_INPUT_ROWS = 4;
+const MAX_INPUT_ROWS = 18;
 
 const GlobalStyles = () => (
     <style>{`
@@ -184,6 +186,10 @@ const GlobalStyles = () => (
             -webkit-user-select: text;
             user-select: text;
             cursor: auto;
+        }
+        input, textarea {
+            direction: rtl;
+            text-align: right;
         }
     `}</style>
 );
@@ -2099,6 +2105,26 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
+    const applyTextareaRowBounds = useCallback((target) => {
+        const textarea = target || textareaRef.current;
+        if (!textarea) return;
+
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+        const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+        const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+        const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+        const chromeHeight = paddingTop + paddingBottom + borderTop + borderBottom;
+        const minHeight = (lineHeight * MIN_INPUT_ROWS) + chromeHeight;
+        const maxHeight = (lineHeight * MAX_INPUT_ROWS) + chromeHeight;
+
+        textarea.style.minHeight = `${minHeight}px`;
+        textarea.style.maxHeight = `${maxHeight}px`;
+        textarea.style.overflowY = 'auto';
+    }, []);
+    const adjustTextareaHeight = applyTextareaRowBounds;
+
     const commitChanges = useCallback(() => {
         clearCommitTimer();
         const committedValue = sanitizeHebrewInput(draftRef.current);
@@ -2118,13 +2144,16 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const selectionEnd = textarea.selectionEnd ?? sanitized.length;
 
         textarea.value = sanitized;
-
         if (isFocused) {
             const nextStart = Math.min(selectionStart, sanitized.length);
             const nextEnd = Math.min(selectionEnd, sanitized.length);
             requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
     }, [sanitizeHebrewInput, text]);
+
+    useEffect(() => {
+        applyTextareaRowBounds();
+    }, [applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -2265,8 +2294,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full min-h-[8rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
-            rows="4"
+            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows={MIN_INPUT_ROWS}
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
