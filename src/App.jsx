@@ -165,6 +165,8 @@ const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const MAX_WORD_CACHE_SIZE = 50_000;
 const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
+const MIN_INPUT_ROWS = 4;
+const MAX_INPUT_ROWS = 18;
 
 const GlobalStyles = () => (
     <style>{`
@@ -2103,6 +2105,21 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
     }, []);
 
+    const adjustTextareaHeight = useCallback((target) => {
+        const textarea = target || textareaRef.current;
+        if (!textarea) return;
+
+        textarea.style.height = 'auto';
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+        const minHeight = lineHeight * MIN_INPUT_ROWS;
+        const maxHeight = lineHeight * MAX_INPUT_ROWS;
+        const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+
+        textarea.style.height = `${nextHeight}px`;
+        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }, []);
+
     const commitChanges = useCallback(() => {
         clearCommitTimer();
         const committedValue = sanitizeHebrewInput(draftRef.current);
@@ -2122,13 +2139,18 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const selectionEnd = textarea.selectionEnd ?? sanitized.length;
 
         textarea.value = sanitized;
+        adjustTextareaHeight(textarea);
 
         if (isFocused) {
             const nextStart = Math.min(selectionStart, sanitized.length);
             const nextEnd = Math.min(selectionEnd, sanitized.length);
             requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
-    }, [sanitizeHebrewInput, text]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, text]);
+
+    useEffect(() => {
+        adjustTextareaHeight();
+    }, [adjustTextareaHeight, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -2168,8 +2190,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         }
 
         draftRef.current = nextValue;
+        adjustTextareaHeight(e.target);
         scheduleCommit(nextValue);
-    }, [sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         const isMetaCombo = e.ctrlKey || e.metaKey;
@@ -2230,6 +2253,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
             textarea.value = nextValue;
             draftRef.current = nextValue;
+            adjustTextareaHeight(textarea);
             scheduleCommit(nextValue);
 
             const nextPos = start + mappedLetter.length;
@@ -2240,7 +2264,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [commitChanges, scheduleCommit]);
+    }, [adjustTextareaHeight, commitChanges, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
@@ -2258,19 +2282,20 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
         textarea.value = nextValue;
         draftRef.current = nextValue;
+        adjustTextareaHeight(textarea);
         scheduleCommit(nextValue);
 
         const nextPos = start + sanitized.length;
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [sanitizePastedHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
     return (
         <textarea
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full min-h-[8rem] resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
-            rows="4"
+            className={`w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            rows={MIN_INPUT_ROWS}
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
