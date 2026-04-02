@@ -185,6 +185,10 @@ const GlobalStyles = () => (
             user-select: text;
             cursor: auto;
         }
+        input, textarea {
+            direction: rtl;
+            text-align: right;
+        }
     `}</style>
 );
 
