@@ -2052,6 +2052,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
+    const [isDragActive, setIsDragActive] = useState(false);
 
     const sanitizeHebrewInput = useCallback((value = '') => {
         const normalized = (value.normalize ? value.normalize('NFKD') : value)
@@ -2304,18 +2305,70 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
     }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
+    const insertTextAtCursor = useCallback((incomingText) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const sanitized = sanitizePastedHebrewInput(incomingText);
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+        const current = textarea.value;
+        const nextValue = current.slice(0, start) + sanitized + current.slice(end);
+
+        textarea.value = nextValue;
+        draftRef.current = nextValue;
+        adjustTextareaHeight(textarea);
+        scheduleCommit(nextValue);
+
+        const nextPos = start + sanitized.length;
+        requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
+    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
+
+    const handleDragOver = useCallback((e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!isDragActive) setIsDragActive(true);
+    }, [isDragActive]);
+
+    const handleDragLeave = useCallback((e) => {
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setIsDragActive(false);
+    }, []);
+
+    const handleDrop = useCallback(async (e) => {
+        e.preventDefault();
+        setIsDragActive(false);
+
+        const files = Array.from(e.dataTransfer?.files || []);
+        if (!files.length) return;
+
+        const file = files.find((candidate) => {
+            const hasTextType = candidate.type?.startsWith('text/');
+            const hasTextExt = /\.(txt|text|md|csv|log)$/i.test(candidate.name || '');
+            return hasTextType || hasTextExt;
+        });
+
+        if (!file) return;
+
+        const droppedText = await file.text();
+        insertTextAtCursor(droppedText);
+    }, [insertTextAtCursor]);
+
     return (
         <textarea
             ref={textareaRef}
             dir="rtl"
             id="text-input"
-            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'}`}
+            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
             rows={MIN_INPUT_ROWS}
             defaultValue={text}
             onChange={handleChange}
             onBlur={commitChanges}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
