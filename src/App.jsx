@@ -2096,7 +2096,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <div className="flex items-center justify-between gap-4 mb-4">
                 <h2 className="text-2xl font-bold text-center flex-1">מפת ערכים מרוכזת</h2>
-                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} id='graph-insights' label='העתק תובנות' />
+                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} id='graph-insights' label='העתק' />
             </div>
             <div ref={containerRef} className="relative w-full h-[430px] cursor-crosshair">
                 <canvas
