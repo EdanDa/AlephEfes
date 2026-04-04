@@ -1830,72 +1830,146 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     const containerRef = useRef(null);
     const spatialRef = useRef({ cellSize: 24, grid: new Map() });
     const [hoverInfo, setHoverInfo] = useState(null);
+    const [selectedValue, setSelectedValue] = useState(null);
 
-    const dataPoints = useMemo(() => {
+    const valueInsights = useMemo(() => {
         if (!coreResults) return [];
-        const points = [];
-        let wordIndex = 0;
-        coreResults.lines.forEach(line => {
-            line.words.forEach(wordData => {
-                wordIndex++;
-                if (!isWordVisible(wordData, filters)) return;
-                if (selectedDR !== null && wordData.dr !== selectedDR) return;
 
-                const values = getWordValues(wordData);
-                values.forEach(v => {
-                    if (isValueVisible(v.layer, v.isPrime, filters)) {
-                        let radius = 3;
-                        if (v.layer === 'H') radius = 7;
-                        else if (v.layer === 'T') radius = 5;
-                        else radius = 3;
+        const statsByValue = new Map();
+        const allWords = Array.isArray(coreResults.allWords) ? coreResults.allWords : [];
 
-                        points.push({
-                            x: wordIndex,
-                            y: v.value,
-                            layer: v.layer,
-                            isPrime: v.isPrime,
-                            word: wordData.word,
-                            radius,
-                            fullValues: values 
-                        });
-                    }
-                });
+        allWords.forEach((wordData) => {
+            if (!isWordVisible(wordData, filters)) return;
+            if (selectedDR !== null && wordData.dr !== selectedDR) return;
+
+            const occurrences = coreResults.wordCounts?.get(wordData.word) || 1;
+            const visibleValues = getWordValues(wordData).filter((v) => isValueVisible(v.layer, v.isPrime, filters));
+
+            visibleValues.forEach((v) => {
+                if (!statsByValue.has(v.value)) {
+                    statsByValue.set(v.value, {
+                        value: v.value,
+                        isPrime: v.isPrime,
+                        layers: new Set(),
+                        uniqueWords: new Set(),
+                        words: [],
+                        totalOccurrences: 0,
+                    });
+                }
+
+                const stat = statsByValue.get(v.value);
+                stat.isPrime = stat.isPrime || v.isPrime;
+                stat.layers.add(v.layer);
+                stat.uniqueWords.add(wordData.word);
+                stat.totalOccurrences += occurrences;
+                stat.words.push({ word: wordData.word, layer: v.layer, occurrences });
             });
         });
-        return points;
+
+        return Array.from(statsByValue.values())
+            .map((stat) => {
+                const layers = ['H', 'T', 'U'].filter((layer) => stat.layers.has(layer));
+                const uniqueWordCount = stat.uniqueWords.size;
+                const avgOccurrences = uniqueWordCount > 0 ? stat.totalOccurrences / uniqueWordCount : 0;
+                const bridgeScore = uniqueWordCount * layers.length;
+                const topWords = [...stat.words]
+                    .sort((a, b) => b.occurrences - a.occurrences || a.word.localeCompare(b.word, 'he'))
+                    .slice(0, 8);
+
+                return {
+                    value: stat.value,
+                    isPrime: stat.isPrime,
+                    layers,
+                    layerCount: layers.length,
+                    uniqueWordCount,
+                    totalOccurrences: stat.totalOccurrences,
+                    avgOccurrences,
+                    bridgeScore,
+                    topWords,
+                };
+            })
+            .sort((a, b) => b.bridgeScore - a.bridgeScore || b.totalOccurrences - a.totalOccurrences || a.value - b.value);
     }, [coreResults, filters, selectedDR]);
 
-    const dataExtents = useMemo(() => {
-        let maxX = 0;
-        let maxY = 0;
-        for (const point of dataPoints) {
-            if (point.x > maxX) maxX = point.x;
-            if (point.y > maxY) maxY = point.y;
+    const selectedInsight = useMemo(
+        () => valueInsights.find((insight) => insight.value === selectedValue) || null,
+        [valueInsights, selectedValue],
+    );
+
+    const preparedRows = useMemo(() => valueInsights.map((item, idx) => ({ ...item, rank: idx + 1 })), [valueInsights]);
+
+    const prepareInsightText = useCallback(() => {
+        if (!preparedRows.length) return 'אין נתונים להצגה.';
+
+        const lines = [
+            'מפת ערכים מרוכזת – ערכי מפתח לפי גישור בין שכבות',
+            'דרוג | ערך | שכבות | מילים ייחודיות | מופעים בטקסט | מופעים/מילה | ציון גישור',
+        ];
+
+        preparedRows.forEach((row) => {
+            lines.push(`${row.rank} | ${row.value}${row.isPrime ? '♢' : ''} | ${row.layers.join('/')} | ${row.uniqueWordCount} | ${row.totalOccurrences} | ${row.avgOccurrences.toFixed(2)} | ${row.bridgeScore}`);
+        });
+
+        if (selectedInsight) {
+            lines.push('');
+            lines.push(`פירוט ערך נבחר: ${selectedInsight.value}${selectedInsight.isPrime ? '♢' : ''}`);
+            selectedInsight.topWords.forEach((entry) => {
+                lines.push(`- ${entry.word} (${entry.layer}) ×${entry.occurrences}`);
+            });
         }
-        return { maxX, maxY: maxY * 1.1 };
-    }, [dataPoints]);
 
-    const sortedDataPoints = useMemo(() => [...dataPoints].sort((a, b) => b.radius - a.radius), [dataPoints]);
+        return lines.join('\n');
+    }, [preparedRows, selectedInsight]);
 
-    const wordLookup = useMemo(() => {
-        if (!coreResults) return new Map();
-        return new Map(coreResults.allWords.map((wordData) => [wordData.word, wordData]));
-    }, [coreResults]);
+    const prepareInsightCSV = useCallback(() => {
+        if (!preparedRows.length) return 'rank,value,is_prime,layers,layer_count,unique_words,total_occurrences,avg_occurrences_per_word,bridge_score';
+
+        const rows = ['rank,value,is_prime,layers,layer_count,unique_words,total_occurrences,avg_occurrences_per_word,bridge_score'];
+        preparedRows.forEach((row) => {
+            rows.push([
+                row.rank,
+                row.value,
+                row.isPrime ? 1 : 0,
+                `"${row.layers.join('/') }"`,
+                row.layerCount,
+                row.uniqueWordCount,
+                row.totalOccurrences,
+                row.avgOccurrences.toFixed(3),
+                row.bridgeScore,
+            ].join(','));
+        });
+
+        if (selectedInsight) {
+            rows.push('');
+            rows.push('selected_value,word,layer,occurrences');
+            selectedInsight.topWords.forEach((entry) => {
+                rows.push([selectedInsight.value, `"${entry.word}"`, entry.layer, entry.occurrences].join(','));
+            });
+        }
+
+        return rows.join('\n');
+    }, [preparedRows, selectedInsight]);
+
+    useEffect(() => {
+        if (selectedValue !== null && !valueInsights.some((insight) => insight.value === selectedValue)) {
+            setSelectedValue(null);
+        }
+    }, [selectedValue, valueInsights]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container || dataPoints.length === 0) return;
+        if (!canvas || !container || valueInsights.length === 0) return;
 
         const ctx = canvas.getContext('2d');
-        const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-        const cellSize = 24;
+        const padding = { top: 20, right: 24, bottom: 40, left: 52 };
+        const cellSize = 28;
 
         const render = () => {
             const width = container.clientWidth;
-            const height = 500;
+            const height = 430;
             const dpr = window.devicePixelRatio || 1;
-            
+
             canvas.width = width * dpr;
             canvas.height = height * dpr;
             canvas.style.width = `${width}px`;
@@ -1903,55 +1977,75 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
-            const graphWidth = width - padding.left - padding.right;
-            const graphHeight = height - padding.top - padding.bottom;
-
             ctx.clearRect(0, 0, width, height);
 
-            const maxY = dataExtents.maxY;
-            const maxX = dataExtents.maxX;
-            
-            // Safeguard against division by zero if empty or single point at 0
-            if (maxX <= 0 || maxY <= 0) return;
+            const graphWidth = width - padding.left - padding.right;
+            const graphHeight = height - padding.top - padding.bottom;
+            const maxX = Math.max(...valueInsights.map((v) => v.totalOccurrences), 1);
+            const maxY = Math.max(...valueInsights.map((v) => v.uniqueWordCount), 1);
 
             const scaleX = (x) => padding.left + (x / maxX) * graphWidth;
             const scaleY = (y) => height - padding.bottom - (y / maxY) * graphHeight;
 
-            ctx.strokeStyle = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-            ctx.fillStyle = isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+            ctx.strokeStyle = isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+            ctx.fillStyle = isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)';
             ctx.font = '10px sans-serif';
             ctx.lineWidth = 1;
 
-            const ySteps = 5;
-            for(let i=0; i<=ySteps; i++) {
-                const val = Math.round((maxY / ySteps) * i);
-                const y = scaleY(val);
+            for (let i = 0; i <= 5; i += 1) {
+                const yValue = Math.round((maxY / 5) * i);
+                const y = scaleY(yValue);
                 ctx.beginPath();
                 ctx.moveTo(padding.left, y);
                 ctx.lineTo(width - padding.right, y);
                 ctx.stroke();
-                ctx.fillText(val, 5, y + 3);
+                ctx.fillText(String(yValue), 8, y + 3);
             }
+
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('מילים ייחודיות לערך', 0, 0);
+            ctx.restore();
+            ctx.fillText('מופעים בטקסט', width / 2 - 30, height - 10);
 
             const grid = new Map();
 
-            sortedDataPoints.forEach((p) => {
-                const x = scaleX(p.x);
-                const y = scaleY(p.y);
-                const gx = Math.floor(x / cellSize);
-                const gy = Math.floor(y / cellSize);
+            valueInsights.forEach((item) => {
+                const px = scaleX(item.totalOccurrences);
+                const py = scaleY(item.uniqueWordCount);
+                const gx = Math.floor(px / cellSize);
+                const gy = Math.floor(py / cellSize);
                 const gridKey = `${gx}:${gy}`;
                 if (!grid.has(gridKey)) grid.set(gridKey, []);
-                grid.get(gridKey).push({ ...p, px: x, py: y });
 
-                const color = isDarkMode ? LAYER_COLORS[p.layer].light : LAYER_COLORS[p.layer].dark; 
-                
-                ctx.fillStyle = color;
-                
-                // Draw circle for all points as requested
+                const radius = 4 + item.layerCount * 2 + Math.min(10, Math.sqrt(item.bridgeScore));
+                const color = item.layerCount === 3
+                    ? (isDarkMode ? '#c084fc' : '#7c3aed')
+                    : item.layerCount === 2
+                        ? (isDarkMode ? '#34d399' : '#059669')
+                        : (isDarkMode ? '#60a5fa' : '#2563eb');
+
                 ctx.beginPath();
-                ctx.arc(x, y, p.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = selectedValue !== null && selectedValue !== item.value ? 0.2 : 0.82;
+                ctx.arc(px, py, radius, 0, Math.PI * 2);
                 ctx.fill();
+
+                if (item.isPrime) {
+                    ctx.strokeStyle = PRIME_COLOR_HEX[primeColor] || '#EAB308';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                if (selectedValue === item.value) {
+                    ctx.strokeStyle = isDarkMode ? '#ffffff' : '#111827';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                ctx.globalAlpha = 1;
+                grid.get(gridKey).push({ ...item, px, py, radius });
             });
 
             spatialRef.current = { cellSize, grid };
@@ -1960,54 +2054,52 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         render();
         window.addEventListener('resize', render);
         return () => window.removeEventListener('resize', render);
-    }, [dataPoints, dataExtents, isDarkMode, primeColor, sortedDataPoints]);
+    }, [isDarkMode, primeColor, selectedValue, valueInsights]);
 
     const handleInteraction = useCallback((e) => {
         const canvas = canvasRef.current;
-        if (!canvas || dataPoints.length === 0) return;
-        
+        if (!canvas || valueInsights.length === 0) return;
+
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        let nearest = null;
-        let minDistSq = 20 * 20;
-
         const { cellSize, grid } = spatialRef.current;
         const gx = Math.floor(mouseX / cellSize);
         const gy = Math.floor(mouseY / cellSize);
+        let nearest = null;
+        let minDistSq = 26 * 26;
 
         for (let ix = gx - 1; ix <= gx + 1; ix += 1) {
             for (let iy = gy - 1; iy <= gy + 1; iy += 1) {
                 const bucket = grid.get(`${ix}:${iy}`);
-                if (bucket) {
-                    for (const point of bucket) {
-                        const dx = point.px - mouseX;
-                        const dy = point.py - mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < minDistSq) {
-                            minDistSq = distSq;
-                            nearest = point;
-                        }
+                if (!bucket) continue;
+                bucket.forEach((point) => {
+                    const dx = point.px - mouseX;
+                    const dy = point.py - mouseY;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq <= Math.max(minDistSq, point.radius * point.radius)) {
+                        minDistSq = distSq;
+                        nearest = point;
                     }
-                }
+                });
             }
         }
 
         setHoverInfo(nearest);
-        
-        if (e.type === 'click' && nearest) {
-            const wordData = wordLookup.get(nearest.word);
-            if (wordData) onWordClick(wordData);
+        if (e.type === 'click') {
+            setSelectedValue((prev) => (nearest ? (prev === nearest.value ? null : nearest.value) : null));
         }
-
-    }, [dataPoints, onWordClick, wordLookup]);
+    }, [valueInsights.length]);
 
     return (
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <h2 className="text-2xl font-bold mb-4 text-center">זרימת ערכים (גרף)</h2>
-            <div ref={containerRef} className="relative w-full h-[500px] cursor-crosshair">
-                <canvas 
+            <div className="flex items-center justify-between gap-4 mb-4">
+                <h2 className="text-2xl font-bold text-center flex-1">מפת ערכים מרוכזת</h2>
+                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} id='graph-insights' label='העתק תובנות' />
+            </div>
+            <div ref={containerRef} className="relative w-full h-[430px] cursor-crosshair">
+                <canvas
                     ref={canvasRef}
                     onClick={handleInteraction}
                     onMouseMove={handleInteraction}
@@ -2015,35 +2107,70 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                     className="w-full h-full"
                 />
                 {hoverInfo && (
-                    <div 
-                        className="absolute pointer-events-none p-3 rounded-lg bg-gray-900/90 text-white text-sm z-10 whitespace-nowrap transform -translate-y-full shadow-xl border border-gray-600 w-max max-w-[200px]"
-                        style={{ 
-                            left: hoverInfo.px, 
+                    <div
+                        className="absolute pointer-events-none p-3 rounded-lg bg-gray-900/90 text-white text-sm z-10 whitespace-nowrap transform -translate-y-full shadow-xl border border-gray-600 w-max max-w-[260px]"
+                        style={{
+                            left: hoverInfo.px,
                             top: hoverInfo.py - 10,
-                            transform: hoverInfo.px > (containerRef.current?.clientWidth || 0) * 0.8 
-                                ? 'translate(-100%, -100%)' 
-                                : 'translate(0, -100%)' 
+                            transform: hoverInfo.px > (containerRef.current?.clientWidth || 0) * 0.7
+                                ? 'translate(-100%, -100%)'
+                                : 'translate(0, -100%)'
                         }}
                     >
-                        <div className="font-bold text-lg mb-1 text-center border-b border-gray-700 pb-1">{hoverInfo.word}</div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            {hoverInfo.fullValues.map((v, i) => (
-                                <React.Fragment key={i}>
-                                    <span className={`${v.layer === 'U' ? 'text-blue-300' : v.layer === 'T' ? 'text-green-300' : 'text-purple-300'}`}>
-                                        {v.layer === 'U' ? 'אחדות' : v.layer === 'T' ? 'עשרות' : 'מאות'}:
-                                    </span>
-                                    <span className="font-mono text-right flex items-center justify-end gap-1">
-                                        {v.value} {v.isPrime && <span className="text-yellow-400">♢</span>}
-                                    </span>
-                                </React.Fragment>
-                            ))}
-                        </div>
+                        <div className="font-bold text-base mb-1">ערך {hoverInfo.value} {hoverInfo.isPrime && <span className="text-yellow-400">♢</span>}</div>
+                        <div>שכבות: {hoverInfo.layers.join('/')}</div>
+                        <div>מילים ייחודיות: {hoverInfo.uniqueWordCount}</div>
+                        <div>מופעים בטקסט: {hoverInfo.totalOccurrences}</div>
+                        <div>ציון גישור: {hoverInfo.bridgeScore}</div>
                     </div>
                 )}
             </div>
-            <div className="mt-2 text-center text-sm text-gray-500">
-                ציר X: מיקום מילה בטקסט | ציר Y: ערך מספרי | נקודות צהובות: ראשוניים
+
+            <div className="mt-3 text-sm text-center text-gray-500 dark:text-gray-300">
+                ציר X: סך מופעים בטקסט | ציר Y: כמות מילים ייחודיות לערך | גודל נקודה: עוצמת גישור בין שכבות (H/T/U)
             </div>
+
+            {selectedInsight && (
+                <div className={`mt-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/80 border-slate-300'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-lg">ערך נבחר: {selectedInsight.value}{selectedInsight.isPrime ? ' ♢' : ''}</h3>
+                        <span className="text-sm text-gray-500">קליק נוסף על הנקודה לביטול בחירה</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
+                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">שכבות: <b>{selectedInsight.layers.join('/')}</b></div>
+                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">מילים ייחודיות: <b>{selectedInsight.uniqueWordCount}</b></div>
+                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">מופעים: <b>{selectedInsight.totalOccurrences}</b></div>
+                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">ציון גישור: <b>{selectedInsight.bridgeScore}</b></div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-right border-b border-gray-300 dark:border-gray-700">
+                                    <th className="py-1">מילה</th>
+                                    <th className="py-1">שכבה</th>
+                                    <th className="py-1">מופעים</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {selectedInsight.topWords.map((entry, idx) => (
+                                    <tr
+                                        key={`${entry.word}-${idx}`}
+                                        className="border-b border-gray-200 dark:border-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800/60 cursor-pointer"
+                                        onClick={() => {
+                                            const wordData = coreResults?.wordDataMap?.get(entry.word);
+                                            if (wordData) onWordClick(wordData);
+                                        }}
+                                    >
+                                        <td className="py-1 font-semibold text-blue-700 dark:text-blue-300">{entry.word}</td>
+                                        <td className="py-1">{entry.layer}</td>
+                                        <td className="py-1 font-mono">{entry.occurrences}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 });
