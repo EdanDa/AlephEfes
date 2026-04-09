@@ -48,7 +48,12 @@ function normalizeSearchToken(token = '') {
         }
 
         if (HEBREW_SEARCH_CHAR_RE.test(ch)) {
-            if (mode === 'numeric') continue;
+            if (mode === 'numeric') {
+                if (normalized.endsWith('+')) {
+                    normalized = normalized.slice(0, -1);
+                }
+                continue;
+            }
             normalized += ch;
             mode = 'hebrew';
         }

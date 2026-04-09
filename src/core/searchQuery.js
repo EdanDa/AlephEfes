@@ -13,11 +13,12 @@ function parseSearchGroups(searchTerm = '') {
         .trim()
         .split(/\s+/)
         .filter(Boolean)
-        .map((group) => group.split('+').map((part) => part.trim()).filter(Boolean));
+        .map((group) => group.split('+').map((part) => part.trim()));
 }
 
 function groupMatchesWord(wordData, groupTerms, filters) {
     if (groupTerms.length === 0) return true;
+    if (groupTerms.some((term) => term.length === 0)) return false;
 
     const visibleValues = getVisibleNumericValues(wordData, filters);
     const visibleValueSet = new Set(visibleValues);

@@ -28,6 +28,12 @@ test('matchesSearchQuery uses OR across space-separated groups', () => {
     assert.equal(matchesSearchQuery(sampleWord, '52+430 100+200', filtersAll), false);
 });
 
+
+test('matchesSearchQuery does not match incomplete plus groups', () => {
+    assert.equal(matchesSearchQuery(sampleWord, '59+', filtersAll), false);
+    assert.equal(matchesSearchQuery(sampleWord, '59+ 999', filtersAll), false);
+});
+
 test('numeric matching respects active layer filters', () => {
     assert.equal(matchesSearchQuery(sampleWord, '365', filtersOnlyUnits), false);
     assert.equal(matchesSearchQuery(sampleWord, '59', filtersOnlyUnits), true);
@@ -46,7 +52,7 @@ test('string matching is exact and does not return partial matches', () => {
 
 test('normalizeSearchInput keeps plus groups numeric-only', () => {
     assert.equal(normalizeSearchInput('20+11'), '20+11');
-    assert.equal(normalizeSearchInput('20+אש'), '20+');
+    assert.equal(normalizeSearchInput('20+אש'), '20');
     assert.equal(normalizeSearchInput('20++11'), '20+11');
     assert.equal(normalizeSearchInput('אש+20'), 'אש');
 });
