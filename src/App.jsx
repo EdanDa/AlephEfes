@@ -2,6 +2,13 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredVa
 import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
+import {
+    EN_TO_HE_LETTER_MAP,
+    EN_TO_HE_PUNCT_LETTER_MAP,
+    EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP,
+    KEYBOARD_CODE_TO_HE_LETTER_MAP,
+    normalizeSearchInput,
+} from './core/searchInput';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -79,43 +86,6 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
     { value: 'md', label: 'בינוני' },
     { value: 'lg', label: 'גדול' },
 ]);
-const SEARCH_ALLOWED_CHARS_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E50-9 +]+/g;
-
-const mapCharToHebrewForSearch = (ch) => {
-    if (/^[א-תךםןףץ0-9 +]$/.test(ch)) return ch;
-    const lower = ch.toLowerCase();
-    return EN_TO_HE_LETTER_MAP[lower]
-        || EN_TO_HE_PUNCT_LETTER_MAP[ch]
-        || EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP[ch]
-        || '';
-};
-
-const normalizeSearchInput = (value = '') => Array.from(value)
-    .map(mapCharToHebrewForSearch)
-    .join('')
-    .replace(SEARCH_ALLOWED_CHARS_RE, '')
-    .replace(INPUT_MULTI_SPACE_RE, ' ')
-    .trimStart();
-
-// English keyboard -> Hebrew letters (letter keys)
-const EN_TO_HE_LETTER_MAP = Object.freeze({
-    e: 'ק', r: 'ר', t: 'א', y: 'ט', u: 'ו', i: 'ן', o: 'ם', p: 'פ',
-    a: 'ש', s: 'ד', d: 'ג', f: 'כ', g: 'ע', h: 'י', j: 'ח', k: 'ל', l: 'ך',
-    z: 'ז', x: 'ס', c: 'ב', v: 'ה', b: 'נ', n: 'מ', m: 'צ'
-});
-
-// Hebrew-letter keys that sit on punctuation in English layout
-const EN_TO_HE_PUNCT_LETTER_MAP = Object.freeze({ ';': 'ף', ',': 'ת', '.': 'ץ' });
-const EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP = Object.freeze({ ':': 'ף', '<': 'ת', '>': 'ץ' });
-
-// Physical-key map so transliteration works regardless of active OS keyboard layout.
-const KEYBOARD_CODE_TO_HE_LETTER_MAP = Object.freeze({
-    KeyE: 'ק', KeyR: 'ר', KeyT: 'א', KeyY: 'ט', KeyU: 'ו', KeyI: 'ן', KeyO: 'ם', KeyP: 'פ',
-    KeyA: 'ש', KeyS: 'ד', KeyD: 'ג', KeyF: 'כ', KeyG: 'ע', KeyH: 'י', KeyJ: 'ח', KeyK: 'ל', KeyL: 'ך',
-    KeyZ: 'ז', KeyX: 'ס', KeyC: 'ב', KeyV: 'ה', KeyB: 'נ', KeyN: 'מ', KeyM: 'צ',
-    Semicolon: 'ף', Comma: 'ת', Period: 'ץ'
-});
-
 // Combined Color Config: Darkened backgrounds for better visibility in light mode
 const LAYER_COLORS = {
 	U: { 
@@ -1113,7 +1083,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                  <div className="flex-1"></div>
             </div>
             <div className="mb-4">
-                <input dir="rtl" type="text" placeholder="חפש מילה או מספר..." value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
+                <input dir="rtl" type="text" placeholder="חפש מילה, מספר או צירוף כמו 20+11..." value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
             </div>
             <div className="space-y-6">
                 {filteredWordsInView.map(({ dr, words }) => (

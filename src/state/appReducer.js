@@ -1,3 +1,5 @@
+import { normalizeSearchInput } from '../core/searchInput.js';
+
 const getInitialDarkMode = () => {
     if (typeof window === 'undefined') return false;
 
@@ -71,7 +73,7 @@ function appReducer(state, action) {
         case 'SET_TEXT_SIZE':
             return { ...state, textSize: action.payload };
         case 'SET_SEARCH_TERM':
-            return { ...state, searchTerm: action.payload, pinnedWord: null, selectedDR: null };
+            return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
         case 'SET_HOVERED_WORD':
             return { ...state, hoveredWord: action.payload };
         case 'SET_PINNED_WORD':

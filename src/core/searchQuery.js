@@ -21,7 +21,6 @@ function groupMatchesWord(wordData, groupTerms, filters) {
 
     const visibleValues = getVisibleNumericValues(wordData, filters);
     const visibleValueSet = new Set(visibleValues);
-    const allNumeric = groupTerms.every((term) => /^\d+$/.test(term));
 
     const allPartsMatch = groupTerms.every((term) => {
         if (/^\d+$/.test(term)) {
@@ -31,13 +30,7 @@ function groupMatchesWord(wordData, groupTerms, filters) {
         return wordData.word === term;
     });
 
-    if (!allPartsMatch) return false;
-
-    const isConjugationQuery = allNumeric && groupTerms.length > 1;
-    if (!isConjugationQuery) return true;
-
-    const querySet = new Set(groupTerms.map((term) => Number.parseInt(term, 10)));
-    return querySet.size === visibleValueSet.size;
+    return allPartsMatch;
 }
 
 function matchesSearchQuery(wordData, searchTerm, filters) {

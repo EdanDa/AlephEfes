@@ -57,6 +57,11 @@ test('SET_TEXT clears search term in clusters search bar', () => {
     assert.equal(next.searchTerm, '');
 });
 
+test('SET_SEARCH_TERM normalizes numeric plus groups', () => {
+    const next = appReducer(initialState, { type: 'SET_SEARCH_TERM', payload: '20+אש' });
+    assert.equal(next.searchTerm, '20+');
+});
+
 
 test('SET_TEXT clears hot-words drilldown selection state', () => {
     const withHotSelection = {
