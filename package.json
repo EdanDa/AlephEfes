@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "test": "node --test",
     "test:watch": "node --test --watch",
-    "check": "npm run test && npm run build"
+    "lint": "node scripts/lint.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "perf:check": "node scripts/perf-check.mjs",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run perf:check"
   },
   "dependencies": {
     "react": "^18.2.0",

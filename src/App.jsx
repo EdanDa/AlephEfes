@@ -3,12 +3,29 @@ import VirtualizedList from './components/VirtualizedList';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
+    COLOR_PALETTE,
+    DEFAULT_DR_ORDER,
+    LAYER_COLORS,
+    PRIME_COLOR_HEX,
+    availableLayers,
+    buildLetterTable,
+    forceHebrewInput,
+    getLetterDetails,
+    getWordValues,
+    isValueVisible,
+    isWordVisible,
+    layersMatching,
+    strongestLayer,
+    topConnectionLayer,
+} from './core/analysisCore';
+import {
     EN_TO_HE_LETTER_MAP,
     EN_TO_HE_PUNCT_LETTER_MAP,
     EN_TO_HE_SHIFTED_PUNCT_LETTER_MAP,
     KEYBOARD_CODE_TO_HE_LETTER_MAP,
     normalizeSearchInput,
 } from './core/searchInput';
+import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -62,20 +79,6 @@ function useAppStats() {
 // -----------------------------------------------------------------------------
 // 2. Constants & Styles
 // -----------------------------------------------------------------------------
-const BASE_LETTER_VALUES = {
-	'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10,
-	'כ': 11, 'ל': 12, 'מ': 13, 'נ': 14, 'ס': 15, 'ע': 16, 'פ': 17, 'צ': 18, 'ק': 19,
-	'ר': 20, 'ש': 21, 'ת': 22,
-};
-const HEB_FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
-const HYPHEN_RE = /[־–—\-]/g;
-const HEB_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/g;
-// Hebrew cantillation + nikkud marks (intentionally excludes maqaf U+05BE)
-const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
-// Includes Hebrew maqaf (U+05BE): "־"
-const INPUT_PUNCT_TO_SPACE_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5\n ]+/g;
-const INPUT_HEBREW_JOINERS_RE = /([\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])["'׳״‘’“”]+(?=[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])/g;
-const INPUT_MULTI_SPACE_RE = / {2,}/g;
 const TEXT_SIZE_CLASSNAMES = Object.freeze({
     sm: 'text-base leading-6',
     md: 'text-lg leading-7',
@@ -86,54 +89,11 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
     { value: 'md', label: 'בינוני' },
     { value: 'lg', label: 'גדול' },
 ]);
-// Combined Color Config: Darkened backgrounds for better visibility in light mode
-const LAYER_COLORS = {
-	U: { 
-        light: 'hsl(210, 70%, 85%)', // Darker pastel blue
-        dark: 'hsl(210, 30%, 25%)', 
-        dot: 'hsl(210, 100%, 40%)', 
-        strokeLight: '#0284c7',      
-        strokeDark: '#38bdf8'        
-    }, 
-	T: { 
-        light: 'hsl(140, 60%, 85%)', // Darker pastel green
-        dark: 'hsl(140, 30%, 22%)', 
-        dot: 'hsl(140, 100%, 30%)', 
-        strokeLight: '#059669',      
-        strokeDark: '#34d399'
-    }, 
-	H: { 
-        light: 'hsl(280, 65%, 88%)', // Darker pastel purple
-        dark: 'hsl(280, 25%, 28%)', 
-        dot: 'hsl(280, 100%, 45%)', 
-        strokeLight: '#9333ea',      
-        strokeDark: '#c084fc'
-    }, 
-};
-
-const LAYER_PRIORITY = ['H','T','U'];
-const COLOR_PALETTE = {
-    red: { light: 'text-red-600', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-600', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-600', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-600', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-600', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-600', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-600', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
-};
-const PRIME_COLOR_HEX = {
-    yellow: '#EAB308',
-    red: '#EF4444',
-    emerald: '#10B981',
-    sky: '#0EA5E9',
-    pink: '#EC4899',
-    purple: '#A855F7',
-    orange: '#F97316',
-};
-const DEFAULT_DR_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
+const INPUT_PUNCT_TO_SPACE_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5\n ]+/g;
+const INPUT_HEBREW_JOINERS_RE = /([\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])["'׳״‘’“”]+(?=[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])/g;
+const INPUT_MULTI_SPACE_RE = / {2,}/g;
 const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
-const MAX_WORD_CACHE_SIZE = 50_000;
-const MAX_LETTER_DETAILS_CACHE_SIZE = 100_000;
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
 const MIN_INPUT_ROWS = 4;
 const MAX_INPUT_ROWS = 18;
@@ -165,317 +125,8 @@ const GlobalStyles = () => (
 );
 
 // -----------------------------------------------------------------------------
-// 3. Logic Helpers & Calculators
+// 3. Logic Helpers
 // -----------------------------------------------------------------------------
-const MAX_SIEVE_SIZE = 20_000_000;
-let sieveArr = new Uint8Array(256);
-sieveArr[0] = 0; sieveArr[1] = 0;
-for(let i=2; i<256; i++) sieveArr[i]=1;
-for(let p=2; p*p<256; p++) { if(sieveArr[p]) { for(let i=p*p; i<256; i+=p) sieveArr[i]=0; } }
-
-function growSieveTo(limit) {
-    if (limit < sieveArr.length) return;
-    if (limit > MAX_SIEVE_SIZE) return; 
-    const target = Math.min(Math.max(limit, (sieveArr.length - 1) * 2), MAX_SIEVE_SIZE);
-    const oldLen = sieveArr.length;
-    const next = new Uint8Array(target + 1);
-    next.set(sieveArr);
-    next.fill(1, Math.max(2, oldLen));
-    const sqrtTarget = Math.sqrt(target);
-    for (let p = 2; p <= sqrtTarget; p++) {
-        if (next[p] !== 0) {
-            let start = p * p;
-            if (start < oldLen) start = Math.ceil(oldLen / p) * p;
-            for (let i = start; i <= target; i += p) next[i] = 0;
-        }
-    }
-    sieveArr = next;
-}
-
-const isPrimeExpand = (num) => {
-	if (num < 2) return false;
-    if (num > MAX_SIEVE_SIZE) {
-        if (num % 2 === 0) return false;
-        const sqrt = Math.sqrt(num);
-        for(let i = 3; i <= sqrt; i+=2) if (num % i === 0) return false;
-        return true;
-    }
-	if (num >= sieveArr.length) growSieveTo(num);
-	return sieveArr[num] === 1;
-};
-
-const getDigitalRoot = (n) => n === 0 ? 0 : 1 + ((n - 1) % 9);
-
-// Performance Optimization: Reduced allocation overhead by using direct checks and reusable logic
-const layersMatching = (hovered, current) => {
-	if (!hovered || !current) return [];
-	const matches = [];
-    
-    // We check which layer of 'current' (the target word) matches ANY layer of 'hovered' (the active word)
-    const hU = hovered.units, hT = hovered.tens, hH = hovered.hundreds;
-    const cU = current.units, cT = current.tens, cH = current.hundreds;
-
-    if (cU === hU || cU === hT || cU === hH) matches.push('U');
-    if (cT === hU || cT === hT || cT === hH) matches.push('T');
-    if (cH === hU || cH === hT || cH === hH) matches.push('H');
-
-	return matches;
-}
-
-const strongestLayer = (matchLayers) => LAYER_PRIORITY.find(L => matchLayers.includes(L)) || null;
-
-const LAYERS_U = Object.freeze(['U']);
-const LAYERS_UT = Object.freeze(['U','T']);
-const LAYERS_UTH = Object.freeze(['U','T','H']);
-const availableLayers = (w) => {
-	if (w.tens === w.units) return LAYERS_U;
-	if (w.hundreds === w.tens) return LAYERS_UT;
-	return LAYERS_UTH;
-};
-
-const topConnectionLayer = (source, target) => {
-	if (!source || !target) return null;
-	const hits = layersMatching(source, target);
-	if (!hits.length) return null;
-    
-    const sU = source.units, sT = source.tens, sH = source.hundreds;
-    const tU = target.units, tT = target.tens, tH = target.hundreds;
-    
-    const sourceLayers = [];
-    if (sH === tU || sH === tT || sH === tH) sourceLayers.push('H');
-    if (sT === tU || sT === tT || sT === tH) sourceLayers.push('T');
-    if (sU === tU || sU === tT || sU === tH) sourceLayers.push('U');
-
-	return strongestLayer(sourceLayers);
-};
-
-const buildLetterTable = (mode) => {
-	const table = new Map();
-	const letters = Object.keys(BASE_LETTER_VALUES);
-	for (const ch of letters) {
-		const m = BASE_LETTER_VALUES[ch]; 
-		const n = m - 1; 
-		let u, t, h;
-		if (mode === 'aleph-zero') {
-			u = n;
-			t = n <= 9 ? n : 10 * (n - 9);
-			if (n <= 10) h = n;
-			else if (n <= 19) h = 10 * (n - 9);
-			else h = 100 * (n - 18);
-		} else { 
-			u = m;
-			if (m <= 10) { t = m; h = m; } 
-			else {
-				t = (m - 9) * 10;
-				h = m <= 19 ? t : (m - 18) * 100;
-			}
-		}
-		table.set(ch, { u, t, h });
-	}
-	for (const [f, baseCh] of Object.entries(HEB_FINALS)) {
-		const r = table.get(baseCh);
-		if (r) table.set(f, { ...r });
-	}
-	return table;
-};
-
-const letterDetailsCache = new Map();
-const getLetterDetails = (word, letterTable) => {
-	const modeKey = letterTable.get('א')?.u === 0 ? '0' : '1';
-	const key = modeKey + '|' + word;
-	const hit = letterDetailsCache.get(key);
-	if (hit) return hit;
-	const details = [];
-	for (const ch of word) {
-		const rec = letterTable.get(ch);
-		if (rec) details.push({ char: ch, value: rec.u });
-	}
-	letterDetailsCache.set(key, details);
-	if (letterDetailsCache.size > MAX_LETTER_DETAILS_CACHE_SIZE) {
-		const oldestKey = letterDetailsCache.keys().next().value;
-		if (oldestKey) letterDetailsCache.delete(oldestKey);
-	}
-	return details;
-};
-
-function cleanHebrewToken(raw) {
-  const s = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
-  const letters = s.match(HEB_LETTER_RE);
-  return letters ? letters.join('') : '';
-}
-
-function forceHebrewInput(raw) {
-    const withoutMarks = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
-    const hasHebrewLetters = /[א-תךםןףץ]/.test(withoutMarks);
-    const keyMap = hasHebrewLetters
-        ? EN_TO_HE_LETTER_MAP
-        : { ...EN_TO_HE_LETTER_MAP, ...EN_TO_HE_PUNCT_LETTER_MAP };
-
-    const mapped = Array.from(withoutMarks).map((ch) => {
-        const lower = ch.toLowerCase();
-        const mappedChar = keyMap[lower];
-        return mappedChar || ch;
-    }).join('');
-    return mapped
-        .replace(INPUT_HEBREW_JOINERS_RE, '$1')
-        .replace(INPUT_PUNCT_TO_SPACE_RE, ' ')
-        .replace(INPUT_MULTI_SPACE_RE, ' ');
-}
-
-const makeWordComputer = (letterTable) => {
-	const cache = new Map();
-    const touchCacheEntry = (key, value) => {
-        cache.delete(key);
-        cache.set(key, value);
-    };
-
-    const pruneCacheIfNeeded = () => {
-        if (cache.size <= MAX_WORD_CACHE_SIZE) return;
-        const oldestKey = cache.keys().next().value;
-        if (oldestKey) cache.delete(oldestKey);
-    };
-
-    const computer = (rawWord) => {
-        const it = cleanHebrewToken(rawWord);
-        if (!it) return null;
-
-        const cached = cache.get(it);
-        if (cached !== undefined) {
-            touchCacheEntry(it, cached);
-            return cached;
-        }
-        
-		let u = 0, t = 0, h = 0;
-		let builtWord = "";
-        let maxU = -Infinity;
-        
-		for (const ch of it) {
-			const rec = letterTable.get(ch);
-			if (rec) {
-				builtWord += ch;
-				u += rec.u; t += rec.t; h += rec.h;
-            if (rec.u > maxU) maxU = rec.u;
-			}
-		}
-        
-		if (builtWord.length === 0) {
-            touchCacheEntry(it, null);
-            pruneCacheIfNeeded();
-            return null;
-        }
-        
-        const dr = getDigitalRoot(u);
-        const maxLayer = (maxU > 19) ? 'H' : (maxU > 10) ? 'T' : 'U';
-		const res = {
-			word: builtWord, 
-			units: u, tens: t, hundreds: h, dr,
-			isPrimeU: isPrimeExpand(u),
-			isPrimeT: t !== u && isPrimeExpand(t),
-			isPrimeH: h !== t && isPrimeExpand(h),
-			maxLayer
-		};
-		touchCacheEntry(it, res);
-        pruneCacheIfNeeded();
-		return res;
-	};
-    computer.clear = () => cache.clear();
-    return computer;
-};
-
-const memoizedComputers = {
-	'aleph-zero': makeWordComputer(buildLetterTable('aleph-zero')),
-	'aleph-one': makeWordComputer(buildLetterTable('aleph-one')),
-};
-
-function computeCoreResults(text, mode) {
-    letterDetailsCache.clear();
-	const lines = text.split('\n').filter(l => l.trim().length);
-	const computeWord = memoizedComputers[mode];
-	const allWordsMap = new Map();
-	const primeSummary = [];
-	const calculatedLines = [];
-	const wordCounts = new Map();
-	const drDistribution = new Uint32Array(10);
-	
-	let grandU = 0, grandT = 0, grandH = 0;
-	let totalWordCount = 0;
-
-	for (let li = 0; li < lines.length; li++) {
-		const lineWithSpacesForHyphens = lines[li].replace(HYPHEN_RE, ' ');
-		const words = lineWithSpacesForHyphens.split(/\s+/).filter(Boolean);
-		let lineU = 0, lineT = 0, lineH = 0;
-		const calcWords = [];
-		let lineMaxLayer = 'U';
-
-		for (const raw of words) {
-			const wd = computeWord(raw);
-			if (wd) {
-				totalWordCount++;
-				calcWords.push(wd);
-				lineU += wd.units; lineT += wd.tens; lineH += wd.hundreds;
-				if (wd.maxLayer === 'H') lineMaxLayer = 'H';
-				else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
-
-				if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
-				drDistribution[wd.dr]++;
-				wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
-			}
-		}
-		grandU += lineU; grandT += lineT; grandH += lineH;
-		growSieveTo(Math.max(lineU, lineT, lineH));
-		const isPrimeLineU = isPrimeExpand(lineU);
-		const isPrimeLineT = lineT !== lineU && isPrimeExpand(lineT);
-		const isPrimeLineH = lineH !== lineT && isPrimeExpand(lineH);
-		const linePrimes = {};
-		if (isPrimeLineU) { if (!linePrimes[lineU]) linePrimes[lineU] = []; linePrimes[lineU].push('אחדות'); }
-		if (isPrimeLineT) { if (!linePrimes[lineT]) linePrimes[lineT] = []; linePrimes[lineT].push('עשרות'); }
-		if (isPrimeLineH) { if (!linePrimes[lineH]) linePrimes[lineH] = []; linePrimes[lineH].push('מאות'); }
-		for (const [value, layers] of Object.entries(linePrimes)) {
-				primeSummary.push({ line: li + 1, value: parseInt(value), layers });
-		}
-		calculatedLines.push({
-			lineText: lines[li],
-			words: calcWords,
-			totals: { units: lineU, tens: lineT, hundreds: lineH },
-			totalsDR: getDigitalRoot(lineU),
-			isPrimeTotals: { U: isPrimeLineU, T: isPrimeLineT, H: isPrimeLineH },
-			lineMaxLayer
-		});
-	}
-	growSieveTo(Math.max(grandU, grandT, grandH));
-	const grandTotals = {
-		units: grandU, tens: grandT, hundreds: grandH,
-		dr: getDigitalRoot(grandU),
-		isPrime: { U: isPrimeExpand(grandU), T: isPrimeExpand(grandT), H: isPrimeExpand(grandH) },
-	};
-	return {
-		lines: calculatedLines, grandTotals, primeSummary,
-		allWords: Array.from(allWordsMap.values()),
-        wordDataMap: allWordsMap,
-		drDistribution, totalWordCount, wordCounts
-	};
-}
-
-const isValueVisible = (layer, isPrime, filters) => {
-    if (!filters[layer]) return false;
-    if (filters.Prime && !isPrime) return false;
-    return true;
-};
-
-const getWordValues = ({ hundreds, tens, units, isPrimeH, isPrimeT, isPrimeU }) => {
-    const out = [];
-    if (hundreds !== tens) out.push({ value: hundreds, isPrime: isPrimeH, layer: 'H' });
-    if (tens !== units)       out.push({ value: tens,      isPrime: isPrimeT, layer: 'T' });
-    out.push({ value: units, isPrime: isPrimeU, layer: 'U' });
-    return out;
-};
-
-const isWordVisible = (word, filters) => {
-    if (isValueVisible('U', word.isPrimeU, filters)) return true;
-    if (word.tens !== word.units && isValueVisible('T', word.isPrimeT, filters)) return true;
-    if (word.hundreds !== word.tens && isValueVisible('H', word.isPrimeH, filters)) return true;
-    return false;
-};
 
 // -----------------------------------------------------------------------------
 // 4. Initial State & Reducer
@@ -2488,7 +2139,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending 
+        hasExplicitThemeChoice, isPending, engineStats
     } = state;
 
     const clusterRefs = useRef({});
@@ -3024,6 +2675,13 @@ const App = () => {
                         />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
+                            {engineStats && (
+                                <span className="text-xs text-gray-400 dark:text-gray-500 noselect">
+                                    מנוע: {engineStats.workerAvailable ? 'Worker' : 'Main'} ·
+                                    זמן אחרון: {engineStats.lastDurationMs}ms ·
+                                    fallback: {engineStats.fallbackCount}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -3370,76 +3028,15 @@ const App = () => {
 // -----------------------------------------------------------------------------
 function AppProvider({ children }) {
     const [state, dispatch] = useReducer(appReducer, initialState);
-    const [isPending, startTransition] = useTransition();
     const deferredText = useDeferredValue(state.text);
-    const versionRef = useRef(0);
-    const workerRef = useRef(null);
-
-    useEffect(() => {
-        try {
-            workerRef.current = new Worker(new URL('./workers/coreResults.worker.js', import.meta.url), { type: 'module' });
-        } catch {
-            workerRef.current = null;
-        }
-
-        return () => {
-            if (workerRef.current) {
-                workerRef.current.terminate();
-                workerRef.current = null;
-            }
-        };
+    const commitCoreResults = useCallback((results) => {
+        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
     }, []);
-
-    useEffect(() => {
-        if (!deferredText) { dispatch({ type: 'SET_CORE_RESULTS', payload: null }); return; }
-
-        versionRef.current += 1;
-        const currentVersion = versionRef.current;
-        const worker = workerRef.current;
-        const delay = Math.min(800, Math.max(120, deferredText.length * 0.4));
-        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let workerListener = null;
-        let idleId = null;
-
-        const timerId = setTimeout(() => {
-            if (worker) {
-                workerListener = (event) => {
-                    const { requestId, results, error } = event.data || {};
-                    if (requestId !== currentVersion) return;
-                    worker.removeEventListener('message', workerListener);
-                    workerListener = null;
-                    if (error) return;
-                    startTransition(() => {
-                        if (versionRef.current === currentVersion) {
-                            dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-                        }
-                    });
-                };
-
-                worker.addEventListener('message', workerListener);
-                worker.postMessage({ requestId: currentVersion, text: deferredText, mode: state.mode });
-                return;
-            }
-
-            idleId = requestIdle(() => {
-                startTransition(() => {
-                    const results = computeCoreResults(deferredText, state.mode);
-                    if (versionRef.current === currentVersion) {
-                        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-                    }
-                });
-            });
-        }, delay);
-
-        return () => {
-            clearTimeout(timerId);
-            if (idleId) cancelIdle(idleId);
-            if (worker && workerListener) {
-                worker.removeEventListener('message', workerListener);
-            }
-        };
-    }, [deferredText, state.mode]);
+    const { isPending, engineStats } = useCoreResultsEngine({
+        deferredText,
+        mode: state.mode,
+        onResults: commitCoreResults,
+    });
 
     const stats = useMemo(() => {
         if (!state.coreResults) return null;
@@ -3503,13 +3100,14 @@ function AppProvider({ children }) {
          return visibleConnections;
     }, [state.coreResults, state.filters]);
 
-    const contextValue = useMemo(() => ({ 
-        ...state, 
-        stats, 
-        valueToWordsMap, 
+    const contextValue = useMemo(() => ({
+        ...state,
+        stats,
+        valueToWordsMap,
         connectionValues,
-        isPending
-    }), [state, stats, valueToWordsMap, connectionValues, isPending]);
+        isPending,
+        engineStats,
+    }), [state, stats, valueToWordsMap, connectionValues, isPending, engineStats]);
 
     return (
         <AppContext.Provider value={contextValue}>
