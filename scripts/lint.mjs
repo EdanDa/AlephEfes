@@ -1,10 +1,27 @@
 import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
-const files = execSync("rg --files src tests scripts -g '*.js' -g '*.jsx' -g '*.mjs'", { encoding: 'utf8', shell: '/bin/bash' })
-  .split('\n')
-  .map((f) => f.trim())
-  .filter(Boolean);
+const ROOTS = ['src', 'tests', 'scripts'];
+const ALLOWED_EXT = new Set(['.js', '.jsx', '.mjs']);
+
+function collectFiles(dir, out) {
+  const entries = readdirSync(dir);
+  for (const entry of entries) {
+    const full = join(dir, entry);
+    const st = statSync(full);
+    if (st.isDirectory()) {
+      collectFiles(full, out);
+      continue;
+    }
+    const dot = entry.lastIndexOf('.');
+    const ext = dot === -1 ? '' : entry.slice(dot);
+    if (ALLOWED_EXT.has(ext)) out.push(full);
+  }
+}
+
+const files = [];
+for (const root of ROOTS) collectFiles(root, files);
 
 const violations = [];
 
