@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
-import EngineStatusBadge from './components/EngineStatusBadge';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
@@ -303,39 +302,68 @@ const Legend = React.memo(() => {
     };
 
     const primeColorClasses = COLOR_PALETTE[primeColor];
-    const getFilterStyle = (key, baseClass = "") => {
+    const getFilterStyle = (key, activeClass, inactiveClass, baseClass = "") => {
         const isActive = filters[key];
-        const activeClass = "bg-blue-600 dark:bg-blue-800 border-blue-600 dark:border-blue-400 shadow-inner text-white";
-        const inactiveClass = "opacity-60 hover:opacity-100";
-        return `cursor-pointer transition-all duration-200 border-2 border-transparent rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
+        return `cursor-pointer transition-all duration-200 rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
     };
 
     return (
         <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <div className="flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
-                 <button onClick={() => toggleFilter('Prime')} className={getFilterStyle('Prime', 'flex items-center gap-2')}>
-                    <span className={`text-lg font-bold ${filters['Prime'] ? 'text-white' : `${primeColorClasses.light} ${primeColorClasses.dark}`}`}>♢</span>
-                    <span>ראשוני</span>
+                 <button
+                    onClick={() => toggleFilter('Prime')}
+                    className={getFilterStyle(
+                        'Prime',
+                        'bg-violet-500/30 dark:bg-violet-400/25 text-violet-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'flex items-center gap-2'
+                    )}
+                 >
+                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['Prime'] ? 'bg-violet-500/25' : 'bg-slate-700/70'} ${primeColorClasses.light} ${primeColorClasses.dark} text-sm font-bold`}>♢</span>
+                    <span className={filters['Prime'] ? `font-semibold ${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
-                 {/* Icons now always colored, opacity handles inactive state */}
-                 <button onClick={() => toggleFilter('U')} className={getFilterStyle('U', 'flex items-center gap-2')}>
-                    <div className={filters['U'] ? "text-white" : "text-sky-600 dark:text-sky-400"}>
+                 <button
+                    onClick={() => toggleFilter('U')}
+                    className={getFilterStyle(
+                        'U',
+                        'bg-sky-500/25 dark:bg-sky-500/25 text-sky-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'flex items-center gap-2'
+                    )}
+                 >
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-700/70 text-sky-400 dark:text-sky-500'}`}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
-                    <span className={filters['U'] ? "text-white" : "text-sky-700 dark:text-sky-300"}>אחדות</span>
+                    <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>אחדות</span>
                  </button>
-                 <button onClick={() => toggleFilter('T')} className={getFilterStyle('T', 'flex items-center gap-2')}>
-                    <div className={filters['T'] ? "text-white" : "text-emerald-600 dark:text-emerald-400"}>
+                 <button
+                    onClick={() => toggleFilter('T')}
+                    className={getFilterStyle(
+                        'T',
+                        'bg-emerald-500/25 dark:bg-emerald-500/25 text-emerald-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'flex items-center gap-2'
+                    )}
+                 >
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['T'] ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-700/70 text-emerald-400 dark:text-emerald-500'}`}>
                         <div className="w-3 h-3 border-2 border-current"></div>
                     </div>
-                    <span className={filters['T'] ? "text-white" : "text-emerald-700 dark:text-emerald-300"}>עשרות</span>
+                    <span className={filters['T'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>עשרות</span>
                  </button>
-                 <button onClick={() => toggleFilter('H')} className={getFilterStyle('H', 'flex items-center gap-2')}>
-                    <div className={filters['H'] ? "text-white" : "text-purple-600 dark:text-purple-400"}>
+                 <button
+                    onClick={() => toggleFilter('H')}
+                    className={getFilterStyle(
+                        'H',
+                        'bg-purple-500/25 dark:bg-purple-500/25 text-purple-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'flex items-center gap-2'
+                    )}
+                 >
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['H'] ? 'bg-purple-500/20 text-purple-200' : 'bg-slate-700/70 text-purple-400 dark:text-purple-500'}`}>
                         <div className="w-3 h-3 rounded-full border-2 border-current"></div>
                     </div>
-                    <span className={filters['H'] ? "text-white" : "text-purple-700 dark:text-purple-300"}>מאות</span>
+                    <span className={filters['H'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>מאות</span>
                  </button>
             </div>
             {isColorPickerOpen && (
@@ -1427,11 +1455,6 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             <h2 className="text-2xl font-bold mb-4 text-center">מפת קשרים (רשת)</h2>
             <div ref={containerRef} className="relative w-full h-[600px] cursor-move overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700">
                 <canvas ref={canvasRef} className="w-full h-full block" />
-                <div className="absolute top-2 right-2 text-xs text-slate-700 dark:text-gray-200 bg-white/90 dark:bg-black/50 p-2 rounded pointer-events-none select-none border border-slate-200 dark:border-gray-700">
-                    <div>גלגלת: זום</div>
-                    <div>גרירה ברקע: הזזה</div>
-                    <div>קליק: בחירה</div>
-                </div>
                  {hoverInfo && (
                     <div 
                         className="absolute pointer-events-none p-2 rounded bg-black/80 text-white text-xs z-10 whitespace-nowrap transform -translate-x-1/2 -translate-y-full"
@@ -1523,6 +1546,18 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 
     const preparedRows = useMemo(() => valueInsights.map((item, idx) => ({ ...item, rank: idx + 1 })), [valueInsights]);
+    const graphSummary = useMemo(() => {
+        if (!valueInsights.length) {
+            return { valueCount: 0, primeValues: 0, totalBridgeScore: 0, highlights: [] };
+        }
+
+        return {
+            valueCount: valueInsights.length,
+            primeValues: valueInsights.filter((item) => item.isPrime).length,
+            totalBridgeScore: valueInsights.reduce((sum, item) => sum + item.bridgeScore, 0),
+            highlights: valueInsights.slice(0, 5),
+        };
+    }, [valueInsights]);
 
     const prepareInsightText = useCallback(() => {
         if (!preparedRows.length) return 'אין נתונים להצגה.';
@@ -1721,8 +1756,16 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     return (
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <div className="flex items-center justify-between gap-4 mb-4">
-                <h2 className="text-2xl font-bold text-center flex-1">מפת ערכים מרוכזת</h2>
+                <h2 className="text-2xl font-bold text-center flex-1">גרף ערכים בטקסט</h2>
                 <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} id='graph-insights' label='העתק' />
+            </div>
+            <p className={`text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
+                הגרף מציג אילו ערכים בולטים בטקסט לפי שכיחות, ייחודיות ועוצמת קשר בין שכבות.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-sm">
+                <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים מוצגים: <b>{graphSummary.valueCount}</b></div>
+                <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים ראשוניים: <b>{graphSummary.primeValues}</b></div>
+                <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ציון גישור מצטבר: <b>{graphSummary.totalBridgeScore}</b></div>
             </div>
             <div ref={containerRef} className="relative w-full h-[430px] cursor-crosshair">
                 <canvas
@@ -1755,6 +1798,20 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             <div className="mt-3 text-sm text-center text-gray-500 dark:text-gray-300">
                 ציר X: סך מופעים בטקסט | ציר Y: כמות מילים ייחודיות לערך | גודל נקודה: עוצמת גישור בין שכבות (H/T/U)
             </div>
+            {graphSummary.highlights.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                    {graphSummary.highlights.map((item) => (
+                        <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => setSelectedValue((prev) => (prev === item.value ? null : item.value))}
+                            className={`px-3 py-1 rounded-full border text-sm transition-colors ${selectedValue === item.value ? 'bg-blue-600 text-white border-blue-500' : isDarkMode ? 'bg-gray-900/40 text-gray-100 border-gray-700 hover:bg-gray-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}`}
+                        >
+                            {item.value}{item.isPrime ? '♢' : ''} · {item.topWords[0]?.word || '—'}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {selectedInsight && (
                 <div className={`mt-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/80 border-slate-300'}`}>
@@ -2109,7 +2166,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending, engineStats
+        hasExplicitThemeChoice, isPending
     } = state;
 
     const clusterRefs = useRef({});
@@ -2645,7 +2702,6 @@ const App = () => {
                         />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
-                            <EngineStatusBadge engineStats={engineStats} />
                         </div>
                     </div>
 
@@ -2726,12 +2782,11 @@ const App = () => {
                                     {coreResults.primeSummary.length > 0 && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                             <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
-                                                <span className="text-center flex-grow">סיכום ראשוניים מסכומי השורות</span>
+                                                <span className="text-center flex-grow">{stats.primeLineTotals} שורות ראשוניות</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
-                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>בסך הכל נמצאו <span className="font-bold text-emerald-600">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.</p>
                                                     <div className="overflow-x-auto max-w-lg mx-auto">
                                                         <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-emerald-100'}>
                                                             <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
