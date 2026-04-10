@@ -4,8 +4,10 @@ import EngineStatusBadge from './components/EngineStatusBadge';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
+    BASE_LETTER_VALUES,
     COLOR_PALETTE,
     DEFAULT_DR_ORDER,
+    HEB_FINALS,
     LAYER_COLORS,
     PRIME_COLOR_HEX,
     availableLayers,
