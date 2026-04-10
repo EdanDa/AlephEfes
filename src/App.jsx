@@ -304,7 +304,7 @@ const Legend = React.memo(() => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
     const getFilterStyle = (key, activeClass, inactiveClass, baseClass = "") => {
         const isActive = filters[key];
-        return `cursor-pointer transition-all duration-200 border rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
+        return `cursor-pointer transition-all duration-200 rounded-full px-2 py-0.5 select-none ${isActive ? activeClass : inactiveClass} ${baseClass}`;
     };
 
     return (
@@ -314,12 +314,12 @@ const Legend = React.memo(() => {
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
                         'Prime',
-                        'bg-violet-500/30 dark:bg-violet-400/25 border-violet-300 dark:border-violet-300/60 text-violet-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 border-slate-300/50 dark:border-slate-700 text-slate-500 dark:text-slate-400',
+                        'bg-violet-500/30 dark:bg-violet-400/25 text-violet-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['Prime'] ? 'bg-violet-400 text-white' : 'bg-slate-700/70 text-slate-400'} text-sm font-bold`}>♢</span>
+                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['Prime'] ? 'bg-violet-500/25' : 'bg-slate-700/70'} ${primeColorClasses.light} ${primeColorClasses.dark} text-sm font-bold`}>♢</span>
                     <span className={filters['Prime'] ? `font-semibold ${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
@@ -327,12 +327,12 @@ const Legend = React.memo(() => {
                     onClick={() => toggleFilter('U')}
                     className={getFilterStyle(
                         'U',
-                        'bg-sky-500/25 dark:bg-sky-500/25 border-sky-300 dark:border-sky-300/60 text-sky-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 border-slate-300/50 dark:border-slate-700 text-slate-500 dark:text-slate-400',
+                        'bg-sky-500/25 dark:bg-sky-500/25 text-sky-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'bg-sky-500 text-white' : 'bg-slate-700/70 text-sky-400 dark:text-sky-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-700/70 text-sky-400 dark:text-sky-500'}`}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
                     <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>אחדות</span>
@@ -341,12 +341,12 @@ const Legend = React.memo(() => {
                     onClick={() => toggleFilter('T')}
                     className={getFilterStyle(
                         'T',
-                        'bg-emerald-500/25 dark:bg-emerald-500/25 border-emerald-300 dark:border-emerald-300/60 text-emerald-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 border-slate-300/50 dark:border-slate-700 text-slate-500 dark:text-slate-400',
+                        'bg-emerald-500/25 dark:bg-emerald-500/25 text-emerald-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['T'] ? 'bg-emerald-500 text-white' : 'bg-slate-700/70 text-emerald-400 dark:text-emerald-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['T'] ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-700/70 text-emerald-400 dark:text-emerald-500'}`}>
                         <div className="w-3 h-3 border-2 border-current"></div>
                     </div>
                     <span className={filters['T'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>עשרות</span>
@@ -355,12 +355,12 @@ const Legend = React.memo(() => {
                     onClick={() => toggleFilter('H')}
                     className={getFilterStyle(
                         'H',
-                        'bg-purple-500/25 dark:bg-purple-500/25 border-purple-300 dark:border-purple-300/60 text-purple-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 border-slate-300/50 dark:border-slate-700 text-slate-500 dark:text-slate-400',
+                        'bg-purple-500/25 dark:bg-purple-500/25 text-purple-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['H'] ? 'bg-purple-500 text-white' : 'bg-slate-700/70 text-purple-400 dark:text-purple-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['H'] ? 'bg-purple-500/20 text-purple-200' : 'bg-slate-700/70 text-purple-400 dark:text-purple-500'}`}>
                         <div className="w-3 h-3 rounded-full border-2 border-current"></div>
                     </div>
                     <span className={filters['H'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>מאות</span>
