@@ -95,3 +95,11 @@ Then restart dev server:
 ```powershell
 npm run dev -- --host
 ```
+
+## If UI looks unstyled (black/white fallback) after partial migration
+
+Run:
+```powershell
+node .\scripts\restore-runtime-tailwind.mjs
+```
+This restores runtime Tailwind CDN setup and removes partial build-time migration files.
