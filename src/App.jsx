@@ -2724,12 +2724,11 @@ const App = () => {
                                     {coreResults.primeSummary.length > 0 && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                             <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
-                                                <span className="text-center flex-grow">סיכום ראשוניים מסכומי השורות</span>
+                                                <span className="text-center flex-grow">{stats.primeLineTotals} שורות ראשוניות</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
-                                                    <p className={`text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>בסך הכל נמצאו <span className="font-bold text-emerald-600">{stats.primeLineTotals}</span> שורות עם ערכים ראשוניים.</p>
                                                     <div className="overflow-x-auto max-w-lg mx-auto">
                                                         <table className="min-w-full"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-emerald-100'}>
                                                             <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
