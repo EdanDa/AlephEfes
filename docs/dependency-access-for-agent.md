@@ -4,7 +4,7 @@ This file is intentionally short and stable. It does **not** track interaction-b
 
 ## Purpose
 
-Use this when package installs fail (e.g. `npm install -D tailwindcss postcss autoprefixer`) and a task depends on external dependencies.
+Use this when package installs fail (e.g. `npm install -D tailwindcss @tailwindcss/postcss postcss autoprefixer`) and a task depends on external dependencies.
 
 ## 1) Verify you're in the repo root
 

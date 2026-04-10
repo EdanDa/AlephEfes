@@ -6,7 +6,7 @@ function run(cmd) {
 }
 
 console.log('[1/7] Installing Tailwind build dependencies...');
-run('npm install -D tailwindcss postcss autoprefixer');
+run('npm install -D tailwindcss @tailwindcss/postcss postcss autoprefixer');
 
 console.log('[2/7] Writing tailwind.config.js...');
 writeFileSync(
@@ -18,7 +18,7 @@ writeFileSync(
 console.log('[3/7] Writing postcss.config.js...');
 writeFileSync(
   'postcss.config.js',
-  `export default {\n  plugins: {\n    tailwindcss: {},\n    autoprefixer: {},\n  },\n};\n`,
+  `export default {\n  plugins: {\n    '@tailwindcss/postcss': {},\n    autoprefixer: {},\n  },\n};\n`,
   'utf8'
 );
 

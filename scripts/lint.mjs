@@ -27,8 +27,9 @@ const violations = [];
 
 for (const file of files) {
   const content = readFileSync(file, 'utf8');
+  const normalizedFile = file.replaceAll('\\', '/');
 
-  if (content.includes('console.log(') && !file.startsWith('scripts/')) {
+  if (content.includes('console.log(') && !normalizedFile.startsWith('scripts/')) {
     violations.push(`${file}: console.log is not allowed outside scripts/`);
   }
 }

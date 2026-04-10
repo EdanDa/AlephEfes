@@ -20,11 +20,12 @@ Because of this, adding official Tailwind/PostCSS packages (or standalone CLI) w
 
 1. Install dependencies:
    - `tailwindcss`
+   - `@tailwindcss/postcss`
    - `postcss`
    - `autoprefixer`
 2. Create config files:
    - `tailwind.config.js` with `darkMode: 'class'` and `content` globs for `index.html`, `src/**/*.{js,jsx}`.
-   - `postcss.config.js` using Tailwind + Autoprefixer.
+   - `postcss.config.js` using `@tailwindcss/postcss` + Autoprefixer.
 3. Add source CSS file, e.g. `src/styles/tailwind.css`:
    - `@tailwind base;`
    - `@tailwind components;`
