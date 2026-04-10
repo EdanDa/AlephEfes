@@ -11,6 +11,41 @@ That means installs are blocked by network/security policy, not by project code.
 
 ## Fastest ways to unblock
 
+### If you're not in an enterprise environment (most likely your case)
+
+Usually this is caused by local npm/proxy config, VPN, or ISP/network filtering. Try these exact steps:
+
+1. Check whether npm is pointed to the public registry:
+```bash
+npm config get registry
+```
+It should print:
+```text
+https://registry.npmjs.org/
+```
+
+2. If not, set it explicitly:
+```bash
+npm config set registry https://registry.npmjs.org/
+```
+
+3. Remove accidental proxy settings:
+```bash
+npm config delete proxy
+npm config delete https-proxy
+npm config delete http-proxy
+```
+
+4. If you use a VPN/ad-block/DNS filter, temporarily disable it and retry.
+
+5. Clear npm cache and retry:
+```bash
+npm cache clean --force
+npm install -D tailwindcss postcss autoprefixer
+```
+
+6. If it still fails, test from a different network (phone hotspot is a quick test).
+
 ### Option A (best): allow npm registry access
 Allow this environment to reach:
 - `https://registry.npmjs.org`
