@@ -128,6 +128,12 @@ nslookup registry.npmjs.org
 
 If all succeed, I can finish the build-time migration in one pass.
 
+If these checks succeed on your machine but not in the agent runtime, run:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\complete-tailwind-migration.ps1
+```
+This applies the full migration steps locally (install deps, write Tailwind/PostCSS configs, add CSS entry import, remove CDN script refs, and run `npm run check`).
+
 ## Once access is enabled, what I will do next
 
 1. Install Tailwind/PostCSS deps.
