@@ -25,6 +25,7 @@ Remaining follow-up:
 
 - `index.html` still uses `https://cdn.tailwindcss.com`.
 - Build-time migration is blocked in this environment because package installation from npm registry returned HTTP 403 policy errors.
+- Prep work completed: moved inline runtime Tailwind/theme bootstrap scripts into standalone files under `public/` to simplify eventual replacement with build-time assets.
 
 ## 4) Add lint/format/type-oriented quality gates (local + CI)
 
@@ -40,4 +41,3 @@ Remaining follow-up:
 - Hook now tracks worker availability, fallback count, worker success/error counts, and last duration.
 - UI displays engine runtime stats.
 - Added performance regression tests and a perf check script.
-
