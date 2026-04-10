@@ -68,3 +68,30 @@ npm run check
 ```
 
 Then commit only meaningful migration files (no transient troubleshooting output).
+
+## Quick fix for Tailwind v4 PostCSS error
+
+If Vite says Tailwind plugin moved to `@tailwindcss/postcss`, run:
+
+```powershell
+node .\scripts\fix-tailwind-postcss-v4.mjs
+```
+
+If that helper file is missing on your current branch, run these commands directly:
+```powershell
+npm install -D @tailwindcss/postcss
+@'
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+};
+'@ | Set-Content -Encoding UTF8 postcss.config.js
+```
+
+Then restart dev server:
+
+```powershell
+npm run dev -- --host
+```
