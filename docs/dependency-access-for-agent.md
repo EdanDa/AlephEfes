@@ -21,6 +21,15 @@ cd C:\Users\edeyo\AlephEfes
 dir
 ```
 You should see folders like `scripts`, `src`, `tests`, and files like `package.json`.
+If `scripts` is missing entirely, your local checkout is behind this branch. Run:
+```powershell
+git fetch --all
+git pull
+```
+Then check again:
+```powershell
+dir
+```
 
 1. Check whether npm is pointed to the public registry:
 ```bash
