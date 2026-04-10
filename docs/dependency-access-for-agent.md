@@ -46,6 +46,12 @@ npm install -D tailwindcss postcss autoprefixer
 
 6. If it still fails, test from a different network (phone hotspot is a quick test).
 
+7. If you still see npm warnings about `http-proxy`/`https-proxy`, your environment may be injecting proxy variables. Check with:
+```bash
+npm config list -l | grep -E "proxy|registry"
+```
+If proxies are injected but blocked by policy, package access can still fail with 403/ENETUNREACH until that proxy policy is fixed.
+
 ### Option A (best): allow npm registry access
 Allow this environment to reach:
 - `https://registry.npmjs.org`
