@@ -52,6 +52,26 @@ npm config list -l | grep -E "proxy|registry"
 ```
 If proxies are injected but blocked by policy, package access can still fail with 403/ENETUNREACH until that proxy policy is fixed.
 
+On Windows where `grep` is unavailable, use one of these:
+
+**PowerShell:**
+```powershell
+npm config list -l | Select-String -Pattern "proxy|registry"
+```
+
+**cmd.exe (`findstr`):**
+```bat
+npm config list -l | findstr /R /C:"proxy" /C:"registry"
+```
+
+If your output looks like this (proxy null + registry npmjs), npm config is likely fine:
+```text
+https-proxy = null
+proxy = null
+registry = "https://registry.npmjs.org/"
+```
+In that case, the remaining issue is usually network-level blocking (ISP/router/corporate DNS/filtering/AV/VPN), not npm config.
+
 ### Option A (best): allow npm registry access
 Allow this environment to reach:
 - `https://registry.npmjs.org`
@@ -92,7 +112,27 @@ npm view tailwindcss version
 npm install -D tailwindcss postcss autoprefixer
 ```
 
+If config is clean but install still fails, run these extra checks:
+```bash
+npm ping
+npm view tailwindcss version
+nslookup registry.npmjs.org
+```
+
+On Windows CMD:
+```bat
+npm ping
+npm view tailwindcss version
+nslookup registry.npmjs.org
+```
+
 If all succeed, I can finish the build-time migration in one pass.
+
+If these checks succeed on your machine but not in the agent runtime, run:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\complete-tailwind-migration.ps1
+```
+This applies the full migration steps locally (install deps, write Tailwind/PostCSS configs, add CSS entry import, remove CDN script refs, and run `npm run check`).
 
 ## Once access is enabled, what I will do next
 
