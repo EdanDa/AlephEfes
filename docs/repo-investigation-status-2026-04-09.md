@@ -26,6 +26,7 @@ Remaining follow-up:
 - `index.html` still uses `https://cdn.tailwindcss.com`.
 - Build-time migration is blocked in this environment because package installation from npm registry returned HTTP 403 policy errors.
 - Prep work completed: moved inline runtime Tailwind/theme bootstrap scripts into standalone files under `public/` to simplify eventual replacement with build-time assets.
+- Added `docs/tailwind-build-migration-plan.md` with blocker details and exact completion steps once dependency access is available.
 
 ## 4) Add lint/format/type-oriented quality gates (local + CI)
 
