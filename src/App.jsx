@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
-import EngineStatusBadge from './components/EngineStatusBadge';
 import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
@@ -2109,7 +2108,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending, engineStats
+        hasExplicitThemeChoice, isPending
     } = state;
 
     const clusterRefs = useRef({});
@@ -2645,7 +2644,6 @@ const App = () => {
                         />
                         <div className="mt-4 flex justify-center items-center gap-4 h-5">
                             {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
-                            <EngineStatusBadge engineStats={engineStats} />
                         </div>
                     </div>
 
