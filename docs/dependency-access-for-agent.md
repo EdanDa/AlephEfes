@@ -15,6 +15,13 @@ That means installs are blocked by network/security policy, not by project code.
 
 Usually this is caused by local npm/proxy config, VPN, or ISP/network filtering. Try these exact steps:
 
+0. Make sure you are in the repository root (the folder that actually contains `scripts/`):
+```powershell
+cd C:\Users\edeyo\AlephEfes
+dir
+```
+You should see folders like `scripts`, `src`, `tests`, and files like `package.json`.
+
 1. Check whether npm is pointed to the public registry:
 ```bash
 npm config get registry
@@ -138,6 +145,11 @@ This applies the full migration steps locally (install deps, write Tailwind/Post
 If you are **not** in the repo root, pass the full path instead:
 ```powershell
 powershell -ExecutionPolicy Bypass -File "C:\Users\edeyo\AlephEfes\scripts\complete-tailwind-migration.ps1"
+```
+
+Quick existence check:
+```powershell
+Test-Path "C:\Users\edeyo\AlephEfes\scripts\complete-tailwind-migration.ps1"
 ```
 
 Windows CMD helper (same behavior, less typing):
