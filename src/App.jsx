@@ -101,6 +101,7 @@ const ALEPH_ZERO_DR_ORDER = [0, ...DEFAULT_DR_ORDER];
 const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
 const MIN_INPUT_ROWS = 4;
 const MAX_INPUT_ROWS = 18;
+const SAFE_BASE_LETTER_VALUES = typeof BASE_LETTER_VALUES !== 'undefined' ? BASE_LETTER_VALUES : {};
 
 const GlobalStyles = () => (
     <style>{`
@@ -2586,7 +2587,7 @@ const App = () => {
                                 <table key={offset} className="text-center w-full max-w-xs"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                     <tr>{['אות', 'אחדות', 'עשרות', 'מאות'].map(header => <th key={header} className="p-2 font-semibold">{header}</th>)}</tr>
                                 </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                                    {Object.keys(BASE_LETTER_VALUES).slice(offset, offset + 11).map(letter => {
+                                    {Object.keys(SAFE_BASE_LETTER_VALUES).slice(offset, offset + 11).map(letter => {
                                         const rec = letterTable.get(letter);
                                         const finalForm = Object.keys(HEB_FINALS).find(key => HEB_FINALS[key] === letter);
                                         if (!rec) return null;
