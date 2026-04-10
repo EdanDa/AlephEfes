@@ -15,6 +15,23 @@ That means installs are blocked by network/security policy, not by project code.
 
 Usually this is caused by local npm/proxy config, VPN, or ISP/network filtering. Try these exact steps:
 
+0. Make sure you are in the repository root (the folder that actually contains `scripts/`):
+```powershell
+cd C:\Users\edeyo\AlephEfes
+dir
+```
+You should see folders like `scripts`, `src`, `tests`, and files like `package.json`.
+If `scripts` is missing entirely, your local checkout is behind this branch. Run:
+```powershell
+git fetch --all
+git pull
+```
+Then check again:
+```powershell
+dir
+```
+If `git pull` is blocked by local changes/untracked files, follow `docs/pull-troubleshooting.md`.
+
 1. Check whether npm is pointed to the public registry:
 ```bash
 npm config get registry
@@ -130,9 +147,31 @@ If all succeed, I can finish the build-time migration in one pass.
 
 If these checks succeed on your machine but not in the agent runtime, run:
 ```powershell
+node .\scripts\complete-tailwind-migration.mjs
+```
+or:
+```powershell
+cd C:\Users\edeyo\AlephEfes
 powershell -ExecutionPolicy Bypass -File .\scripts\complete-tailwind-migration.ps1
 ```
 This applies the full migration steps locally (install deps, write Tailwind/PostCSS configs, add CSS entry import, remove CDN script refs, and run `npm run check`).
+
+If you are **not** in the repo root, pass the full path instead:
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\edeyo\AlephEfes\scripts\complete-tailwind-migration.ps1"
+```
+
+Quick existence check:
+```powershell
+Test-Path "C:\Users\edeyo\AlephEfes\scripts\complete-tailwind-migration.ps1"
+```
+
+Windows CMD helper (same behavior, less typing):
+```bat
+C:\Users\edeyo\AlephEfes\scripts\complete-tailwind-migration.cmd
+```
+
+If you still have parser errors from an older PowerShell helper, use the Node entrypoint directly (`complete-tailwind-migration.mjs`) as shown above.
 
 ## Once access is enabled, what I will do next
 
