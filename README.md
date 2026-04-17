@@ -164,7 +164,8 @@ Certain values recur as **cultural attractors**—numbers that mattered across L
 - **ישרון → 354 (in H)**
 - **עת → 360 (in H)**
 - **ירושלם → 364 (in H)**
-- **מלכות / סכות / שבתותי → 365 (in H)**
+- **מלכות / סכות → 365 (in H)**
+- **שבתותי / תשמרו → 365 (in T)**
 
 These are not isolated hits: they form **clusters** that map cleanly onto the calendar seam:
 
