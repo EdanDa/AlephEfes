@@ -1,43 +1,112 @@
 # AlephEfes - reproducible code and data for numeric–semantic analysis of the Hebrew Language
 
-This repository contains a React-based calculator and research notes around the **א=0**  hypothesis.
+This repository contains a React-based calculator and research notes around the **א=0** hypothesis.
 The project treats the biblical consonantal text as a deliberately engineered system where Hebrew letters are mapped to values **0–21** and processed through a **three-layer valuation** (Units, Tens with Δ9 adjustment, Hundreds).
-The aim is to provide an **open playground** for testing the model, exploring its linguistic consequences, and reproducing all calculations.
+
+For newcomers arriving from digital humanities, computational linguistics, Hebrew study, or curiosity: you can treat this first as a **calculator and exploration tool**. You do not need to accept the theoretical model in order to use the app, inspect outputs, or test your own texts.
+
 > **Note**: The calculator interface is in **Hebrew**. Enter Hebrew consonantal text directly into the input field.
-> 
+>
 > Each word is analysed separately, and line totals are also reported separately.
-> 
+
 ---
 
 ![App screenshot](docs/demo.png)
 
 ---
 
+## What you can do with the calculator
+
+The calculator includes the following capabilities:
+
+- **Five analysis workspaces (tabs)**
+  - *Lines (פירוט)*: full line-by-line and word-by-word breakdowns, including per-letter arithmetic, grand totals, line totals, and digital roots.
+  - *Clusters (קבוצות)*: digital-root neighborhoods with interactive cards, semantic proximity cues, and pin/hover relation highlighting.
+  - *Hot Words (שכיחות)*: frequency analysis in two modes (*values* and *words*) with sortable tables and drill-down from value → matching words.
+  - *Graph (גרף)*: a quantitative value-insight chart showing which values dominate by total occurrences, unique-word coverage, and cross-layer bridge score.
+  - *Network (רשת)*: an interactive force-directed graph linking words to visible numeric values (U/T/H) with zoom, pan, drag, hover tooltips, and click selection.
+
+- **Dual Calculation Modes**
+  Switch between Aleph-Zero (א:0) and Aleph-One (א:1) mappings. Both modes apply the same 3-layer valuation but with different base indexing.
+
+- **Digital Root Clusters (ש״ד)**
+  Words are grouped by digital root (1–9), with interactive drill-down from the root distribution panel, search within cluster results, and cluster-level navigation.
+
+- **Prime Highlights**
+  Prime totals are detected per word, value, and line. You can filter to primes-only output and customize the prime highlight color in the legend.
+
+- **Layer-aware filtering**
+  Toggle visibility for **U / T / H** layers (and prime-only mode) globally. This affects tables, clusters, graph insights, network links, and exports.
+
+- **Multiple Views**
+  - *Lines*: see full breakdown with per-letter calculations, line totals, and prime markers.
+  - *Clusters*: explore semantic networks grouped by digital root.
+  - *Hot Words*: analyze frequency of values or words, with drill-down into specific value clusters.
+  - *Graph*: inspect distribution of values by occurrences, unique words, layer-bridging strength, and top associated words.
+  - *Network*: visually inspect word↔value connectivity as an explorable graph.
+
+- **Data Export**
+  One-click copy for:
+  - Full analysis (line by line)
+  - Summary of clusters or pinned words
+  - Unique word calculations
+  - Frequency tables
+  - Graph insight tables
+  - CSV export in each analysis workspace
+
+- **Dark Mode**
+  Auto-detects system preference, toggleable at runtime.
+
+- **Input and workflow ergonomics**
+  Hebrew-input sanitization for pasted/typed text, clear/reset controls, text-size controls, persistent last text via `localStorage`, and quick return-to-top UI controls.
+
+- **Interactive exploration controls**
+  Pin words, hover to preview relationship neighborhoods, open/close prime-line summaries, toggle detail scope (lines vs words), and keep a floating letter-value table available from the header.
+
+- **Performance**
+  Uses memoization, virtualized lists for long frequency tables, and a Web Worker-backed core computation engine (with fallback to main thread) for handling large texts efficiently.
+
+---
+
 ## Running the calculator
+
 Requires Node.js 18+ and npm.
 
-```bash
+### First-time setup
 
+```bash
 git clone https://github.com/EdanDa/AlephEfes.git
 cd AlephEfes
 npm install
 npm run dev -- --host
-
 ```
 
-The app runs on [http://localhost:5173](http://localhost:5173), styled with TailwindCSS (loaded via CDN).
-It stores the last analysed text in `localStorage` for convenience.
-
-After you git clone once, you keep that same folder and just pull updates into it:
+### Subsequent updates in the same folder
 
 ```bash
-
 cd AlephEfes
 git pull
 npm install
 npm run dev -- --host
-
 ```
+
+### Alternative start commands
+
+```bash
+git clone https://github.com/EdanDa/AlephEfes.git
+cd AlephEfes
+npm install
+# Option 1 (recommended):
+npm start
+# Option 2:
+npm run dev
+```
+
+By default the app runs on [http://localhost:4173](http://localhost:4173) with `npm start` (or Vite default port 5173 with `npm run dev`), styled with TailwindCSS (loaded via CDN).
+It stores the last analysed text in `localStorage` for convenience.
+
+If you run with `npm run dev -- --host`, the app is available at [http://localhost:5173](http://localhost:5173).
+
 ---
 
 ## Structure
@@ -63,43 +132,11 @@ npm run dev -- --host
 │   └── demo.png
 ├── package.json
 └── vite.config.js
-
 ```
 
 ---
 
-## Features
-The calculator includes the following capabilities:
-- **Dual Calculation Modes**
-  Switch between Aleph-Zero (א:0) and Aleph-One (א:1) mappings. Both modes apply the same 3-layer valuation but with different base indexing.
-
-- **Digital Root Clusters (ש״ד)**
-  Words are grouped by digital root (1–9), with interactive drill-down, search, and re-ordering of clusters.
-
-- **Prime Highlights**
-  Prime totals are detected per word and per line. You can customize the highlight color in the legend.
-
-- **Multiple Views**
-  - *Lines*: see full breakdown with per-letter calculations, line totals, and prime markers.
-  - *Clusters*: explore semantic networks grouped by digital root.
-  - *Hot Words*: analyze frequency of values or words, with drill-down into specific value clusters.
-
-- **Data Export**
-  One-click copy for:
-  - Full analysis (line by line)
-  - Summary of clusters or pinned words
-  - Unique word calculations
-  - Frequency tables
-
-- **Dark Mode**  
-  Auto-detects system preference, toggleable at runtime.
-
-- **Performance**
-  Uses memoization and a virtualized list for handling large texts efficiently.
-
----
-
-## Research backdrop
+## Research backdrop (theory and hypotheses)
 
 The current working model treats the Hebrew Bible (and its broader West-Semitic onomastic environment) as a **numerically structured lexicon**: not “mysticism,” but the fossil of historically rooted scribal choices. The framework rests on three intertwined pillars (with two key extensions).
 
@@ -107,9 +144,9 @@ The current working model treats the Hebrew Bible (and its broader West-Semitic 
 
 Hebrew letters are assigned values from **א=0** through **ת=21** (final forms collapse to their base letter). From this index arise three additive homomorphisms over words:
 
-* **U** (Units): the raw index sum.
-* **T** (Tens): **U plus a Δ9 shift** applied from כ onward (the “tens band” mechanism).
-* **H** (Hundreds): **T plus fixed hundred-snaps** for ש and ת (the “hundreds band” mechanism).
+- **U** (Units): the raw index sum.
+- **T** (Tens): **U plus a Δ9 shift** applied from כ onward (the “tens band” mechanism).
+- **H** (Hundreds): **T plus fixed hundred-snaps** for ש and ת (the “hundreds band” mechanism).
 
 Crucially, **U, T, and H are congruent mod-9** by construction, so digital-root class is a stable invariant across layers. Under the project’s axioms (linearity, threshold behavior, mod-9 invariance, minimality, and round-hundreds snapping), **T and H are not arbitrary choices**: they are effectively *forced* once the alphabet order and thresholds are fixed.
 
@@ -119,61 +156,44 @@ Crucially, **U, T, and H are congruent mod-9** by construction, so digital-root 
 
 Certain values recur as **cultural attractors**—numbers that mattered across Late Bronze / Iron Age scribal worlds (solar/lunar cycles, ritual calendars, ranked divine arithmetic, base-60 legacies). In the Hebrew corpus and adjacent name-imports, key terms repeatedly land on these anchors:
 
-* **יהוה → 22**
-* **לבנה → 29**
-* **חדש → 30**
-* **שמש → 52**
-* **ישראל → 59**
-* **ישרון → 354 (in H)**
-* **עת → 360 (in H)** 
-* **ירושלם → 364 (in H)**
-* **מלכות / סכות / שבתותי → 365 (in H)**
+- **יהוה → 22**
+- **לבנה → 29**
+- **חדש → 30**
+- **שמש → 52**
+- **ישראל → 59**
+- **ישרון → 354 (in H)**
+- **עת → 360 (in H)**
+- **ירושלם → 364 (in H)**
+- **מלכות / סכות / שבתותי → 365 (in H)**
 
 These are not isolated hits: they form **clusters** that map cleanly onto the calendar seam:
 
-* **52** ↔ weeks in a solar year (365 = 52×7 + 1).
-* **354** ↔ lunar year (12 lunar months).
-* **364** ↔ schematic/Enochic solar calendar (52×7).
-* **360/365** ↔ the base-60 circle-year vs. the 12×30+5 civil year structure (360 + 5 epagomenal days).
+- **52** ↔ weeks in a solar year (365 = 52×7 + 1).
+- **354** ↔ lunar year (12 lunar months).
+- **364** ↔ schematic/Enochic solar calendar (52×7).
+- **360/365** ↔ the base-60 circle-year vs. the 12×30+5 civil year structure (360 + 5 epagomenal days).
 
 **Solar deities:** the “52 bucket” is not just “שמש.” When we transliterate a set of **solar deities across cultures**, the following converge on **U=52** in א=0 (e.g., Šimegi → שימגי, Vishnu → וישנו, Sekhmet → סקמט, Mithra → מיטרה, Helios → היליוס, sūryo → סוריו, ṛtam → רתאם). "אדני" has **T=52**.
 
-A second striking seam is the **59↔354 bridge**:
-**ישראל = 59** (U), while **ישרון = 354** (H), and **354 = 59×6**.
-That is exactly the kind of “calendar-scale lift” you’d expect if scribal practice treated a base value as a **generator** and higher layers as **structured expansions** rather than unrelated numerology.
+A second striking seam is the **59↔354 bridge**: **ישראל = 59** (U), while **ישרון = 354** (H), and **354 = 59×6**. That is exactly the kind of “calendar-scale lift” you’d expect if scribal practice treated a base value as a **generator** and higher layers as **structured expansions** rather than unrelated numerology.
 
 ### 3) Cross-layer coherence and “semantic nodes”
 
 Because U/T/H are locked together, alignments are not one-off: they **repeat across layers** and produce stable semantic nodes—dense neighborhoods where related words converge.
 
-Example: the **“59-cluster”** (including **ישראל**, **מלכות**, **קשת**, **בתולת**) is not just a list; it behaves like a **network hub** where identity-terms, sovereignty-terms, and calendrical-scale terms interlock across U→T→H. 
+Example: the **“59-cluster”** (including **ישראל**, **מלכות**, **קשת**, **בתולת**) is not just a list; it behaves like a **network hub** where identity-terms, sovereignty-terms, and calendrical-scale terms interlock across U→T→H.
 
 This is the central diagnostic: the system behaves less like “pick a gematria and hunt for matches” and more like an **engineered codebook**, where:
 
-* certain congruence classes are privileged,
-* certain expansions are predictable (U→T→H),
-* and the text repeatedly routes high-salience concepts through the same numeric neighborhoods.
+- certain congruence classes are privileged,
+- certain expansions are predictable (U→T→H),
+- and the text repeatedly routes high-salience concepts through the same numeric neighborhoods.
 
 ---
 
 ## Two extensions that became unavoidable
 
-```bash
-git clone https://github.com/EdanDa/AlephEfes.git
-cd AlephEfes
-npm install
-# Option 1 (recommended):
-npm start
-# Option 2:
-npm run dev
-```
-
-By default the app runs on [http://localhost:4173](http://localhost:4173) with `npm start` (or Vite default port 5173 with `npm run dev`), styled with TailwindCSS (loaded via CDN).
-It stores the last analysed text in `localStorage` for convenience.
-
----
-
-## On א=0
+### On א=0
 
 An example of the editorial claim:
 
@@ -185,7 +205,7 @@ Another interesting case is the week of creation, where each day receives a uniq
 
 ---
 
-## On א=1
+### On א=1
 
 The same structure is applied to א=1, resulting in a new mapping with similar properties for what has traditionally been several different gematria systems, with the **T** (Tens) layer being a new, unknown mapping until now, resulting in: ר=110, ש=120, ת=130 at the end of that layer. These number align with the ages of death of Joseph and Joshua (At the end of Genesis for Joseph, and with the burial of Joseph's bones when Joshua dies) at 110. With the limitation on human life span in Genesis, and Moses's age of death (Beginning of Genesis, and at the end of Deuteronomy) at 120. And The age at which Adam begat Seth at 130 in the beginning of Genesis.
 
@@ -195,10 +215,10 @@ The same structure is applied to א=1, resulting in a new mapping with similar p
 
 The goal of this project is not dogma but documentation:
 
-* transparent tools,
-* reproducible datasets,
-* clear hypotheses (including null models and failure cases),
-* and a framework that allows scholarly replication or refutation.
+- transparent tools,
+- reproducible datasets,
+- clear hypotheses (including null models and failure cases),
+- and a framework that allows scholarly replication or refutation.
 
 Taken together, the evidence increasingly supports the view that the **alphabet itself—via order, orthography, and modular arithmetic—was used as a carrier of theological and cosmological design**, in a way consistent with ancient scribal culture and its calendar-numeric obsessions.
 
@@ -210,10 +230,9 @@ MIT
 
 ## Author
 
-Developed by **Edan-David Eyon**  
-Independent researcher (Israel)  
+Developed by **Edan-David Eyon**
+Independent researcher (Israel)
 
-I have been pursuing independent study across philosophy, linguistics, history, mathematics and more since 2011.  
+I have been pursuing independent study across philosophy, linguistics, history, mathematics and more since 2011.
 The AlephEfes repository documents and shares a reproducible numeric–semantic framework for the Hebrew Bible and language, which might have been inherited/transported from Mesopotamian/Phoenician/Akkadian traditions.
 This repository is intended as an open, transparent resource for testing, replication, and dialogue.
-
