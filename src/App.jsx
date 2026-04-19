@@ -2224,6 +2224,7 @@ const App = () => {
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
     const valueTableButtonRef = useRef(null);
+    const viewContentTopRef = useRef(null);
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
@@ -2659,7 +2660,12 @@ const App = () => {
     }, [dispatch, selectedDR, stats]);
 
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
-    const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
+    const handleViewChange = useCallback((newView) => {
+        dispatch({ type: 'SET_VIEW', payload: newView });
+        requestAnimationFrame(() => {
+            viewContentTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }, [dispatch]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
     const handleTextChange = useCallback((nextText) => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
@@ -2768,6 +2774,8 @@ const App = () => {
                             </div>
                         </div>
                     )}
+
+                    <div ref={viewContentTopRef} />
 
                     {stats && (
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
