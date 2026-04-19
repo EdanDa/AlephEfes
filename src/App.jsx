@@ -1862,7 +1862,11 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
+    const dragStateRef = useRef(null);
+    const minTextareaHeightRef = useRef(0);
+    const maxTextareaHeightRef = useRef(Number.POSITIVE_INFINITY);
     const [isDragActive, setIsDragActive] = useState(false);
+    const [manualHeight, setManualHeight] = useState(null);
 
     const { sanitizeHebrewInput, sanitizePastedHebrewInput } = useHebrewInputSanitizer({
         HEB_MARKS_RE,
@@ -1895,6 +1899,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const minHeight = (lineHeight * MIN_INPUT_ROWS) + chromeHeight;
         const maxHeight = (lineHeight * MAX_INPUT_ROWS) + chromeHeight;
 
+        minTextareaHeightRef.current = minHeight;
+        maxTextareaHeightRef.current = maxHeight;
         textarea.style.minHeight = `${minHeight}px`;
         textarea.style.maxHeight = `${maxHeight}px`;
         textarea.style.overflowY = 'auto';
@@ -2129,27 +2135,73 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         insertTextAtCursor(droppedText);
     }, [insertTextAtCursor]);
 
+    const handleResizeDragMove = useCallback((event) => {
+        const dragState = dragStateRef.current;
+        if (!dragState) return;
+
+        const heightDelta = event.clientY - dragState.startClientY;
+        const nextHeight = dragState.startHeight + heightDelta;
+        const boundedHeight = Math.min(
+            maxTextareaHeightRef.current,
+            Math.max(minTextareaHeightRef.current, nextHeight),
+        );
+        setManualHeight(boundedHeight);
+    }, []);
+
+    const stopResizeDrag = useCallback(() => {
+        if (!dragStateRef.current) return;
+        dragStateRef.current = null;
+        window.removeEventListener('mousemove', handleResizeDragMove);
+        window.removeEventListener('mouseup', stopResizeDrag);
+    }, [handleResizeDragMove]);
+
+    const beginResizeDrag = useCallback((event) => {
+        event.preventDefault();
+
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const rect = textarea.getBoundingClientRect();
+        dragStateRef.current = {
+            startClientY: event.clientY,
+            startHeight: rect.height,
+        };
+
+        window.addEventListener('mousemove', handleResizeDragMove);
+        window.addEventListener('mouseup', stopResizeDrag);
+    }, [handleResizeDragMove, stopResizeDrag]);
+
+    useEffect(() => () => stopResizeDrag(), [stopResizeDrag]);
+
     return (
-        <textarea
-            ref={textareaRef}
-            dir="rtl"
-            id="text-input"
-            className={`w-full resize-y p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
-            rows={MIN_INPUT_ROWS}
-            defaultValue={text}
-            onChange={handleChange}
-            onBlur={commitChanges}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="off"
-            autoComplete="off"
-            placeholder="הזן טקסט לניתוח"
-        />
+        <div className="relative">
+            <textarea
+                ref={textareaRef}
+                dir="rtl"
+                id="text-input"
+                className={`w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
+                style={manualHeight !== null ? { height: `${manualHeight}px` } : undefined}
+                rows={MIN_INPUT_ROWS}
+                defaultValue={text}
+                onChange={handleChange}
+                onBlur={commitChanges}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+                autoComplete="off"
+                placeholder="הזן טקסט לניתוח"
+            />
+            <div
+                role="presentation"
+                className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize"
+                onMouseDown={beginResizeDrag}
+            />
+        </div>
     );
 });
 
@@ -2172,6 +2224,7 @@ const App = () => {
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
     const valueTableButtonRef = useRef(null);
+    const viewContentTopRef = useRef(null);
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
@@ -2607,7 +2660,12 @@ const App = () => {
     }, [dispatch, selectedDR, stats]);
 
     const handleWordClick = useCallback((wordData) => dispatch({ type: 'SET_PINNED_WORD', payload: wordData }), [dispatch]);
-    const handleViewChange = useCallback((newView) => dispatch({ type: 'SET_VIEW', payload: newView }), [dispatch]);
+    const handleViewChange = useCallback((newView) => {
+        dispatch({ type: 'SET_VIEW', payload: newView });
+        requestAnimationFrame(() => {
+            viewContentTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }, [dispatch]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
     const handleTextChange = useCallback((nextText) => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
@@ -2706,8 +2764,8 @@ const App = () => {
                     </div>
 
                     {hasInput && (
-                        <div className="flex justify-center my-8">
-                            <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <div className="sticky top-3 z-40 flex justify-center my-8">
+                            <div className={`flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
                                 <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
                                 <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
                                 <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
@@ -2716,6 +2774,8 @@ const App = () => {
                             </div>
                         </div>
                     )}
+
+                    <div ref={viewContentTopRef} />
 
                     {stats && (
                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
