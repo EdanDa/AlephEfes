@@ -8,7 +8,8 @@ import React, {
     useRef,
     useTransition,
 } from 'react';
-import { computeCoreResults, getWordValues, isValueVisible } from '../core/analysisCore';
+import { computeCoreResults } from '../core/analysisCore';
+import { getConnectionValues } from '../core/wordConnections';
 import { appReducer, initialState } from './appReducer';
 
 const AppCoreContext = createContext(null);
@@ -127,25 +128,7 @@ const AppProvider = ({ children }) => {
 
     const connectionValues = useMemo(() => {
         if (!state.coreResults) return new Set();
-        const visibleConnections = new Set();
-        const valCounts = new Map();
-
-        state.coreResults.allWords.forEach((wordData) => {
-            const seenInWord = new Set();
-            const values = getWordValues(wordData);
-            values.forEach((valueData) => {
-                if (!isValueVisible(valueData.layer, valueData.isPrime, state.filters)) return;
-                if (seenInWord.has(valueData.value)) return;
-                seenInWord.add(valueData.value);
-                valCounts.set(valueData.value, (valCounts.get(valueData.value) || 0) + 1);
-            });
-        });
-
-        for (const [value, count] of valCounts.entries()) {
-            if (count > 1) visibleConnections.add(value);
-        }
-
-        return visibleConnections;
+        return getConnectionValues(state.coreResults.allWords, state.filters);
     }, [state.coreResults, state.filters]);
 
     const coreValue = useMemo(

@@ -71,3 +71,22 @@ export function computeConnectedWordsSet(activeWord, visibleValuesByWord, wordsB
 
     return connected;
 }
+
+export function getConnectionValues(words, filters) {
+    const valueToWordSet = new Map();
+
+    words.forEach((wordData) => {
+        const visibleValues = new Set(getVisibleValuesForWord(wordData, filters));
+        visibleValues.forEach((value) => {
+            if (!valueToWordSet.has(value)) valueToWordSet.set(value, new Set());
+            valueToWordSet.get(value).add(wordData.word);
+        });
+    });
+
+    const connectedValues = new Set();
+    valueToWordSet.forEach((wordSet, value) => {
+        if (wordSet.size > 1) connectedValues.add(value);
+    });
+
+    return connectedValues;
+}
