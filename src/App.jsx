@@ -1944,19 +1944,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     useEffect(() => {
         adjustTextareaHeight();
-    }, [adjustTextareaHeight, textSize]);
-
-    useEffect(() => {
         applyTextareaRowBounds();
-    }, [applyTextareaRowBounds, textSize]);
-
-    useEffect(() => {
-        adjustTextareaHeight();
-    }, [adjustTextareaHeight, textSize]);
-
-    useEffect(() => {
-        applyTextareaRowBounds();
-    }, [applyTextareaRowBounds, textSize]);
+    }, [adjustTextareaHeight, applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -2005,16 +1994,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const key = e.key.toLowerCase();
         const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
         const isSpaceKey = key === ' ' || key === 'space' || key === 'spacebar' || e.code === 'Space';
-
-        if (isMetaCombo && key === 'a') {
-            e.preventDefault();
-            e.stopPropagation();
-            const textarea = textareaRef.current;
-            if (!textarea) return;
-            textarea.focus();
-            textarea.setSelectionRange(0, textarea.value.length);
-            return;
-        }
 
         if (isMetaCombo && isEnterKey) {
             e.preventDefault();
