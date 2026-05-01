@@ -29,6 +29,7 @@ import {
 } from './core/searchInput';
 import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
 import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
+import { getConnectionValues } from './core/wordConnections';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -3144,39 +3145,7 @@ function AppProvider({ children }) {
 
     const connectionValues = useMemo(() => {
          if (!state.coreResults) return new Set();
-         const visibleConnections = new Set();
-         const valueCounts = new Map();
-
-         state.coreResults.allWords.forEach((word) => {
-             const visibleValues = [];
-
-             if (word.hundreds !== word.tens && isValueVisible('H', word.isPrimeH, state.filters)) {
-                 visibleValues.push(word.hundreds);
-             }
-             if (word.tens !== word.units && isValueVisible('T', word.isPrimeT, state.filters)) {
-                 visibleValues.push(word.tens);
-             }
-             if (isValueVisible('U', word.isPrimeU, state.filters)) {
-                 visibleValues.push(word.units);
-             }
-
-             if (visibleValues.length === 0) return;
-
-             if (visibleValues.length > 1) {
-                 visibleValues.sort((a, b) => a - b);
-             }
-
-             let prevValue;
-             visibleValues.forEach((value) => {
-                 if (value === prevValue) return;
-                 const nextCount = (valueCounts.get(value) || 0) + 1;
-                 valueCounts.set(value, nextCount);
-                 if (nextCount > 1) visibleConnections.add(value);
-                 prevValue = value;
-             });
-         });
-
-         return visibleConnections;
+         return getConnectionValues(state.coreResults.allWords, state.filters);
     }, [state.coreResults, state.filters]);
 
     const contextValue = useMemo(() => ({

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getVisibleValuesForWord, buildWordConnectionIndex, computeConnectedWordsSet } from '../src/core/wordConnections.js';
+import { getVisibleValuesForWord, buildWordConnectionIndex, computeConnectedWordsSet, getConnectionValues } from '../src/core/wordConnections.js';
 
 const wordA = {
     word: 'אב',
@@ -57,4 +57,33 @@ test('computeConnectedWordsSet returns words sharing visible values with active 
     assert.equal(connected.has('גד'), true);
     assert.equal(connected.has('הו'), false);
     assert.equal(connected.has('אב'), false);
+});
+
+test('getConnectionValues counts sharing across distinct words only', () => {
+    const repeatedWord = {
+        word: 'עח',
+        units: 78,
+        tens: 51,
+        hundreds: 78,
+        isPrimeU: false,
+        isPrimeT: false,
+        isPrimeH: false,
+    };
+    const uniqueWord = {
+        word: 'יחיד',
+        units: 12,
+        tens: 30,
+        hundreds: 300,
+        isPrimeU: false,
+        isPrimeT: false,
+        isPrimeH: false,
+    };
+
+    const connectionValues = getConnectionValues([repeatedWord, uniqueWord], { U: true, T: true, H: true, Prime: false });
+    assert.equal(connectionValues.has(78), false);
+    assert.equal(connectionValues.has(51), false);
+    assert.equal(connectionValues.has(12), false);
+
+    const sharedAcrossWords = getConnectionValues([repeatedWord, { ...uniqueWord, units: 78 }], { U: true, T: true, H: true, Prime: false });
+    assert.equal(sharedAcrossWords.has(78), true);
 });
