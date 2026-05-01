@@ -697,7 +697,7 @@ const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValues
     return connected;
 };
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, connectionValues, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
     const searchInputRef = useRef(null);
     const deferredHoveredWord = useDeferredValue(hoveredWord);
@@ -705,6 +705,14 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
     const activeWordKey = activeWord?.word || null;
 
     const connectedWordsCacheRef = useRef(new Map());
+    const scopedWords = useMemo(
+        () => filteredWordsInView.flatMap(({ words }) => words),
+        [filteredWordsInView]
+    );
+    const scopedConnectionValues = useMemo(
+        () => getConnectionValues(scopedWords, filters),
+        [scopedWords, filters]
+    );
     useEffect(() => {
         connectedWordsCacheRef.current.clear();
     }, [filteredWordsInView, filters]);
@@ -790,7 +798,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                                     isConnectedToActive={connectedWordsSet.has(wordData.word)}
                                     isDarkMode={isDarkMode}
                                     primeColor={primeColor}
-                                    connectionValues={connectionValues}
+                                    connectionValues={scopedConnectionValues}
                                     dispatch={dispatch}
                                     filters={filters}
                                 />
@@ -2969,7 +2977,6 @@ const App = () => {
                             hoveredWord={hoveredWord}
                             isDarkMode={isDarkMode}
                             primeColor={primeColor}
-                            connectionValues={connectionValues}
                             dispatch={dispatch}
                             copySummaryToClipboard={prepareSummaryText}
                             prepareSummaryCSV={prepareSummaryCSV}
