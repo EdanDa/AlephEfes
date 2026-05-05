@@ -2817,7 +2817,21 @@ const App = () => {
                                         </div>
                                     )}
                                     {coreResults.primeSummary.length > 0 && (
-                                        <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                                        <div
+                                            className={`relative p-4 sm:p-6 rounded-xl border mb-8 cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}
+                                            onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
+                                            aria-label="הצג או הסתר פירוט ערכים ראשוניים"
+                                            title="פירוט ערכים ראשוניים"
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' });
+                                                }
+                                            }}
+                                        >
+                                            <Icon name="chevron-down" className={`absolute top-4 left-4 w-6 h-6 text-gray-800 dark:text-gray-200 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             <h2 className="text-2xl font-bold text-center mb-4 text-gray-800 dark:text-gray-200 noselect">מדדי ראשוניות שורות</h2>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-center">
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50">
@@ -2827,25 +2841,6 @@ const App = () => {
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50">
                                                     <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold">ערכים ראשוניים</p>
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-gray-100">{coreResults.primeSummary.length}</p>
-                                                </div>
-                                            </div>
-                                            <div
-                                                className="cursor-pointer mt-2"
-                                                onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
-                                                aria-label="הצג או הסתר פירוט ערכים ראשוניים"
-                                                title="פירוט ערכים ראשוניים"
-                                                role="button"
-                                                tabIndex={0}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter' || event.key === ' ') {
-                                                        event.preventDefault();
-                                                        dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' });
-                                                    }
-                                                }}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <h2 className="text-2xl font-bold mb-1 text-center flex-grow text-gray-800 dark:text-gray-200 noselect">פירוט ערכים ראשוניים</h2>
-                                                    <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                                 </div>
                                             </div>
                                             {!isPrimesCollapsed && (
