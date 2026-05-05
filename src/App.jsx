@@ -2821,7 +2821,6 @@ const App = () => {
                                             className={`relative p-4 sm:p-6 rounded-xl border mb-8 cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}
                                             onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
                                             aria-label="הצג או הסתר פירוט ערכים ראשוניים"
-                                            title="פירוט ערכים ראשוניים"
                                             role="button"
                                             tabIndex={0}
                                             onKeyDown={(event) => {
