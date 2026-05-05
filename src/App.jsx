@@ -2830,7 +2830,7 @@ const App = () => {
                                     {coreResults.primeSummary.length > 0 && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                             <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
-                                                <span className="text-center flex-grow">{stats.primeLineTotals} שורות ראשוניות</span>
+                                                <span className="text-center flex-grow">{stats.primeLineTotals} שורות ראשוניות {coreResults.primeSummary.length} ערכים ראשוניים</span>
                                                 <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
