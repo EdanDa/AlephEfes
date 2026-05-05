@@ -2874,7 +2874,7 @@ const App = () => {
                                                 className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}
                                                 style={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
                                             >
-                                                <div className="cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })}>
+                                                <button type="button" className="w-full text-right cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })} aria-expanded={isExpanded} aria-label={`החלף מצב תצוגה עבור שורה ${lineIndex + 1}`}>
                                                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
                                                     <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
                                                     {showTotalsLine && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
@@ -2884,7 +2884,7 @@ const App = () => {
                                                         {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
                                                         <span className="mx-2">ש"ד={lineResult.totalsDR}</span>
                                                     </div>}
-                                                </div>
+                                                </button>
                                                 {isExpanded && (
                                                     <div className="overflow-x-auto mt-4">
                                                         <table className="min-w-full border-separate" style={{borderSpacing: "0 0.5rem"}}>
@@ -2990,8 +2990,8 @@ const App = () => {
                                     {selectedHotValue === null ? (
                                         <div>
                                             <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
-                                                <div className="w-1/4 cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })}>ערך {hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
-                                                <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
+                                                <button type="button" className="w-1/4 text-right cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })} aria-label="מיין לפי ערך">ערך {hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
+                                                <button type="button" className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })} aria-label="מיין לפי כמות מילים">כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
                                                 <div className="w-1/2">מילים</div>
                                             </div>
                                             <VirtualizedList
@@ -3089,7 +3089,7 @@ const App = () => {
                 )}
                 {showScrollTop && (
                     <div className="relative group">
-                        <button onClick={scrollToTop} className="fixed top-4 right-4 bg-gray-800/50 dark:bg-white/20 text-white p-2 rounded-full hover:bg-gray-800/70 dark:hover:bg-white/30 transition-opacity"><Icon name="arrow-up" className="w-6 h-6" /></button>
+                        <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="fixed top-4 right-4 bg-gray-800/50 dark:bg-white/20 text-white p-2 rounded-full hover:bg-gray-800/70 dark:hover:bg-white/30 transition-opacity"><Icon name="arrow-up" className="w-6 h-6" /></button>
                         <div className="absolute top-4 right-16 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">לראש הדף</div>
                     </div>
                 )}
