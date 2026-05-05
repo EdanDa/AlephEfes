@@ -2818,6 +2818,7 @@ const App = () => {
                                     )}
                                     {coreResults.primeSummary.length > 0 && (
                                         <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                                            <h2 className="text-2xl font-bold text-center mb-4 text-gray-800 dark:text-gray-200 noselect">מדדי ראשוניות שורות</h2>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-center">
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50">
                                                     <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold">שורות ראשוניות</p>
@@ -2828,9 +2829,8 @@ const App = () => {
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-gray-100">{coreResults.primeSummary.length}</p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-between items-center text-xl font-bold text-gray-800 dark:text-gray-200 noselect">
-                                                <span className="text-center flex-grow">פירוט ערכים ראשוניים</span>
-                                                <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
+                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-center items-center text-gray-800 dark:text-gray-200 noselect" aria-label="הצג או הסתר פירוט ערכים ראשוניים" title="פירוט ערכים ראשוניים">
+                                                <Icon name="chevron-down" className={`w-7 h-7 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
                                             </button>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
