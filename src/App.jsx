@@ -2829,9 +2829,25 @@ const App = () => {
                                                     <p className="text-3xl font-bold text-slate-900 dark:text-gray-100">{coreResults.primeSummary.length}</p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })} className="w-full flex justify-center items-center text-gray-800 dark:text-gray-200 noselect" aria-label="הצג או הסתר פירוט ערכים ראשוניים" title="פירוט ערכים ראשוניים">
-                                                <Icon name="chevron-down" className={`w-7 h-7 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
-                                            </button>
+                                            <div
+                                                className="cursor-pointer mt-2"
+                                                onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
+                                                aria-label="הצג או הסתר פירוט ערכים ראשוניים"
+                                                title="פירוט ערכים ראשוניים"
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter' || event.key === ' ') {
+                                                        event.preventDefault();
+                                                        dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' });
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <h2 className="text-2xl font-bold mb-1 text-center flex-grow text-gray-800 dark:text-gray-200 noselect">פירוט ערכים ראשוניים</h2>
+                                                    <Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isPrimesCollapsed ? '' : 'rotate-180'}`} />
+                                                </div>
+                                            </div>
                                             {!isPrimesCollapsed && (
                                                 <div className="mt-4">
                                                     <div className="overflow-x-auto max-w-lg mx-auto">
