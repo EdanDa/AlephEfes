@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import VirtualizedList from './components/VirtualizedList';
-import { stripTrailingSpacesPerLine } from './utils/exportFormatting';
+import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
     BASE_LETTER_VALUES,
@@ -465,7 +465,7 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
         await new Promise(resolve => setTimeout(resolve, 10)); 
 
         try {
-            const text = stripTrailingSpacesPerLine(getText());
+            const text = formatTextForClipboard(getText());
             if (!text || text.trim().length === 0) throw new Error("No visible text generated based on current filters");
             
             let success = false;
