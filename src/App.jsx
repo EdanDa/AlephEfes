@@ -709,7 +709,7 @@ const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValues
     return connected;
 };
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, dispatch, copySummaryToClipboard, prepareSummaryCSV, copiedId, searchTerm }) => {
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, dispatch, copySummaryToClipboard, prepareSummaryCSV, prepareSummaryJSON, copiedId, searchTerm }) => {
     const { filters } = useAppFilters();
     const searchInputRef = useRef(null);
     const deferredHoveredWord = useDeferredValue(hoveredWord);
@@ -3040,6 +3040,7 @@ const App = () => {
                             dispatch={dispatch}
                             copySummaryToClipboard={prepareSummaryText}
                             prepareSummaryCSV={prepareSummaryCSV}
+                            prepareSummaryJSON={prepareSummaryJSON}
                             copiedId={copiedId}
                             searchTerm={searchTerm}
                         />
