@@ -2489,8 +2489,7 @@ const App = () => {
     // --- Data Preparation for Export ---
     const csvEscape = useCallback((value) => {
         const str = String(value ?? '');
-        if (/[",
-]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+        if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
         return str;
     }, []);
 
