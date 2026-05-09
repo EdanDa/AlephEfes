@@ -455,7 +455,7 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
     );
 });
 
-const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
+const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => {
     const { copiedId } = useAppClipboard();
     const dispatch = useAppDispatch();
     const [isCopying, setIsCopying] = useState(false);
@@ -500,6 +500,22 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
         } finally { setIsCopying(false); }
     };
 
+
+    const handleJSON = () => {
+        try {
+            const content = getJSON ? getJSON() : '';
+            if (!content) return;
+            const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `aleph-code-${id}-${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch(e) { console.error("JSON Export failed", e); }
+    };
+
     const handleCSV = () => {
         try {
             const content = stripTrailingSpacesPerLine(getCSV());
@@ -532,6 +548,13 @@ const ExportToolbar = ({ getText, getCSV, id, label = "העתק" }) => {
             >
                 <Icon name="download" className="w-4 h-4" />
                 ייצא CSV
+            </button>
+            <button 
+                onClick={handleJSON}
+                className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 noselect"
+            >
+                <Icon name="download" className="w-4 h-4" />
+                ייצא JSON
             </button>
         </div>
     );
@@ -754,7 +777,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} onClick={unpinOnBackgroundClick}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex-1 flex justify-start">
-                    <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} id='summary' />
+                    <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} getJSON={prepareSummaryJSON} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
                     <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
@@ -1609,6 +1632,12 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         return rows.join('\n');
     }, [preparedRows, selectedInsight]);
 
+    const prepareInsightJSON = useCallback(() => JSON.stringify({
+        summary: graphSummary,
+        rows: preparedRows,
+        selectedInsight,
+    }, null, 2), [graphSummary, preparedRows, selectedInsight]);
+
     useEffect(() => {
         if (selectedValue !== null && !valueInsights.some((insight) => insight.value === selectedValue)) {
             setSelectedValue(null);
@@ -1755,7 +1784,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <div className="flex items-center justify-between gap-4 mb-4">
                 <h2 className="text-2xl font-bold text-center flex-1">גרף ערכים בטקסט</h2>
-                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} id='graph-insights' label='העתק' />
+                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} getJSON={prepareInsightJSON} id='graph-insights' label='העתק' />
             </div>
             <p className={`text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
                 הגרף מציג אילו ערכים בולטים בטקסט לפי שכיחות, ייחודיות ועוצמת קשר בין שכבות.
@@ -2458,13 +2487,21 @@ const App = () => {
     }, [pinnedWord, view, drClusters, isVisibleWord]);
     
     // --- Data Preparation for Export ---
+    const csvEscape = useCallback((value) => {
+        const str = String(value ?? '');
+        if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+        return str;
+    }, []);
+
+    const toCSV = useCallback((headers, rows) => [headers.join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n'), [csvEscape]);
+
     const prepareAllDetailsText = useCallback(() => {
         if (!coreResults || !stats) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
         const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
         const filterText = selectedDR !== null ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
         const lines = [
-            `${modeText}${filterText}\n===================\n`,
+            `${modeText}${filterText}\n---\n`,
             "ניתוח סטטיסטי\n-------------------\n",
             `סה"כ שורות: ${stats.totalLines}`,
             `סה"כ מילים: ${stats.totalWords}`,
@@ -2533,13 +2570,26 @@ const App = () => {
         return lines.filter(Boolean).join('\n');
     }, [coreResults, stats, mode, connectionValues, letterTable, filters, selectedDR, detailsView, visibleAllWords, visibleWordsByLine]);
 
-    const prepareAllDetailsCSV = useCallback(() => prepareAllDetailsText(), [prepareAllDetailsText]);
+    const prepareAllDetailsCSV = useCallback(() => {
+        if (detailsView === 'words') {
+            return toCSV(
+                ['mode','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'],
+                visibleAllWords.map((w) => [mode, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]),
+            );
+        }
+        const rows = [];
+        coreResults?.lines.forEach((line, index) => {
+            const visibleWords = visibleWordsByLine[index] || [];
+            visibleWords.forEach((w) => rows.push([mode, index + 1, line.lineText, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]));
+        });
+        return toCSV(['mode','line_number','line_text','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'], rows);
+    }, [detailsView, visibleAllWords, mode, coreResults, visibleWordsByLine, toCSV]);
 
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
         const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
-        const lines = [`${modeText}\n===================\n`];
+        const lines = [`${modeText}\n---\n`];
 
         const formatWord = (wordData) => {
             const values = [];
@@ -2552,15 +2602,15 @@ const App = () => {
 
         if (view === 'clusters' && pinnedWord) {
             const relevantWords = getPinnedRelevantWords();
-            lines.push(`סיכום מילים המקושרות ל"${pinnedWord.word}" (מסונן)\n==============================\n`);
+            lines.push(`סיכום מילים המקושרות ל"${pinnedWord.word}" (מסונן)\n---\n`);
             relevantWords.forEach(wordData => {
                 const txt = formatWord(wordData);
                 if (txt) lines.push(txt);
             });
         } else if (view === 'clusters') {
             const drHeader = selectedDR !== null ? `סיכום קיבוץ שורש דיגיטלי ${selectedDR}` : `סיכום כללי - קיבוץ לפי שורש דיגיטלי`;
-            if (searchTerm) lines.push(`סיכום תוצאות חיפוש "${searchTerm}"\n==============================\n`);
-            else lines.push(`${drHeader}\n==============================\n`);
+            if (searchTerm) lines.push(`סיכום תוצאות חיפוש "${searchTerm}"\n---\n`);
+            else lines.push(`${drHeader}\n---\n`);
             
             filteredWordsInView.forEach(({ dr, words }) => {
                 const visibleWords = words.map(formatWord).filter(Boolean);
@@ -2573,12 +2623,21 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, view, pinnedWord, getPinnedRelevantWords, selectedDR, searchTerm, filteredWordsInView, filters]);
 
-    const prepareSummaryCSV = useCallback(() => prepareSummaryText(), [prepareSummaryText]);
+    const prepareSummaryCSV = useCallback(() => {
+        const rows = [];
+        if (view === 'clusters' && pinnedWord) {
+            const relevantWords = getPinnedRelevantWords() || [];
+            relevantWords.forEach((w) => rows.push([mode, 'pinned', pinnedWord.word, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]));
+        } else if (view === 'clusters') {
+            filteredWordsInView.forEach(({ dr, words }) => words.forEach((w) => rows.push([mode, 'clusters', selectedDR ?? '', w.word, dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0])));
+        }
+        return toCSV(['mode','view','context_word','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'], rows);
+    }, [view, mode, pinnedWord, getPinnedRelevantWords, filteredWordsInView, selectedDR, toCSV]);
 
     const prepareHotWordsText = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
         const primeU = (w) => w.isPrimeU ? " ♢" : "";
-        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n===================\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
+        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
         visibleHotWords.forEach(w => {
             let parts = [];
             if(isValueVisible('U', w.isPrimeU, filters)) parts.push(`אחדות: ${w.units}${primeU(w)}`);
@@ -2590,11 +2649,14 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
-    const prepareHotWordsCSV = useCallback(() => prepareHotWordsText(), [prepareHotWordsText]);
+    const prepareHotWordsCSV = useCallback(() => toCSV(
+        ['mode','selected_value','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'],
+        visibleHotWords.map((w) => [mode, selectedHotValue, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]),
+    ), [toCSV, visibleHotWords, mode, selectedHotValue]);
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
-        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n===================\n`];
+        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`];
         if (hotView === 'values') {
             lines.push("סיכום שכיחות ערכים\n-------------------\n");
             // USE SORTED LIST
@@ -2611,7 +2673,17 @@ const App = () => {
         return lines.join('\n');
     }, [coreResults, mode, hotView, sortedHotViewList, visibleValueToWordsMap]);
 
-    const prepareFrequenciesCSV = useCallback(() => prepareFrequenciesText(), [prepareFrequenciesText]);
+    const prepareFrequenciesCSV = useCallback(() => {
+        if (hotView === 'values') {
+            return toCSV(['mode','type','value','count','words'], sortedHotViewList.map(({ value, count }) => [mode, 'value', value, count, [...new Set((visibleValueToWordsMap.get(value) || []).map((w) => w.word))].join('|')]));
+        }
+        return toCSV(['mode','type','word','count'], sortedHotViewList.map(({ word, count }) => [mode, 'word', word, count]));
+    }, [hotView, sortedHotViewList, visibleValueToWordsMap, toCSV, mode]);
+
+    const prepareAllDetailsJSON = useCallback(() => JSON.stringify({ mode, detailsView, selectedDR, words: visibleAllWords }, null, 2), [mode, detailsView, selectedDR, visibleAllWords]);
+    const prepareSummaryJSON = useCallback(() => JSON.stringify({ mode, view, selectedDR, searchTerm, pinnedWord: pinnedWord?.word ?? null, clusters: filteredWordsInView }, null, 2), [mode, view, selectedDR, searchTerm, pinnedWord, filteredWordsInView]);
+    const prepareHotWordsJSON = useCallback(() => JSON.stringify({ mode, selectedHotValue, words: visibleHotWords }, null, 2), [mode, selectedHotValue, visibleHotWords]);
+    const prepareFrequenciesJSON = useCallback(() => JSON.stringify({ mode, hotView, rows: sortedHotViewList }, null, 2), [mode, hotView, sortedHotViewList]);
 
     // --- Event Handlers ---
     const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
@@ -2799,7 +2871,7 @@ const App = () => {
                                     {coreResults.grandTotals && (
                                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                             <div className="flex justify-between items-center mb-4">
-                                                <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} id='all-details' /></div>
+                                                <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
                                                 <div className="flex-1 flex justify-end">
                                                     <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -2918,7 +2990,7 @@ const App = () => {
                             ) : (
                                 <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                     <div className="flex justify-between items-center mb-4">
-                                        <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} id='all-details' /></div>
+                                        <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                         <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום מילים ייחודיות ({coreResults.allWords.length} מילים)</h2></div>
                                         <div className="flex-1 flex justify-end">
                                             <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
@@ -2976,7 +3048,7 @@ const App = () => {
                     {view === 'hot-words' && coreResults && (
                         <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                             <div className="flex justify-between items-center mb-4">
-                                <div className="flex-1 flex justify-start"><ExportToolbar getText={selectedHotValue !== null ? prepareHotWordsText : prepareFrequenciesText} getCSV={selectedHotValue !== null ? prepareHotWordsCSV : prepareFrequenciesCSV} id='hot-words' /></div>
+                                <div className="flex-1 flex justify-start"><ExportToolbar getText={selectedHotValue !== null ? prepareHotWordsText : prepareFrequenciesText} getCSV={selectedHotValue !== null ? prepareHotWordsCSV : prepareFrequenciesCSV} getJSON={selectedHotValue !== null ? prepareHotWordsJSON : prepareFrequenciesJSON} id='hot-words' /></div>
                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">ניתוח שכיחויות</h2></div>
                                 <div className="flex-1 flex justify-end">
                                     <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
