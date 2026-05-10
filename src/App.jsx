@@ -1890,6 +1890,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
     const dragStateRef = useRef(null);
+    const isComposingRef = useRef(false);
     const minTextareaHeightRef = useRef(0);
     const maxTextareaHeightRef = useRef(Number.POSITIVE_INFINITY);
     const [isDragActive, setIsDragActive] = useState(false);
@@ -1984,6 +1985,13 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     const handleChange = useCallback((e) => {
         const rawValue = e.target.value;
+
+        if (isComposingRef.current) {
+            draftRef.current = rawValue;
+            adjustTextareaHeight(e.target);
+            scheduleCommit(rawValue);
+            return;
+        }
         const nativeInputEvent = e.nativeEvent;
         const inputType = nativeInputEvent?.inputType || '';
         const insertedData = nativeInputEvent?.data ?? null;
@@ -2111,6 +2119,28 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
     }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
+
+
+    const handleCompositionStart = useCallback(() => {
+        isComposingRef.current = true;
+    }, []);
+
+    const handleCompositionEnd = useCallback((e) => {
+        isComposingRef.current = false;
+        const finalizedValue = sanitizeHebrewInput(e.currentTarget.value);
+
+        if (finalizedValue !== e.currentTarget.value) {
+            const cursorStart = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
+            const nextCursor = sanitizeHebrewInput(e.currentTarget.value.slice(0, cursorStart)).length;
+            e.currentTarget.value = finalizedValue;
+            requestAnimationFrame(() => e.currentTarget.setSelectionRange(nextCursor, nextCursor));
+        }
+
+        draftRef.current = finalizedValue;
+        adjustTextareaHeight(e.currentTarget);
+        scheduleCommit(finalizedValue);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
+
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -2193,6 +2223,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                 onBlur={commitChanges}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -2204,8 +2236,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             />
             <div
                 role="presentation"
-                className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize"
+                className="absolute bottom-1 left-1 h-4 w-4 cursor-nwse-resize rounded-sm border border-slate-300/80 bg-white/70 dark:border-gray-500 dark:bg-gray-800/80"
                 onMouseDown={beginResizeDrag}
+                aria-hidden="true"
             />
         </div>
     );
