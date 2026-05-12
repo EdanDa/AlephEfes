@@ -2613,9 +2613,18 @@ const App = () => {
         const rows = [];
         coreResults?.lines.forEach((line, index) => {
             const visibleWords = visibleWordsByLine[index] || [];
-            visibleWords.forEach((w) => rows.push([mode, index + 1, line.lineText, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]));
+            rows.push([
+                mode,
+                index + 1,
+                visibleWords.length,
+                visibleWords.map((w) => w.word).join('|'),
+                visibleWords.map((w) => `${w.word}:${w.dr}`).join('|'),
+                visibleWords.map((w) => `${w.word}:${w.units}`).join('|'),
+                visibleWords.map((w) => `${w.word}:${w.tens}`).join('|'),
+                visibleWords.map((w) => `${w.word}:${w.hundreds}`).join('|'),
+            ]);
         });
-        return toCSV(['mode','line_number','line_text','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'], rows);
+        return toCSV(['mode','line_number','word_count','words','dr_by_word','units_by_word','tens_by_word','hundreds_by_word'], rows);
     }, [detailsView, visibleAllWords, mode, coreResults, visibleWordsByLine, toCSV]);
 
     const prepareSummaryText = useCallback(() => {
