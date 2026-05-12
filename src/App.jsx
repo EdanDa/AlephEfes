@@ -2722,7 +2722,19 @@ const App = () => {
         return toCSV(['mode','type','word','count'], sortedHotViewList.map(({ word, count }) => [mode, 'word', word, count]));
     }, [hotView, sortedHotViewList, visibleValueToWordsMap, toCSV, mode]);
 
-    const prepareAllDetailsJSON = useCallback(() => JSON.stringify({ mode, detailsView, selectedDR, words: visibleAllWords }, null, 2), [mode, detailsView, selectedDR, visibleAllWords]);
+    const prepareAllDetailsJSON = useCallback(() => {
+        if (detailsView === 'words') {
+            return JSON.stringify({ mode, detailsView, selectedDR, words: visibleAllWords }, null, 2);
+        }
+
+        const lines = (coreResults?.lines || []).map((line, index) => ({
+            lineNumber: index + 1,
+            lineText: line.lineText,
+            words: visibleWordsByLine[index] || [],
+        }));
+
+        return JSON.stringify({ mode, detailsView, selectedDR, lines }, null, 2);
+    }, [mode, detailsView, selectedDR, visibleAllWords, coreResults, visibleWordsByLine]);
     const prepareSummaryJSON = useCallback(() => JSON.stringify({ mode, view, selectedDR, searchTerm, pinnedWord: pinnedWord?.word ?? null, clusters: filteredWordsInView }, null, 2), [mode, view, selectedDR, searchTerm, pinnedWord, filteredWordsInView]);
     const prepareHotWordsJSON = useCallback(() => JSON.stringify({ mode, selectedHotValue, words: visibleHotWords }, null, 2), [mode, selectedHotValue, visibleHotWords]);
     const prepareFrequenciesJSON = useCallback(() => JSON.stringify({ mode, hotView, rows: sortedHotViewList }, null, 2), [mode, hotView, sortedHotViewList]);
