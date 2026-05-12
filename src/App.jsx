@@ -1890,6 +1890,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
     const dragStateRef = useRef(null);
+    const isComposingRef = useRef(false);
     const minTextareaHeightRef = useRef(0);
     const maxTextareaHeightRef = useRef(Number.POSITIVE_INFINITY);
     const [isDragActive, setIsDragActive] = useState(false);
@@ -1984,6 +1985,12 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     const handleChange = useCallback((e) => {
         const rawValue = e.target.value;
+
+        if (isComposingRef.current) {
+            draftRef.current = rawValue;
+            adjustTextareaHeight(e.target);
+            return;
+        }
         const nativeInputEvent = e.nativeEvent;
         const inputType = nativeInputEvent?.inputType || '';
         const insertedData = nativeInputEvent?.data ?? null;
@@ -2008,6 +2015,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
+        if (isComposingRef.current || e.nativeEvent?.isComposing) return;
+
         const isMetaCombo = e.ctrlKey || e.metaKey;
         const key = e.key.toLowerCase();
         const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
@@ -2111,6 +2120,28 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
     }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
 
+
+
+    const handleCompositionStart = useCallback(() => {
+        isComposingRef.current = true;
+    }, []);
+
+    const handleCompositionEnd = useCallback((e) => {
+        isComposingRef.current = false;
+        const finalizedValue = sanitizeHebrewInput(e.currentTarget.value);
+
+        if (finalizedValue !== e.currentTarget.value) {
+            const cursorStart = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
+            const nextCursor = sanitizeHebrewInput(e.currentTarget.value.slice(0, cursorStart)).length;
+            e.currentTarget.value = finalizedValue;
+            requestAnimationFrame(() => e.currentTarget.setSelectionRange(nextCursor, nextCursor));
+        }
+
+        draftRef.current = finalizedValue;
+        adjustTextareaHeight(e.currentTarget);
+        scheduleCommit(finalizedValue);
+    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
+
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -2180,7 +2211,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => () => stopResizeDrag(), [stopResizeDrag]);
 
     return (
-        <div className="relative">
+        <div className="relative pb-3">
             <textarea
                 ref={textareaRef}
                 dir="rtl"
@@ -2193,6 +2224,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                 onBlur={commitChanges}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -2204,8 +2237,9 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             />
             <div
                 role="presentation"
-                className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize"
+                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize rounded-b-lg bg-slate-300/90 dark:bg-gray-600/90"
                 onMouseDown={beginResizeDrag}
+                aria-hidden="true"
             />
         </div>
     );
@@ -3161,9 +3195,11 @@ const App = () => {
                 </>
                 )}
                 {showScrollTop && (
-                    <div className="relative group">
-                        <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="fixed top-4 right-4 bg-gray-800/50 dark:bg-white/20 text-white p-2 rounded-full hover:bg-gray-800/70 dark:hover:bg-white/30 transition-opacity"><Icon name="arrow-up" className="w-6 h-6" /></button>
-                        <div className="absolute top-4 right-16 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">לראש הדף</div>
+                    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
+                        <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="bg-gray-800/55 dark:bg-white/20 text-white p-3 rounded-full hover:bg-gray-800/75 dark:hover:bg-white/30 transition-opacity shadow-lg">
+                            <Icon name="arrow-up" className="w-7 h-7" />
+                        </button>
+                        <div className="absolute top-1/2 right-16 -translate-y-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">לראש הדף</div>
                     </div>
                 )}
             </div>
