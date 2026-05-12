@@ -1989,7 +1989,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (isComposingRef.current) {
             draftRef.current = rawValue;
             adjustTextareaHeight(e.target);
-            scheduleCommit(rawValue);
             return;
         }
         const nativeInputEvent = e.nativeEvent;
@@ -2016,6 +2015,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
+        if (isComposingRef.current || e.nativeEvent?.isComposing) return;
+
         const isMetaCombo = e.ctrlKey || e.metaKey;
         const key = e.key.toLowerCase();
         const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
@@ -2210,7 +2211,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     useEffect(() => () => stopResizeDrag(), [stopResizeDrag]);
 
     return (
-        <div className="relative">
+        <div className="relative pb-3">
             <textarea
                 ref={textareaRef}
                 dir="rtl"
@@ -2236,7 +2237,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             />
             <div
                 role="presentation"
-                className="absolute bottom-1 left-1 h-4 w-4 cursor-nwse-resize rounded-sm border border-slate-300/80 bg-white/70 dark:border-gray-500 dark:bg-gray-800/80"
+                className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize rounded-b-lg bg-slate-300/90 dark:bg-gray-600/90"
                 onMouseDown={beginResizeDrag}
                 aria-hidden="true"
             />
