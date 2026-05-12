@@ -3216,9 +3216,11 @@ const App = () => {
                 </>
                 )}
                 {showScrollTop && (
-                    <div className="relative group">
-                        <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="fixed top-4 right-4 bg-gray-800/50 dark:bg-white/20 text-white p-2 rounded-full hover:bg-gray-800/70 dark:hover:bg-white/30 transition-opacity"><Icon name="arrow-up" className="w-6 h-6" /></button>
-                        <div className="absolute top-4 right-16 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">לראש הדף</div>
+                    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
+                        <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="bg-gray-800/55 dark:bg-white/20 text-white p-3 rounded-full hover:bg-gray-800/75 dark:hover:bg-white/30 transition-opacity shadow-lg">
+                            <Icon name="arrow-up" className="w-7 h-7" />
+                        </button>
+                        <div className="absolute top-1/2 right-16 -translate-y-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">לראש הדף</div>
                     </div>
                 )}
             </div>
