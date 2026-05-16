@@ -1944,19 +1944,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     useEffect(() => {
         adjustTextareaHeight();
-    }, [adjustTextareaHeight, textSize]);
-
-    useEffect(() => {
         applyTextareaRowBounds();
-    }, [applyTextareaRowBounds, textSize]);
-
-    useEffect(() => {
-        adjustTextareaHeight();
-    }, [adjustTextareaHeight, textSize]);
-
-    useEffect(() => {
-        applyTextareaRowBounds();
-    }, [applyTextareaRowBounds, textSize]);
+    }, [adjustTextareaHeight, applyTextareaRowBounds, textSize]);
 
     useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
 
@@ -1981,10 +1970,15 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const inputType = nativeInputEvent?.inputType || '';
         const insertedData = nativeInputEvent?.data ?? null;
         const isDeleteInput = inputType.startsWith('delete');
-        const isSimpleInsert = inputType === 'insertText' || inputType === 'insertLineBreak';
+        const isSimpleInsert = inputType === 'insertText';
+        const isLineBreakInsert = inputType === 'insertLineBreak';
         const isLargeInput = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD;
         const isAllowedInsertedData = insertedData === null || insertedData === '\n' || insertedData === ' ' || /^[א-ת]$/.test(insertedData);
-        const canSkipFullSanitize = isLargeInput && (isDeleteInput || isSimpleInsert || isAllowedInsertedData);
+        const canSkipFullSanitize = isLargeInput && (
+            isDeleteInput
+            || isLineBreakInsert
+            || (isSimpleInsert && isAllowedInsertedData)
+        );
 
         const nextValue = canSkipFullSanitize ? rawValue : sanitizeHebrewInput(rawValue);
 
@@ -2005,16 +1999,6 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const key = e.key.toLowerCase();
         const isEnterKey = key === 'enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
         const isSpaceKey = key === ' ' || key === 'space' || key === 'spacebar' || e.code === 'Space';
-
-        if (isMetaCombo && key === 'a') {
-            e.preventDefault();
-            e.stopPropagation();
-            const textarea = textareaRef.current;
-            if (!textarea) return;
-            textarea.focus();
-            textarea.setSelectionRange(0, textarea.value.length);
-            return;
-        }
 
         if (isMetaCombo && isEnterKey) {
             e.preventDefault();
