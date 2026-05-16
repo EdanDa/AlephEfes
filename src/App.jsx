@@ -1995,10 +1995,15 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         const inputType = nativeInputEvent?.inputType || '';
         const insertedData = nativeInputEvent?.data ?? null;
         const isDeleteInput = inputType.startsWith('delete');
-        const isSimpleInsert = inputType === 'insertText' || inputType === 'insertLineBreak';
+        const isSimpleInsert = inputType === 'insertText';
+        const isLineBreakInsert = inputType === 'insertLineBreak';
         const isLargeInput = rawValue.length > LARGE_INPUT_SANITIZE_THRESHOLD;
         const isAllowedInsertedData = insertedData === null || insertedData === '\n' || insertedData === ' ' || /^[א-ת]$/.test(insertedData);
-        const canSkipFullSanitize = isLargeInput && (isDeleteInput || isSimpleInsert || isAllowedInsertedData);
+        const canSkipFullSanitize = isLargeInput && (
+            isDeleteInput
+            || isLineBreakInsert
+            || (isSimpleInsert && isAllowedInsertedData)
+        );
 
         const nextValue = canSkipFullSanitize ? rawValue : sanitizeHebrewInput(rawValue);
 
