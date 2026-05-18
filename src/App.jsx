@@ -1889,6 +1889,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
+    const selectionRafRef = useRef(null);
     const dragStateRef = useRef(null);
     const isComposingRef = useRef(false);
     const minTextareaHeightRef = useRef(0);
@@ -1911,6 +1912,14 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             clearTimeout(commitTimerRef.current);
             commitTimerRef.current = null;
         }
+    }, []);
+
+    const queueSelectionUpdate = useCallback((fn) => {
+        if (selectionRafRef.current !== null) cancelAnimationFrame(selectionRafRef.current);
+        selectionRafRef.current = requestAnimationFrame(() => {
+            selectionRafRef.current = null;
+            fn();
+        });
     }, []);
 
     const applyTextareaRowBounds = useCallback((target) => {
@@ -1957,16 +1966,22 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (isFocused) {
             const nextStart = Math.min(selectionStart, sanitized.length);
             const nextEnd = Math.min(selectionEnd, sanitized.length);
-            requestAnimationFrame(() => textarea.setSelectionRange(nextStart, nextEnd));
+            queueSelectionUpdate(() => textarea.setSelectionRange(nextStart, nextEnd));
         }
-    }, [adjustTextareaHeight, sanitizeHebrewInput, text]);
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizeHebrewInput, text]);
 
     useEffect(() => {
         adjustTextareaHeight();
         applyTextareaRowBounds();
     }, [adjustTextareaHeight, applyTextareaRowBounds, textSize]);
 
-    useEffect(() => () => clearCommitTimer(), [clearCommitTimer]);
+    useEffect(() => () => {
+        clearCommitTimer();
+        if (selectionRafRef.current !== null) {
+            cancelAnimationFrame(selectionRafRef.current);
+            selectionRafRef.current = null;
+        }
+    }, [clearCommitTimer]);
 
     const scheduleCommit = useCallback((nextValue) => {
         clearCommitTimer();
@@ -2011,13 +2026,13 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             const cursorStart = e.target.selectionStart ?? rawValue.length;
             const nextCursor = sanitizeHebrewInput(rawValue.slice(0, cursorStart)).length;
             e.target.value = nextValue;
-            requestAnimationFrame(() => e.target.setSelectionRange(nextCursor, nextCursor));
+            queueSelectionUpdate(() => e.target.setSelectionRange(nextCursor, nextCursor));
         }
 
         draftRef.current = nextValue;
         adjustTextareaHeight(e.target);
         scheduleCommit(nextValue);
-    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizeHebrewInput, scheduleCommit]);
 
     const handleKeyDown = useCallback((e) => {
         if (isComposingRef.current || e.nativeEvent?.isComposing) return;
@@ -2074,14 +2089,14 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             scheduleCommit(nextValue);
 
             const nextPos = start + mappedLetter.length;
-            requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
+            queueSelectionUpdate(() => textarea.setSelectionRange(nextPos, nextPos));
             return;
         }
 
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [adjustTextareaHeight, commitChanges, scheduleCommit]);
+    }, [adjustTextareaHeight, commitChanges, queueSelectionUpdate, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
@@ -2103,8 +2118,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         scheduleCommit(nextValue);
 
         const nextPos = start + sanitized.length;
-        requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
+        queueSelectionUpdate(() => textarea.setSelectionRange(nextPos, nextPos));
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizePastedHebrewInput, scheduleCommit]);
 
     const insertTextAtCursor = useCallback((incomingText) => {
         const textarea = textareaRef.current;
@@ -2122,8 +2137,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         scheduleCommit(nextValue);
 
         const nextPos = start + sanitized.length;
-        requestAnimationFrame(() => textarea.setSelectionRange(nextPos, nextPos));
-    }, [adjustTextareaHeight, sanitizePastedHebrewInput, scheduleCommit]);
+        queueSelectionUpdate(() => textarea.setSelectionRange(nextPos, nextPos));
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizePastedHebrewInput, scheduleCommit]);
 
 
 
@@ -2139,13 +2154,13 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             const cursorStart = e.currentTarget.selectionStart ?? e.currentTarget.value.length;
             const nextCursor = sanitizeHebrewInput(e.currentTarget.value.slice(0, cursorStart)).length;
             e.currentTarget.value = finalizedValue;
-            requestAnimationFrame(() => e.currentTarget.setSelectionRange(nextCursor, nextCursor));
+            queueSelectionUpdate(() => e.currentTarget.setSelectionRange(nextCursor, nextCursor));
         }
 
         draftRef.current = finalizedValue;
         adjustTextareaHeight(e.currentTarget);
         scheduleCommit(finalizedValue);
-    }, [adjustTextareaHeight, sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizeHebrewInput, scheduleCommit]);
 
     const handleDragOver = useCallback((e) => {
         e.preventDefault();
