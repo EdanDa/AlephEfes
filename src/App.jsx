@@ -1921,6 +1921,12 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             fn();
         });
     }, []);
+    const clearSelectionUpdate = useCallback(() => {
+        if (selectionRafRef.current !== null) {
+            cancelAnimationFrame(selectionRafRef.current);
+            selectionRafRef.current = null;
+        }
+    }, []);
 
     const applyTextareaRowBounds = useCallback((target) => {
         const textarea = target || textareaRef.current;
@@ -1977,11 +1983,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     useEffect(() => () => {
         clearCommitTimer();
-        if (selectionRafRef.current !== null) {
-            cancelAnimationFrame(selectionRafRef.current);
-            selectionRafRef.current = null;
-        }
-    }, [clearCommitTimer]);
+        clearSelectionUpdate();
+    }, [clearCommitTimer, clearSelectionUpdate]);
 
     const scheduleCommit = useCallback((nextValue) => {
         clearCommitTimer();
@@ -2058,6 +2061,8 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             return;
         }
 
+        clearSelectionUpdate();
+
         if (isEnterKey || isSpaceKey) {
             return;
         }
@@ -2096,7 +2101,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         if (!/^[א-ת]$/i.test(e.key)) {
             e.preventDefault();
         }
-    }, [adjustTextareaHeight, commitChanges, queueSelectionUpdate, scheduleCommit]);
+    }, [adjustTextareaHeight, clearSelectionUpdate, commitChanges, queueSelectionUpdate, scheduleCommit]);
 
     const handlePaste = useCallback((e) => {
         const pasted = e.clipboardData?.getData('text') ?? '';
