@@ -1959,12 +1959,22 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
 
     useEffect(() => {
         const sanitized = sanitizeHebrewInput(text);
-        draftRef.current = sanitized;
-
         const textarea = textareaRef.current;
-        if (!textarea || textarea.value === sanitized) return;
+        if (!textarea) {
+            draftRef.current = sanitized;
+            return;
+        }
 
         const isFocused = document.activeElement === textarea;
+        const hasLocalUncommittedChanges = draftRef.current !== sanitized;
+
+        if (isFocused && hasLocalUncommittedChanges) {
+            return;
+        }
+
+        draftRef.current = sanitized;
+        if (textarea.value === sanitized) return;
+
         const selectionStart = textarea.selectionStart ?? sanitized.length;
         const selectionEnd = textarea.selectionEnd ?? sanitized.length;
 
