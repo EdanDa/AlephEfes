@@ -345,7 +345,6 @@ function computeCoreResults(text, mode) {
             else if (wd.maxLayer === 'T' && lineMaxLayer !== 'H') lineMaxLayer = 'T';
 
             if (!allWordsMap.has(wd.word)) allWordsMap.set(wd.word, wd);
-            drDistribution[wd.dr] += 1;
             wordCounts.set(wd.word, (wordCounts.get(wd.word) || 0) + 1);
         }
 
@@ -384,6 +383,10 @@ function computeCoreResults(text, mode) {
             isPrimeTotals: { U: isPrimeLineU, T: isPrimeLineT, H: isPrimeLineH },
             lineMaxLayer,
         });
+    }
+
+    for (const wordData of allWordsMap.values()) {
+        drDistribution[wordData.dr] += 1;
     }
 
     growSieveTo(Math.max(grandU, grandT, grandH));
