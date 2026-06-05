@@ -425,6 +425,27 @@ function getWordValues(wordData) {
     return out;
 }
 
+function getGroupedWordValues(wordData, filters) {
+    const groups = [];
+    const groupsByValue = new Map();
+
+    getWordValues(wordData).forEach((valueData) => {
+        if (!isValueVisible(valueData.layer, valueData.isPrime, filters)) return;
+
+        let group = groupsByValue.get(valueData.value);
+        if (!group) {
+            group = { value: valueData.value, isPrime: false, layers: [] };
+            groupsByValue.set(valueData.value, group);
+            groups.push(group);
+        }
+
+        group.isPrime = group.isPrime || valueData.isPrime;
+        group.layers.push({ layer: valueData.layer, isPrime: valueData.isPrime });
+    });
+
+    return groups;
+}
+
 function isWordVisible(word, filters) {
     const values = getWordValues(word);
     return values.some((v) => isValueVisible(v.layer, v.isPrime, filters));
@@ -443,6 +464,7 @@ export {
     forceHebrewInput,
     getLetterDetails,
     getWordValues,
+    getGroupedWordValues,
     isValueVisible,
     isWordVisible,
     layersMatching,

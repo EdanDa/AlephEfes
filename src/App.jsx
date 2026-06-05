@@ -13,6 +13,7 @@ import {
     buildLetterTable,
     forceHebrewInput,
     getLetterDetails,
+    getGroupedWordValues,
     getWordValues,
     isValueVisible,
     isWordVisible,
@@ -29,13 +30,14 @@ import {
 } from './core/searchInput';
 import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
 import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
-import { getConnectionValues } from './core/wordConnections';
+import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues } from './core/wordConnections';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
 // -----------------------------------------------------------------------------
 const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
+const EMPTY_SET = new Set();
 
 // Backward-compatible hook aliases for older/local bundles that referenced previous names.
 function useAppCoreState() {
@@ -410,49 +412,48 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor, filters }) => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
-    const values = getWordValues(wordData);
-    
+    const groupedValues = getGroupedWordValues(wordData, filters);
+    const connectionValueSet = connectionValues || EMPTY_SET;
+
+    const getSourceLayer = (src, val) => {
+        const avail = availableLayers(src);
+        // Priority H > T > U to determine dominant color if value exists in multiple source layers.
+        if (avail.includes('H') && src.hundreds === val) return 'H';
+        if (avail.includes('T') && src.tens === val) return 'T';
+        if (avail.includes('U') && src.units === val) return 'U';
+        return null;
+    };
+
+    const renderLayerSymbol = (layer, iconStroke, iconFill) => {
+        if (layer === 'U') return <svg width="14" height="12" viewBox="0 0 14 12" fill={iconFill} xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke={iconStroke} strokeWidth="2" strokeLinejoin="round"/></svg>;
+        if (layer === 'T') return <div className="w-3 h-3 border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
+        return <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
+    };
+
     return (
         <div className={`grid grid-flow-col auto-cols-max gap-x-2 text-xs font-mono tracking-wider justify-center ${isDarkMode ? 'text-gray-300' : 'text-slate-700'}`}>
-            {values.map((v, i) => {
-                const L = v.layer;
-                const isVisible = isValueVisible(L, v.isPrime, filters);
-                if (!isVisible) return null;
+            {groupedValues.map((group) => (
+                <div key={group.value} className="flex flex-col items-center noselect">
+                    <span className={group.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{group.value}{group.isPrime && '♢'}</span>
+                    <div className="mt-0.5 flex items-center justify-center gap-1 min-h-3">
+                        {group.layers.map(({ layer }) => {
+                            // 'matches' contains layers from the TARGET word that match the ACTIVE word.
+                            const isHit = hoveredWord && connectionValueSet.has(group.value) && matches.includes(layer);
+                            const srcLayer = isHit ? getSourceLayer(hoveredWord, group.value) : null;
+                            const dotColor = srcLayer ? LAYER_COLORS[srcLayer].dot : null;
+                            // Restored layer-colored icons logic for connections.
+                            const iconStroke = dotColor || (isDarkMode ? '#ffffff60' : '#00000040');
+                            const iconFill = dotColor || 'transparent';
 
-                // 'matches' contains layers from the TARGET word that match the ACTIVE word.
-                const isHit = hoveredWord && connectionValues.has(v.value) && matches.includes(L);
-                
-                let dotColor = null;
-                if (isHit) {
-                    // Determine the Source Layer Color (the layer in the ACTIVE word that this value belongs to)
-                    const getSourceLayer = (src, val) => {
-                         const avail = availableLayers(src);
-                         // Priority H > T > U to determine dominant color if value exists in multiple source layers
-                         if (avail.includes('H') && src.hundreds === val) return 'H';
-                         if (avail.includes('T') && src.tens === val) return 'T';
-                         if (avail.includes('U') && src.units === val) return 'U';
-                         return null;
-                    };
-                    const srcLayer = getSourceLayer(hoveredWord, v.value);
-                    if (srcLayer) dotColor = LAYER_COLORS[srcLayer].dot;
-                }
-                
-                let symbol;
-                // Restored layer-colored icons logic for connections
-                const iconStroke = dotColor || (isDarkMode ? '#ffffff60' : '#00000040');
-                const iconFill = dotColor || 'transparent';
-
-                if (L === 'U') symbol = <svg width="14" height="12" viewBox="0 0 14 12" fill={iconFill} xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke={iconStroke} strokeWidth="2" strokeLinejoin="round"/></svg>;
-                else if (L === 'T') symbol = <div className="w-3 h-3 border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
-                else symbol = <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
-
-                return (
-                    <div key={i} className="flex flex-col items-center noselect">
-                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{v.value}{v.isPrime && '♢'}</span>
-                        <div className="mt-0.5 flex items-center justify-center h-3 w-3.5">{symbol}</div>
+                            return (
+                                <div key={layer} className="flex items-center justify-center h-3 w-3.5">
+                                    {renderLayerSymbol(layer, iconStroke, iconFill)}
+                                </div>
+                            );
+                        })}
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 });
@@ -588,7 +589,7 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch, filters }) => {
+const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues = EMPTY_SET, dispatch, filters }) => {
     const isSelf = activeWord && activeWord.word === wordData.word;
     
     // Background color determination (for connected words)
@@ -690,7 +691,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     return true;
 });
 
-const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValuesByWord, cacheRef) => {
+const computeConnectedWordsSet = (activeWord, wordsByVisibleValue = new Map(), visibleValuesByWord = new Map(), cacheRef) => {
     if (!activeWord) return new Set();
 
     const cache = cacheRef?.current;
@@ -2451,18 +2452,24 @@ const App = () => {
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
-    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters)), [hotWordsList, deferredFilters]);
-
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
         if (view !== 'hot-words') return new Map();
         const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
-            const visible = words.filter(isVisibleWord);
+            const visible = words.filter((wordData) => (
+                isVisibleWord(wordData)
+                && getWordValues(wordData).some((valueData) => valueData.value === value && isValueVisible(valueData.layer, valueData.isPrime, deferredFilters))
+            ));
             if (visible.length > 0) map.set(value, visible);
         }
         return map;
-    }, [valueToWordsMap, isVisibleWord, view]);
+    }, [valueToWordsMap, isVisibleWord, view, deferredFilters]);
+
+    const visibleHotWords = useMemo(() => {
+        if (selectedHotValue !== null) return visibleValueToWordsMap.get(selectedHotValue) || [];
+        return hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters));
+    }, [selectedHotValue, visibleValueToWordsMap, hotWordsList, deferredFilters]);
 
     const hotValuesList = useMemo(() => {
         if (!visibleValueToWordsMap) return [];
@@ -2505,12 +2512,12 @@ const App = () => {
 
     const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
-        return buildWordConnectionIndex(visibleHotWords, deferredFilters);
+        return buildVisibleWordConnectionIndex(visibleHotWords, deferredFilters);
     }, [view, selectedHotValue, visibleHotWords, deferredFilters]);
 
     const hotConnectedWordsSet = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return new Set();
-        return computeConnectedWordsSet(activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue);
+        return computeConnectedWordsSet(activeWord, hotWordsByVisibleValue, hotVisibleValuesByWord);
     }, [view, selectedHotValue, activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue]);
 
     const filteredWordsInView = useMemo(() => {

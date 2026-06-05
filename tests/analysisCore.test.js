@@ -4,6 +4,7 @@ import {
     buildLetterTable,
     computeCoreResults,
     forceHebrewInput,
+    getGroupedWordValues,
     getWordValues,
     isValueVisible,
     isWordVisible,
@@ -87,4 +88,26 @@ test('ditto-equivalent values remain available when the source layer is hidden',
         { value: 5, isPrime: true, layer: 'U' },
     ]);
     assert.equal(isWordVisible(wordData, { U: false, T: true, H: false, Prime: true }), true);
+});
+
+
+test('getGroupedWordValues collapses duplicate visible values while preserving layer symbols', () => {
+    const wordData = {
+        units: 37,
+        tens: 145,
+        hundreds: 145,
+        isPrimeU: true,
+        isPrimeT: false,
+        isPrimeH: false,
+    };
+
+    assert.deepEqual(getGroupedWordValues(wordData, { U: true, T: true, H: true, Prime: false }), [
+        { value: 145, isPrime: false, layers: [{ layer: 'H', isPrime: false }, { layer: 'T', isPrime: false }] },
+        { value: 37, isPrime: true, layers: [{ layer: 'U', isPrime: true }] },
+    ]);
+
+    assert.deepEqual(getGroupedWordValues(wordData, { U: true, T: false, H: true, Prime: false }), [
+        { value: 145, isPrime: false, layers: [{ layer: 'H', isPrime: false }] },
+        { value: 37, isPrime: true, layers: [{ layer: 'U', isPrime: true }] },
+    ]);
 });
