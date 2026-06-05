@@ -129,13 +129,9 @@ function layersMatching(hovered, current) {
 
 const strongestLayer = (matchLayers) => LAYER_PRIORITY.find((layer) => matchLayers.includes(layer)) || null;
 
-const LAYERS_U = Object.freeze(['U']);
-const LAYERS_UT = Object.freeze(['U', 'T']);
 const LAYERS_UTH = Object.freeze(['U', 'T', 'H']);
 
-function availableLayers(wordData) {
-    if (wordData.tens === wordData.units) return LAYERS_U;
-    if (wordData.hundreds === wordData.tens) return LAYERS_UT;
+function availableLayers() {
     return LAYERS_UTH;
 }
 
@@ -288,8 +284,8 @@ function makeWordComputer(letterTable) {
             hundreds,
             dr,
             isPrimeU: isPrimeExpand(units),
-            isPrimeT: tens !== units && isPrimeExpand(tens),
-            isPrimeH: hundreds !== tens && isPrimeExpand(hundreds),
+            isPrimeT: isPrimeExpand(tens),
+            isPrimeH: isPrimeExpand(hundreds),
             maxLayer,
         };
         touchCacheEntry(cleaned, res);
@@ -354,8 +350,8 @@ function computeCoreResults(text, mode) {
         growSieveTo(Math.max(lineU, lineT, lineH));
 
         const isPrimeLineU = isPrimeExpand(lineU);
-        const isPrimeLineT = lineT !== lineU && isPrimeExpand(lineT);
-        const isPrimeLineH = lineH !== lineT && isPrimeExpand(lineH);
+        const isPrimeLineT = isPrimeExpand(lineT);
+        const isPrimeLineH = isPrimeExpand(lineH);
 
         const linePrimes = {};
         if (isPrimeLineU) {
@@ -423,10 +419,31 @@ function isValueVisible(layer, isPrime, filters) {
 function getWordValues(wordData) {
     const { hundreds, tens, units, isPrimeH, isPrimeT, isPrimeU } = wordData;
     const out = [];
-    if (hundreds !== tens) out.push({ value: hundreds, isPrime: isPrimeH, layer: 'H' });
-    if (tens !== units) out.push({ value: tens, isPrime: isPrimeT, layer: 'T' });
+    out.push({ value: hundreds, isPrime: isPrimeH, layer: 'H' });
+    out.push({ value: tens, isPrime: isPrimeT, layer: 'T' });
     out.push({ value: units, isPrime: isPrimeU, layer: 'U' });
     return out;
+}
+
+function getGroupedWordValues(wordData, filters) {
+    const groups = [];
+    const groupsByValue = new Map();
+
+    getWordValues(wordData).forEach((valueData) => {
+        if (!isValueVisible(valueData.layer, valueData.isPrime, filters)) return;
+
+        let group = groupsByValue.get(valueData.value);
+        if (!group) {
+            group = { value: valueData.value, isPrime: false, layers: [] };
+            groupsByValue.set(valueData.value, group);
+            groups.push(group);
+        }
+
+        group.isPrime = group.isPrime || valueData.isPrime;
+        group.layers.push({ layer: valueData.layer, isPrime: valueData.isPrime });
+    });
+
+    return groups;
 }
 
 function isWordVisible(word, filters) {
@@ -447,6 +464,7 @@ export {
     forceHebrewInput,
     getLetterDetails,
     getWordValues,
+    getGroupedWordValues,
     isValueVisible,
     isWordVisible,
     layersMatching,

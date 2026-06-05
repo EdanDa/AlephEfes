@@ -29,3 +29,9 @@ test('formatTextForClipboard avoids duplicating legend if already present', () =
     const input = "א'-אחדות ע'-עשרות מ'-מאות ♢-ראשוני\n---\n\nטקסט";
     assert.equal(formatTextForClipboard(input), input);
 });
+
+
+test('formatTextForClipboard shortens long separator runs', () => {
+    const output = formatTextForClipboard('כותרת\n-------------------\nטקסט');
+    assert.equal(output, "א'-אחדות ע'-עשרות מ'-מאות ♢-ראשוני\n---\n\nכותרת\n---\nטקסט");
+});

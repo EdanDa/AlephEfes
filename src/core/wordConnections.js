@@ -1,20 +1,12 @@
 const LAYER_FLAG = Object.freeze({ U: 1, T: 2, H: 4 });
 
 function getWordLayerMasks(wordData) {
-    let availableMask = LAYER_FLAG.U;
-    let primeMask = wordData.isPrimeU ? LAYER_FLAG.U : 0;
+    let primeMask = 0;
+    if (wordData.isPrimeU) primeMask |= LAYER_FLAG.U;
+    if (wordData.isPrimeT) primeMask |= LAYER_FLAG.T;
+    if (wordData.isPrimeH) primeMask |= LAYER_FLAG.H;
 
-    if (wordData.tens !== wordData.units) {
-        availableMask |= LAYER_FLAG.T;
-        if (wordData.isPrimeT) primeMask |= LAYER_FLAG.T;
-    }
-
-    if (wordData.hundreds !== wordData.tens) {
-        availableMask |= LAYER_FLAG.H;
-        if (wordData.isPrimeH) primeMask |= LAYER_FLAG.H;
-    }
-
-    return { availableMask, primeMask };
+    return { availableMask: LAYER_FLAG.U | LAYER_FLAG.T | LAYER_FLAG.H, primeMask };
 }
 
 function getFilterMask(filters) {
@@ -46,7 +38,7 @@ export function buildWordConnectionIndex(words, filters) {
         const visibleValues = getVisibleValuesForWord(wordData, filters);
         visibleValuesByWord.set(wordData.word, visibleValues);
 
-        visibleValues.forEach((value) => {
+        new Set(visibleValues).forEach((value) => {
             if (!wordsByVisibleValue.has(value)) wordsByVisibleValue.set(value, []);
             wordsByVisibleValue.get(value).push(wordData.word);
         });

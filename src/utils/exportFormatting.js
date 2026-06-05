@@ -11,7 +11,7 @@ export const COPY_LAYER_LEGEND = "א'-אחדות ע'-עשרות מ'-מאות";
 export const COPY_PRIME_LEGEND = "♢-ראשוני";
 
 export function formatTextForClipboard(text) {
-  const cleaned = stripTrailingSpacesPerLine(text);
+  const cleaned = stripTrailingSpacesPerLine(text).replace(/-{4,}/g, '---');
   if (!cleaned) return '';
 
   const normalized = cleaned.trimStart();

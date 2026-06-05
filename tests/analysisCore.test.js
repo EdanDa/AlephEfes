@@ -4,9 +4,11 @@ import {
     buildLetterTable,
     computeCoreResults,
     forceHebrewInput,
+    getGroupedWordValues,
     getWordValues,
     isValueVisible,
     isWordVisible,
+    availableLayers,
 } from '../src/core/analysisCore.js';
 
 test('buildLetterTable maps aleph correctly per mode', () => {
@@ -41,7 +43,7 @@ test('computeCoreResults returns stable totals and distributions', () => {
     assert.equal(results.allWords.length, 2);
 
     const distributionTotal = results.drDistribution.reduce((sum, count) => sum + count, 0);
-    assert.equal(distributionTotal, results.totalWordCount);
+    assert.equal(distributionTotal, results.allWords.length);
 
     assert.ok(results.grandTotals.units > 0);
     assert.ok(results.wordCounts.get('אבג') >= 2);
@@ -66,4 +68,46 @@ test('visibility helpers respect layer and prime toggles', () => {
     assert.equal(isValueVisible('U', true, filtersAll), true);
     assert.equal(isValueVisible('T', false, filtersPrimeOnly), false);
     assert.equal(isWordVisible(wordData, filtersPrimeOnly), true);
+});
+
+
+test('ditto-equivalent values remain available when the source layer is hidden', () => {
+    const wordData = {
+        units: 5,
+        tens: 5,
+        hundreds: 5,
+        isPrimeU: true,
+        isPrimeT: true,
+        isPrimeH: true,
+    };
+
+    assert.deepEqual(availableLayers(wordData), ['U', 'T', 'H']);
+    assert.deepEqual(getWordValues(wordData), [
+        { value: 5, isPrime: true, layer: 'H' },
+        { value: 5, isPrime: true, layer: 'T' },
+        { value: 5, isPrime: true, layer: 'U' },
+    ]);
+    assert.equal(isWordVisible(wordData, { U: false, T: true, H: false, Prime: true }), true);
+});
+
+
+test('getGroupedWordValues collapses duplicate visible values while preserving layer symbols', () => {
+    const wordData = {
+        units: 37,
+        tens: 145,
+        hundreds: 145,
+        isPrimeU: true,
+        isPrimeT: false,
+        isPrimeH: false,
+    };
+
+    assert.deepEqual(getGroupedWordValues(wordData, { U: true, T: true, H: true, Prime: false }), [
+        { value: 145, isPrime: false, layers: [{ layer: 'H', isPrime: false }, { layer: 'T', isPrime: false }] },
+        { value: 37, isPrime: true, layers: [{ layer: 'U', isPrime: true }] },
+    ]);
+
+    assert.deepEqual(getGroupedWordValues(wordData, { U: true, T: false, H: true, Prime: false }), [
+        { value: 145, isPrime: false, layers: [{ layer: 'H', isPrime: false }] },
+        { value: 37, isPrime: true, layers: [{ layer: 'U', isPrime: true }] },
+    ]);
 });

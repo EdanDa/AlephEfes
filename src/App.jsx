@@ -13,6 +13,7 @@ import {
     buildLetterTable,
     forceHebrewInput,
     getLetterDetails,
+    getGroupedWordValues,
     getWordValues,
     isValueVisible,
     isWordVisible,
@@ -29,13 +30,14 @@ import {
 } from './core/searchInput';
 import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
 import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
-import { getConnectionValues } from './core/wordConnections';
+import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues } from './core/wordConnections';
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
 // -----------------------------------------------------------------------------
 const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
+const EMPTY_SET = new Set();
 
 // Backward-compatible hook aliases for older/local bundles that referenced previous names.
 function useAppCoreState() {
@@ -383,15 +385,17 @@ const Legend = React.memo(() => {
     );
 });
 
-const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
+const ValueCell = memo(({ value, isPrimeFlag, previousValue, previousLayer, previousIsPrimeFlag, layer, isApplicable = true, primeColor, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
     // .selectable ensures numbers can be copied
     const className = `px-4 py-3 text-center tabular-nums selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-700 dark:text-gray-300'}`;
     
     if (!isApplicable) return <td className={className}>-</td>;
-    if (!isVisible) return <td className={className}></td>; 
-    if (value === previousValue) return <td className={className}>〃</td>;
+    if (!isVisible) return <td className={className}></td>;
+
+    const previousVisible = previousLayer ? isValueVisible(previousLayer, previousIsPrimeFlag, filters) : false;
+    if (value === previousValue && previousVisible) return <td className={className}>〃</td>;
     return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
 });
 
@@ -408,49 +412,48 @@ const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filter
 
 const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValues, hoveredWord, primeColor, filters }) => {
     const primeColorClasses = COLOR_PALETTE[primeColor];
-    const values = getWordValues(wordData);
-    
+    const groupedValues = getGroupedWordValues(wordData, filters);
+    const connectionValueSet = connectionValues || EMPTY_SET;
+
+    const getSourceLayer = (src, val) => {
+        const avail = availableLayers(src);
+        // Priority H > T > U to determine dominant color if value exists in multiple source layers.
+        if (avail.includes('H') && src.hundreds === val) return 'H';
+        if (avail.includes('T') && src.tens === val) return 'T';
+        if (avail.includes('U') && src.units === val) return 'U';
+        return null;
+    };
+
+    const renderLayerSymbol = (layer, iconStroke, iconFill) => {
+        if (layer === 'U') return <svg width="14" height="12" viewBox="0 0 14 12" fill={iconFill} xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke={iconStroke} strokeWidth="2" strokeLinejoin="round"/></svg>;
+        if (layer === 'T') return <div className="w-3 h-3 border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
+        return <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
+    };
+
     return (
         <div className={`grid grid-flow-col auto-cols-max gap-x-2 text-xs font-mono tracking-wider justify-center ${isDarkMode ? 'text-gray-300' : 'text-slate-700'}`}>
-            {values.map((v, i) => {
-                const L = v.layer;
-                const isVisible = isValueVisible(L, v.isPrime, filters);
-                if (!isVisible) return null;
+            {groupedValues.map((group) => (
+                <div key={group.value} className="flex flex-col items-center noselect">
+                    <span className={group.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{group.value}{group.isPrime && '♢'}</span>
+                    <div className="mt-0.5 flex items-center justify-center gap-1 min-h-3">
+                        {group.layers.map(({ layer }) => {
+                            // 'matches' contains layers from the TARGET word that match the ACTIVE word.
+                            const isHit = hoveredWord && connectionValueSet.has(group.value) && matches.includes(layer);
+                            const srcLayer = isHit ? getSourceLayer(hoveredWord, group.value) : null;
+                            const dotColor = srcLayer ? LAYER_COLORS[srcLayer].dot : null;
+                            // Restored layer-colored icons logic for connections.
+                            const iconStroke = dotColor || (isDarkMode ? '#ffffff60' : '#00000040');
+                            const iconFill = dotColor || 'transparent';
 
-                // 'matches' contains layers from the TARGET word that match the ACTIVE word.
-                const isHit = hoveredWord && connectionValues.has(v.value) && matches.includes(L);
-                
-                let dotColor = null;
-                if (isHit) {
-                    // Determine the Source Layer Color (the layer in the ACTIVE word that this value belongs to)
-                    const getSourceLayer = (src, val) => {
-                         const avail = availableLayers(src);
-                         // Priority H > T > U to determine dominant color if value exists in multiple source layers
-                         if (avail.includes('H') && src.hundreds === val) return 'H';
-                         if (avail.includes('T') && src.tens === val) return 'T';
-                         if (avail.includes('U') && src.units === val) return 'U';
-                         return null;
-                    };
-                    const srcLayer = getSourceLayer(hoveredWord, v.value);
-                    if (srcLayer) dotColor = LAYER_COLORS[srcLayer].dot;
-                }
-                
-                let symbol;
-                // Restored layer-colored icons logic for connections
-                const iconStroke = dotColor || (isDarkMode ? '#ffffff60' : '#00000040');
-                const iconFill = dotColor || 'transparent';
-
-                if (L === 'U') symbol = <svg width="14" height="12" viewBox="0 0 14 12" fill={iconFill} xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke={iconStroke} strokeWidth="2" strokeLinejoin="round"/></svg>;
-                else if (L === 'T') symbol = <div className="w-3 h-3 border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
-                else symbol = <div className="w-3 h-3 rounded-full border-2" style={{ borderColor: iconStroke, background: iconFill }}></div>;
-
-                return (
-                    <div key={i} className="flex flex-col items-center noselect">
-                        <span className={v.isPrime ? `${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>{v.value}{v.isPrime && '♢'}</span>
-                        <div className="mt-0.5 flex items-center justify-center h-3 w-3.5">{symbol}</div>
+                            return (
+                                <div key={layer} className="flex items-center justify-center h-3 w-3.5">
+                                    {renderLayerSymbol(layer, iconStroke, iconFill)}
+                                </div>
+                            );
+                        })}
                     </div>
-                );
-            })}
+                </div>
+            ))}
         </div>
     );
 });
@@ -586,7 +589,7 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues, dispatch, filters }) => {
+const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues = EMPTY_SET, dispatch, filters }) => {
     const isSelf = activeWord && activeWord.word === wordData.word;
     
     // Background color determination (for connected words)
@@ -688,7 +691,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     return true;
 });
 
-const computeConnectedWordsSet = (activeWord, wordsByVisibleValue, visibleValuesByWord, cacheRef) => {
+const computeConnectedWordsSet = (activeWord, wordsByVisibleValue = new Map(), visibleValuesByWord = new Map(), cacheRef) => {
     if (!activeWord) return new Set();
 
     const cache = cacheRef?.current;
@@ -2449,18 +2452,24 @@ const App = () => {
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
 
-    const visibleHotWords = useMemo(() => hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters)), [hotWordsList, deferredFilters]);
-
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
         if (view !== 'hot-words') return new Map();
         const map = new Map();
         for (const [value, words] of valueToWordsMap.entries()) {
-            const visible = words.filter(isVisibleWord);
+            const visible = words.filter((wordData) => (
+                isVisibleWord(wordData)
+                && getWordValues(wordData).some((valueData) => valueData.value === value && isValueVisible(valueData.layer, valueData.isPrime, deferredFilters))
+            ));
             if (visible.length > 0) map.set(value, visible);
         }
         return map;
-    }, [valueToWordsMap, isVisibleWord, view]);
+    }, [valueToWordsMap, isVisibleWord, view, deferredFilters]);
+
+    const visibleHotWords = useMemo(() => {
+        if (selectedHotValue !== null) return visibleValueToWordsMap.get(selectedHotValue) || [];
+        return hotWordsList.filter((wordData) => isWordVisible(wordData, deferredFilters));
+    }, [selectedHotValue, visibleValueToWordsMap, hotWordsList, deferredFilters]);
 
     const hotValuesList = useMemo(() => {
         if (!visibleValueToWordsMap) return [];
@@ -2503,12 +2512,12 @@ const App = () => {
 
     const { wordsByVisibleValue: hotWordsByVisibleValue, visibleValuesByWord: hotVisibleValuesByWord } = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return { wordsByVisibleValue: new Map(), visibleValuesByWord: new Map() };
-        return buildWordConnectionIndex(visibleHotWords, deferredFilters);
+        return buildVisibleWordConnectionIndex(visibleHotWords, deferredFilters);
     }, [view, selectedHotValue, visibleHotWords, deferredFilters]);
 
     const hotConnectedWordsSet = useMemo(() => {
         if (view !== 'hot-words' || selectedHotValue === null) return new Set();
-        return computeConnectedWordsSet(activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue);
+        return computeConnectedWordsSet(activeWord, hotWordsByVisibleValue, hotVisibleValuesByWord);
     }, [view, selectedHotValue, activeWord, hotVisibleValuesByWord, hotWordsByVisibleValue]);
 
     const filteredWordsInView = useMemo(() => {
@@ -2582,8 +2591,8 @@ const App = () => {
         
         // ... Grand Totals logic remains same ...
         if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ א: ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
-        if (coreResults.grandTotals.tens !== coreResults.grandTotals.units && isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
-        if (coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
+        if (isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
+        if (isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
         lines.push(`ש"ד כללי: ${coreResults.grandTotals.dr}\n`);
 
         if (detailsView === 'words') {
@@ -2592,8 +2601,8 @@ const App = () => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
                 if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`א: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
-                if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
-                if (w.hundreds !== w.tens && isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
+                if (isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
+                if (isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
                 lines.push(`- ${w.word}: ${calc} | ${valuesArr.join(' | ')} | ש"ד: ${w.dr}`);
              });
              return lines.join('\n');
@@ -2611,8 +2620,8 @@ const App = () => {
                 
                 let valuesArr = [];
                 if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`א: ${wordData.units}${primeU}`);
-                if (wordData.tens !== wordData.units && isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
-                if (wordData.hundreds !== wordData.tens && isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
+                if (isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
+                if (isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
                 
                 const valuesString = valuesArr.join(' | ');
                 lines.push(`  - ${wordData.word}: ${calculation} | ${valuesString} | ש"ד: ${wordData.dr}`);
@@ -2620,8 +2629,8 @@ const App = () => {
             // ... Line totals logic ...
             const lineValues = [];
             if (isValueVisible('U', line.isPrimeTotals.U, filters)) lineValues.push(`א=${line.totals.units}${primeMarker(line.isPrimeTotals.U)}`);
-            if (line.lineMaxLayer !== 'U' && line.totals.tens !== line.totals.units && isValueVisible('T', line.isPrimeTotals.T, filters)) lineValues.push(`ע=${line.totals.tens}${primeMarker(line.isPrimeTotals.T)}`);
-            if (line.lineMaxLayer === 'H' && line.totals.hundreds !== line.totals.tens && isValueVisible('H', line.isPrimeTotals.H, filters)) lineValues.push(`מ=${line.totals.hundreds}${primeMarker(line.isPrimeTotals.H)}`);
+            if (isValueVisible('T', line.isPrimeTotals.T, filters)) lineValues.push(`ע=${line.totals.tens}${primeMarker(line.isPrimeTotals.T)}`);
+            if (isValueVisible('H', line.isPrimeTotals.H, filters)) lineValues.push(`מ=${line.totals.hundreds}${primeMarker(line.isPrimeTotals.H)}`);
             const lineWordCount = line.words.length;
             const wordsSuffix = lineWordCount > 1 ? ` (${lineWordCount} מילים)` : '';
             lineValues.push(`ש"ד=${line.totalsDR}${wordsSuffix}`);
@@ -2672,8 +2681,8 @@ const App = () => {
         const formatWord = (wordData) => {
             const values = [];
             if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`א: ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
-            if (wordData.maxLayer !== 'U' && wordData.tens !== wordData.units && isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
-            if (wordData.maxLayer === 'H' && wordData.hundreds !== wordData.tens && isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
+            if (isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
+            if (isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
             if (values.length === 0) return null; 
             return `- ${wordData.word} (${values.join(', ')})`;
         };
@@ -2718,9 +2727,9 @@ const App = () => {
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
         visibleHotWords.forEach(w => {
             let parts = [];
-            if(isValueVisible('U', w.isPrimeU, filters)) parts.push(`א: ${w.units}${primeU(w)}`);
-            if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
-            if (w.hundreds !== w.tens && isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
+            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`א: ${w.units}${primeU(w)}`);
+            if (isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
+            if (isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
             const valuesString = parts.join(' | ');
             lines.push(`${w.word} | ${valuesString} | ש"ד: ${w.dr}`);
         });
@@ -2972,8 +2981,8 @@ const App = () => {
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
-                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
-                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
@@ -3042,8 +3051,8 @@ const App = () => {
                                                     {showTotalsLine && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {lineResult.words.length > 1 && <span className="mx-2">({lineResult.words.length} מילים)</span>}
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
-                                                        {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
-                                                        {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
+                                                        {isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
+                                                        {isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
                                                         <span className="mx-2">ש"ד={lineResult.totalsDR}</span>
                                                     </div>}
                                                 </button>
@@ -3065,8 +3074,8 @@ const App = () => {
                                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
-                                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
+                                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
+                                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
                                                                     <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                                 </tr>
                                                             ))}</tbody>
@@ -3106,8 +3115,8 @@ const App = () => {
                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
-                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
+                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
+                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
                                                     <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                 </tr>
                                             ))}</tbody>
