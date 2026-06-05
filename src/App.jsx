@@ -383,15 +383,17 @@ const Legend = React.memo(() => {
     );
 });
 
-const ValueCell = memo(({ value, isPrimeFlag, previousValue, layer, isApplicable = true, primeColor, filters }) => {
+const ValueCell = memo(({ value, isPrimeFlag, previousValue, previousLayer, previousIsPrimeFlag, layer, isApplicable = true, primeColor, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
     const primeColorClasses = COLOR_PALETTE[primeColor];
     // .selectable ensures numbers can be copied
     const className = `px-4 py-3 text-center tabular-nums selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-700 dark:text-gray-300'}`;
     
     if (!isApplicable) return <td className={className}>-</td>;
-    if (!isVisible) return <td className={className}></td>; 
-    if (value === previousValue) return <td className={className}>〃</td>;
+    if (!isVisible) return <td className={className}></td>;
+
+    const previousVisible = previousLayer ? isValueVisible(previousLayer, previousIsPrimeFlag, filters) : false;
+    if (value === previousValue && previousVisible) return <td className={className}>〃</td>;
     return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
 });
 
@@ -2582,8 +2584,8 @@ const App = () => {
         
         // ... Grand Totals logic remains same ...
         if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ א: ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
-        if (coreResults.grandTotals.tens !== coreResults.grandTotals.units && isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
-        if (coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
+        if (isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
+        if (isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
         lines.push(`ש"ד כללי: ${coreResults.grandTotals.dr}\n`);
 
         if (detailsView === 'words') {
@@ -2592,8 +2594,8 @@ const App = () => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
                 if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`א: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
-                if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
-                if (w.hundreds !== w.tens && isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
+                if (isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
+                if (isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
                 lines.push(`- ${w.word}: ${calc} | ${valuesArr.join(' | ')} | ש"ד: ${w.dr}`);
              });
              return lines.join('\n');
@@ -2611,8 +2613,8 @@ const App = () => {
                 
                 let valuesArr = [];
                 if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`א: ${wordData.units}${primeU}`);
-                if (wordData.tens !== wordData.units && isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
-                if (wordData.hundreds !== wordData.tens && isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
+                if (isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
+                if (isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
                 
                 const valuesString = valuesArr.join(' | ');
                 lines.push(`  - ${wordData.word}: ${calculation} | ${valuesString} | ש"ד: ${wordData.dr}`);
@@ -2620,8 +2622,8 @@ const App = () => {
             // ... Line totals logic ...
             const lineValues = [];
             if (isValueVisible('U', line.isPrimeTotals.U, filters)) lineValues.push(`א=${line.totals.units}${primeMarker(line.isPrimeTotals.U)}`);
-            if (line.lineMaxLayer !== 'U' && line.totals.tens !== line.totals.units && isValueVisible('T', line.isPrimeTotals.T, filters)) lineValues.push(`ע=${line.totals.tens}${primeMarker(line.isPrimeTotals.T)}`);
-            if (line.lineMaxLayer === 'H' && line.totals.hundreds !== line.totals.tens && isValueVisible('H', line.isPrimeTotals.H, filters)) lineValues.push(`מ=${line.totals.hundreds}${primeMarker(line.isPrimeTotals.H)}`);
+            if (isValueVisible('T', line.isPrimeTotals.T, filters)) lineValues.push(`ע=${line.totals.tens}${primeMarker(line.isPrimeTotals.T)}`);
+            if (isValueVisible('H', line.isPrimeTotals.H, filters)) lineValues.push(`מ=${line.totals.hundreds}${primeMarker(line.isPrimeTotals.H)}`);
             const lineWordCount = line.words.length;
             const wordsSuffix = lineWordCount > 1 ? ` (${lineWordCount} מילים)` : '';
             lineValues.push(`ש"ד=${line.totalsDR}${wordsSuffix}`);
@@ -2672,8 +2674,8 @@ const App = () => {
         const formatWord = (wordData) => {
             const values = [];
             if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`א: ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
-            if (wordData.maxLayer !== 'U' && wordData.tens !== wordData.units && isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
-            if (wordData.maxLayer === 'H' && wordData.hundreds !== wordData.tens && isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
+            if (isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
+            if (isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
             if (values.length === 0) return null; 
             return `- ${wordData.word} (${values.join(', ')})`;
         };
@@ -2718,9 +2720,9 @@ const App = () => {
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
         visibleHotWords.forEach(w => {
             let parts = [];
-            if(isValueVisible('U', w.isPrimeU, filters)) parts.push(`א: ${w.units}${primeU(w)}`);
-            if (w.tens !== w.units && isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
-            if (w.hundreds !== w.tens && isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
+            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`א: ${w.units}${primeU(w)}`);
+            if (isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
+            if (isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
             const valuesString = parts.join(' | ');
             lines.push(`${w.word} | ${valuesString} | ש"ד: ${w.dr}`);
         });
@@ -2972,8 +2974,8 @@ const App = () => {
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
-                                                {coreResults.grandTotals.tens !== coreResults.grandTotals.units && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>}
-                                                {coreResults.grandTotals.hundreds !== coreResults.grandTotals.tens && <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>}
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
                                             </div>
                                         </div>
@@ -3042,8 +3044,8 @@ const App = () => {
                                                     {showTotalsLine && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
                                                         {lineResult.words.length > 1 && <span className="mx-2">({lineResult.words.length} מילים)</span>}
                                                         {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
-                                                        {lineResult.totals.tens !== lineResult.totals.units && isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
-                                                        {lineResult.totals.hundreds !== lineResult.totals.tens && isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
+                                                        {isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
+                                                        {isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
                                                         <span className="mx-2">ש"ד={lineResult.totalsDR}</span>
                                                     </div>}
                                                 </button>
@@ -3065,8 +3067,8 @@ const App = () => {
                                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
-                                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
+                                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
+                                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
                                                                     <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                                 </tr>
                                                             ))}</tbody>
@@ -3106,8 +3108,8 @@ const App = () => {
                                                     <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} primeColor={primeColor} layer="T" filters={filters} />}
-                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} primeColor={primeColor} layer="H" filters={filters} />}
+                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
+                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
                                                     <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
                                                 </tr>
                                             ))}</tbody>

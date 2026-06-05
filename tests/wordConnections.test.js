@@ -33,18 +33,18 @@ const wordC = {
 };
 
 test('getVisibleValuesForWord respects layer and Prime filters', () => {
-    assert.deepEqual(getVisibleValuesForWord(wordA, { U: true, T: true, H: true, Prime: false }), [14, 5]);
+    assert.deepEqual(getVisibleValuesForWord(wordA, { U: true, T: true, H: true, Prime: false }), [14, 14, 5]);
     assert.deepEqual(getVisibleValuesForWord(wordA, { U: true, T: true, H: true, Prime: true }), [5]);
     assert.deepEqual(getVisibleValuesForWord(wordB, { U: false, T: false, H: true, Prime: true }), [104]);
-    assert.deepEqual(getVisibleValuesForWord(wordB, { U: false, T: true, H: false, Prime: false }), []);
+    assert.deepEqual(getVisibleValuesForWord(wordB, { U: false, T: true, H: false, Prime: false }), [14]);
 });
 
 test('buildWordConnectionIndex builds lookup maps for visible values', () => {
     const { wordsByVisibleValue, visibleValuesByWord } = buildWordConnectionIndex([wordA, wordB, wordC], { U: true, T: true, H: true, Prime: false });
 
-    assert.deepEqual(visibleValuesByWord.get('אב'), [14, 5]);
-    assert.deepEqual(visibleValuesByWord.get('גד'), [104, 14]);
-    assert.deepEqual(visibleValuesByWord.get('הו'), [20]);
+    assert.deepEqual(visibleValuesByWord.get('אב'), [14, 14, 5]);
+    assert.deepEqual(visibleValuesByWord.get('גד'), [104, 14, 14]);
+    assert.deepEqual(visibleValuesByWord.get('הו'), [20, 20, 20]);
 
     assert.deepEqual(wordsByVisibleValue.get(14), ['אב', 'גד']);
     assert.deepEqual(wordsByVisibleValue.get(5), ['אב']);

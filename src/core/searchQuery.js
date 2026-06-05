@@ -2,8 +2,8 @@ function getVisibleNumericValues(wordData, filters) {
     const values = [];
 
     if (filters.U) values.push(wordData.units);
-    if (filters.T && wordData.tens !== wordData.units) values.push(wordData.tens);
-    if (filters.H && wordData.hundreds !== wordData.tens) values.push(wordData.hundreds);
+    if (filters.T) values.push(wordData.tens);
+    if (filters.H) values.push(wordData.hundreds);
 
     return values;
 }

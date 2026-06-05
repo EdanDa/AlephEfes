@@ -56,3 +56,10 @@ test('normalizeSearchInput keeps plus groups numeric-only', () => {
     assert.equal(normalizeSearchInput('20++11'), '20+11');
     assert.equal(normalizeSearchInput('אש+20'), 'אש');
 });
+
+
+test('numeric matching treats ditto-equivalent values as present in each active layer', () => {
+    const equalLayerWord = { word: 'ב', units: 5, tens: 5, hundreds: 5 };
+    assert.equal(matchesSearchQuery(equalLayerWord, '5', { U: false, T: true, H: false, Prime: false }), true);
+    assert.equal(matchesSearchQuery(equalLayerWord, '5', { U: false, T: false, H: true, Prime: false }), true);
+});
