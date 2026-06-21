@@ -464,19 +464,11 @@ The 22 basin includes and connects:
 
 This creates a basin of being, selfhood, negation, command, knowledge, testimony, redemption, generation, and relational attachment.
 
-Especially important:
-
-```text
-אין = אני
-```
-
-Negation and selfhood share the same basin. This sits beside יהוה=22 and makes 22 a field of being/non-being, self-reference, divine name, command, and canonical speech.
-
 ### 49: seven squared, text, language, fear, law, and threshold
 
 49 is not only 7². It is a threshold number.
 
-It gathers forms such as:
+It connects forms such as:
 
 ```text
 אין / אני through 22→49
@@ -532,6 +524,8 @@ This basin connects sun, cycle, lordship, balance, wisdom, song, storm, rightnes
 ```text
 אנכי in T
 מלכות
+כתרי
+משיק
 לויתן
 האתנים
 ישראל
@@ -542,25 +536,6 @@ This basin connects sun, cycle, lordship, balance, wisdom, song, storm, rightnes
 שרש
 קשת
 ```
-
-Especially important:
-
-```text
-ישראל = 59 / 239
-בריתי = 59 / 239
-```
-
-This is not only a shared value. It is a covenantal identity field.
-
-Also:
-
-```text
-מלכות = 365 in H
-עשור / עושר / שעור = 365 in H
-```
-
-So 59 expands into solar-year scale through kingdom, wealth, measure, and tenth-cycle vocabulary.
-
 ---
 
 ## 8) Cross-layer coherence and structural units
@@ -582,92 +557,7 @@ First occurrence of יהוה appears at word 52
 הארץ appears 5 times
 ```
 
-Babel is therefore not merely a story about language confusion. It is a textual unit about the collapse of a unified symbolic-operational regime.
-
-The unit begins with:
-
-```text
-שפה אחת ודברים אחדים
-```
-
-This does not describe only a shared spoken language. It describes a unified regime of speech, matters, words, commands, records, and symbolic operation.
-
-The human project tries to convert that unity into:
-
-```text
-city
-tower
-heavens
-name
-anti-dispersion
-```
-
-יהוה breaks the operating layer itself:
-
-```text
-ונבלה שם שפתם
-```
-
-Important internal structures include:
-
-```text
-בבל = 13 / 22 / 22
-```
-
-Babel is not inside the 22-core the way יהוה is. It enters 22 through higher layers. It is a broken gate into the יהוה-governed 22 field.
-
-The repeated phrase:
-
-```text
-על פני כל הארץ
-```
-
-appears as the human fear, the divine execution, and the final closure.
-
-The word:
-
-```text
-שם
-```
-
-moves through place, name, reputation, site of confusion, and etiology:
-
-```text
-וישבו שם
-ונעשה לנו שם
-ונבלה שם שפתם
-כי שם בלל יהוה
-```
-
-The phrase-level reversal is also exact:
-
-```text
-ויאמרו איש אל רעהו
-```
-
-becomes:
-
-```text
-אשר לא ישמעו איש שפת רעהו
-```
-
-Under א=0:
-
-```text
-אל = לא
-```
-
-So communicative direction becomes communicative negation without value change.
-
-Another self-pointing structure:
-
-```text
-וזה החלם לעשות = 121 in U
-```
-
-The phrase diagnosing the beginning of human action carries the word-count value of the whole Babel unit.
-
-Babel therefore operates as a full structural demonstration of the project’s claim: language, name, place, authority, divine descent, human centrality, and dispersion are organized through value, position, repetition, and reversal.
+Babel is therefore not merely a story about language confusion. It is a textual unit about the collapse of a unified symbolic-operational regime. This does not describe only a shared spoken language. It describes a unified regime of speech, matters, words, commands, records, and symbolic operation. Babel therefore operates as a full structural demonstration of the project’s claim: language, name, place, authority, divine descent, human centrality, and dispersion are organized through value, position, repetition, and reversal.
 
 ### Genesis 1 / The seven-day unit
 
@@ -690,11 +580,21 @@ Day 1 of the defining cycle that creates the framework for 52 weeks opens with a
 
 ```text
 first word → 7
-day total → 7
+day digital root → 7
 word count 52 → 7
 ```
 
-The full week closes on digital-root 3, aligning with the fourth day, the center of the seven-day structure, on which the sun, moon, signs, seasons, days, and years are introduced in the text.
+Day 7 of the defining cycle that creates the framework for 7 days a week closes with:
+
+```text
+no digital root 7 in the individual words
+day digital root → 8
+word count 35 → 8
+35 occurances of "אלהים" in all 7 days
+3 occurances of "מלאכתו", which equals 365 in the hunderds layer
+```
+
+The full week closes on digital-root 3, aligning with the fourth day, the center of the seven-day structure, on which the sun, moon, signs, seasons, days, and years are introduced in the text. The word "מארת" which appears in the fourth day has the value 52 in the units layer.
 
 ### Genesis 23 / Sarah, Heth, burial, and 127
 
@@ -809,8 +709,7 @@ Any shift therefore introduces a length-multiplier term and repositions value ne
 The working thesis of this repository is:
 
 ```text
-א=0 is not gematria.
-It is a zero-indexed theory of canonical orthographic transformation.
+א=0 is a zero-indexed theory of canonical orthographic transformation.
 ```
 
 The Hebrew Bible preserves a major deployment of a symbolic technology in which:
@@ -829,11 +728,7 @@ and canonical memory
 
 operate together.
 
-This technology appears to have emerged from ancient scribal cultures that already knew how to bind number, sky, god, king, law, archive, ritual, and calendar into public symbolic systems.
-
-Under this hypothesis, א=0 is not an arbitrary modern overlay. It is a reconstruction of an older coordinate logic: a way in which the alphabet was made to carry world-order.
-
-The deepest claim is not that numbers hide meanings inside words. The claim is that ancient scribes engineered a public symbolic medium in which word, number, name, calendar, and authority were compressed into one transmissible form.
+This technology appears to have emerged from ancient scribal cultures. It is a reconstruction of an older coordinate logic: a way in which the alphabet was made to carry world-order. The deepest claim is that ancient scribes engineered a public symbolic medium in which word, number, name, calendar, and authority were compressed into one transmissible form.
 
 ```text
 יהוה = 22
