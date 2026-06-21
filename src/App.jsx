@@ -129,6 +129,273 @@ const GlobalStyles = () => (
             direction: rtl;
             text-align: right;
         }
+
+        .app-title {
+            font-size: 3rem;
+            line-height: 0.95;
+        }
+        .app-header-actions,
+        .app-input-toolbar,
+        .app-legend-items {
+            min-width: 0;
+        }
+        @media (max-width: 640px) {
+            .app-shell {
+                padding: 1rem 0.875rem 1.5rem;
+                overflow-x: hidden;
+            }
+            .app-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-header-copy {
+                max-width: 100%;
+            }
+            .app-title {
+                font-size: clamp(2.65rem, 17vw, 4rem);
+                overflow-wrap: anywhere;
+            }
+            .app-subtitle {
+                font-size: 1.125rem;
+                line-height: 1.55;
+                max-width: 12rem;
+            }
+            .app-header-actions {
+                align-self: stretch;
+                display: grid;
+                grid-template-columns: 1fr auto auto;
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .app-legend {
+                min-width: 0;
+                overflow-x: auto;
+                overflow-y: visible;
+                padding-bottom: 0.125rem;
+                scrollbar-width: none;
+            }
+            .app-legend::-webkit-scrollbar {
+                display: none;
+            }
+            .app-legend-items {
+                width: max-content;
+                max-width: none;
+            }
+            .app-card {
+                padding: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-input-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+            .app-mode-toggle {
+                order: 1;
+            }
+            .app-text-size-control {
+                order: 2;
+            }
+            .app-clear-control {
+                flex-basis: 100%;
+                justify-content: center;
+                order: 3;
+            }
+
+            .app-header {
+                text-align: right;
+            }
+            .app-title {
+                font-size: clamp(2.5rem, 14vw, 3.5rem);
+                line-height: 0.95;
+                white-space: nowrap;
+            }
+            .app-subtitle {
+                max-width: 100%;
+            }
+            .app-header-actions {
+                align-self: stretch;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 0.75rem;
+                width: 100%;
+            }
+            .app-legend {
+                flex: 0 0 100%;
+                order: 2;
+            }
+            .app-header-actions > :not(.app-legend) {
+                order: 1;
+            }
+            .app-legend-items {
+                max-width: 100%;
+            }
+            .app-card,
+            .app-results-card,
+            .app-distribution-card {
+                padding: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-results-header {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 0.875rem;
+            }
+            .app-results-header > .flex-1,
+            .app-results-header > .flex-none {
+                flex: none;
+                width: 100%;
+            }
+            .app-results-title {
+                font-size: clamp(1.7rem, 8vw, 2.25rem);
+                line-height: 1.15;
+            }
+            .app-export-toolbar {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .app-export-toolbar button {
+                justify-content: center;
+                min-height: 3rem;
+                padding: 0.5rem;
+                white-space: normal;
+            }
+            .app-distribution-card .app-results-header {
+                align-items: center;
+            }
+            .app-dr-row {
+                height: auto;
+                min-height: 6rem;
+                justify-content: flex-start;
+                gap: 0.35rem;
+                overflow-x: auto;
+                padding: 0.5rem;
+                scrollbar-width: none;
+            }
+            .app-dr-row::-webkit-scrollbar {
+                display: none;
+            }
+            .app-dr-item {
+                flex: 0 0 4.25rem;
+                width: 4.25rem;
+            }
+            .app-view-nav {
+                bottom: 0;
+                margin: 1.25rem -0.875rem 1.5rem;
+                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+                top: auto;
+            }
+            .app-view-tabs {
+                border-radius: 1.25rem;
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                width: 100%;
+            }
+            .app-view-tab {
+                flex-direction: column;
+                font-size: 0.78rem;
+                gap: 0.15rem;
+                justify-content: center;
+                min-width: 0;
+                padding: 0.45rem 0.25rem;
+            }
+            .app-view-tab svg {
+                height: 1rem;
+                width: 1rem;
+            }
+            .app-view-tab-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .app-title {
+                font-size: clamp(2.15rem, 11vw, 3rem);
+                white-space: normal;
+            }
+            .app-subtitle,
+            .app-results-title {
+                font-size: clamp(1.35rem, 6vw, 1.75rem);
+                line-height: 1.25;
+            }
+            .app-legend {
+                overflow: visible;
+            }
+            .app-legend-items {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.45rem;
+                width: 100%;
+                max-width: 100%;
+                padding: 0.5rem;
+            }
+            .app-legend-items > .w-px {
+                display: none;
+            }
+            .app-legend-items button {
+                justify-content: center;
+                min-width: 0;
+                padding: 0.45rem 0.5rem;
+            }
+            .app-value-table-card {
+                padding: 1rem;
+            }
+            .app-value-table-title {
+                font-size: 1.35rem;
+                line-height: 1.25;
+            }
+            .app-value-tables {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .app-value-tables table {
+                max-width: none;
+                font-size: 0.95rem;
+            }
+            .app-value-tables th,
+            .app-value-tables td {
+                padding: 0.45rem;
+            }
+            .app-distribution-card .app-results-title {
+                font-size: clamp(1.45rem, 6vw, 1.9rem);
+            }
+            .app-dr-row {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 0.5rem;
+                min-height: 0;
+                overflow: visible;
+            }
+            .app-dr-item {
+                width: auto;
+                min-width: 0;
+                height: 4.9rem;
+            }
+            .app-dr-label {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.05rem;
+                font-size: 0.95rem;
+                line-height: 1.05;
+                margin-top: 0.1rem;
+            }
+            .app-dr-prefix {
+                font-size: 0.72rem;
+                opacity: 0.75;
+            }
+            .app-view-nav {
+                margin-top: 1rem;
+            }
+            .app-textarea {
+                padding: 0.875rem;
+            }
+        }
     `}</style>
 );
 
@@ -312,8 +579,8 @@ const Legend = React.memo(() => {
     };
 
     return (
-        <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-            <div className="flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
+        <div className="app-legend relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <div className="app-legend-items flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
@@ -537,7 +804,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
     };
 
     return (
-        <div className="flex gap-2">
+        <div className="app-export-toolbar flex gap-2">
             <button 
                 onClick={handleCopy} 
                 disabled={isCopying}
@@ -778,13 +1045,13 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
 
     
     return (
-        <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} onClick={unpinOnBackgroundClick}>
-            <div className="flex justify-between items-center mb-4">
+        <div className={`app-results-card p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} onClick={unpinOnBackgroundClick}>
+            <div className="app-results-header flex justify-between items-center mb-4">
                 <div className="flex-1 flex justify-start">
                     <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} getJSON={prepareSummaryJSON} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
-                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
+                    <h2 className="app-results-title text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none noselect">
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
                     </div>
@@ -2255,7 +2522,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                 ref={textareaRef}
                 dir="rtl"
                 id="text-input"
-                className={`w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
+                className={`app-textarea w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
                 style={manualHeight !== null ? { height: `${manualHeight}px` } : undefined}
                 rows={MIN_INPUT_ROWS}
                 defaultValue={text}
@@ -2822,15 +3089,15 @@ const App = () => {
     const hasInput = text.trim().length > 0;
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
+        <div dir="rtl" className={`app-shell min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
-                <header className="mb-8 flex justify-between items-center">
-                    <div className="text-right">
-                        <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                <header className="app-header mb-8 flex justify-between items-center">
+                    <div className="app-header-copy text-right">
+                        <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
+                        <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="app-header-actions flex items-center gap-4">
                         <Legend />
                         <div className="relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
@@ -2844,9 +3111,9 @@ const App = () => {
                 </header>
 
                 {isValueTableOpen && (
-                    <div ref={valueTableRef} className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                        <h2 className="text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א:0' : 'א:1'})</h2>
-                        <div className="flex justify-center gap-8">
+                    <div ref={valueTableRef} className={`app-value-table-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                        <h2 className="app-value-table-title text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א:0' : 'א:1'})</h2>
+                        <div className="app-value-tables flex justify-center gap-8">
                             { [0, 11].map(offset => (
                                 <table key={offset} className="text-center w-full max-w-xs"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                     <tr>{['אות', 'אחדות', 'עשרות', 'מאות'].map(header => <th key={header} className="p-2 font-semibold">{header}</th>)}</tr>
@@ -2871,13 +3138,13 @@ const App = () => {
                 <>
                     <StatsPanel />
 
-                    <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
-                            <div className={`flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                    <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
+                        <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
+                            <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
-                            <div className="flex justify-center">
+                            <div className="app-clear-control flex justify-center">
                                 <button
                                     type="button"
                                     onClick={handleClearText}
@@ -2887,7 +3154,7 @@ const App = () => {
                                     אפס
                                 </button>
                             </div>
-                            <label className="flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
+                            <label className="app-text-size-control flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
                                 <span>גופן</span>
                                 <select
                                     dir="rtl"
@@ -2913,13 +3180,13 @@ const App = () => {
                     </div>
 
                     {hasInput && (
-                        <div className="sticky top-3 z-40 flex justify-center my-8">
-                            <div className={`flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
-                                <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
-                                <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                                <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                                <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
-                                <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                        <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
+                            <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
+                                <button onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
+                                <button onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
+                                <button onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
+                                <button onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">גרף</span></button>
+                                <button onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת</span></button>
                             </div>
                         </div>
                     )}
@@ -2927,13 +3194,13 @@ const App = () => {
                     <div ref={viewContentTopRef} />
 
                     {stats && (
-                        <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                            <div className="flex justify-between items-center mb-4 noselect">
+                        <div className={`app-distribution-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                            <div className="app-results-header flex justify-between items-center mb-4 noselect">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
+                                <h3 className="app-results-title text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
-                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                            <div className={`app-dr-row flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
                                 {drOrder.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
@@ -2943,7 +3210,7 @@ const App = () => {
                                     const indicatorSize = hasWords ? 22 + (12 * (hasWords && maxCount > 0 ? Math.pow(count / maxCount, 0.75) : 0)) : 0;
                                     
                                     return (
-                                        <div key={dr} className="flex flex-col items-center w-1/12 h-full justify-center group">
+                                        <div key={dr} className="app-dr-item flex flex-col items-center w-1/12 h-full justify-center group">
                                             <button
                                                 type="button"
                                                 disabled={!hasWords}
@@ -2955,7 +3222,7 @@ const App = () => {
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                                <div className={`app-dr-label font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span><span>{dr}</span></div>
                                             </button>
                                         </div>
                                     );
