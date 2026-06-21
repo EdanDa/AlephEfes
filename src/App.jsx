@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { matchesSearchQuery } from './core/searchQuery';
@@ -3268,6 +3269,7 @@ const App = () => {
                     </div>
                 )}
             </div>
+            <Analytics />
         </div>
     );
 };
