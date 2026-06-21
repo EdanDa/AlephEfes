@@ -129,6 +129,85 @@ const GlobalStyles = () => (
             direction: rtl;
             text-align: right;
         }
+
+        .app-title {
+            font-size: clamp(2.75rem, 12vw, 3rem);
+            line-height: 0.95;
+        }
+        .app-header-actions,
+        .app-input-toolbar,
+        .app-legend-items {
+            min-width: 0;
+        }
+        @media (max-width: 640px) {
+            .app-shell {
+                padding: 1rem 0.875rem 1.5rem;
+                overflow-x: hidden;
+            }
+            .app-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-header-copy {
+                max-width: 100%;
+            }
+            .app-title {
+                font-size: clamp(2.65rem, 17vw, 4rem);
+                overflow-wrap: anywhere;
+            }
+            .app-subtitle {
+                font-size: 1.125rem;
+                line-height: 1.55;
+                max-width: 12rem;
+            }
+            .app-header-actions {
+                align-self: stretch;
+                display: grid;
+                grid-template-columns: 1fr auto auto;
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .app-legend {
+                min-width: 0;
+                overflow-x: auto;
+                overflow-y: visible;
+                padding-bottom: 0.125rem;
+                scrollbar-width: none;
+            }
+            .app-legend::-webkit-scrollbar {
+                display: none;
+            }
+            .app-legend-items {
+                width: max-content;
+                max-width: none;
+            }
+            .app-card {
+                padding: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-input-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                gap: 0.75rem;
+            }
+            .app-mode-toggle {
+                order: 1;
+            }
+            .app-text-size-control {
+                order: 2;
+            }
+            .app-clear-control {
+                flex-basis: 100%;
+                justify-content: center;
+                order: 3;
+            }
+            .app-textarea {
+                padding: 0.875rem;
+            }
+        }
     `}</style>
 );
 
@@ -312,8 +391,8 @@ const Legend = React.memo(() => {
     };
 
     return (
-        <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-            <div className="flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
+        <div className="app-legend relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <div className="app-legend-items flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
@@ -2255,7 +2334,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                 ref={textareaRef}
                 dir="rtl"
                 id="text-input"
-                className={`w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
+                className={`app-textarea w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
                 style={manualHeight !== null ? { height: `${manualHeight}px` } : undefined}
                 rows={MIN_INPUT_ROWS}
                 defaultValue={text}
@@ -2822,15 +2901,15 @@ const App = () => {
     const hasInput = text.trim().length > 0;
 
     return (
-        <div dir="rtl" className={`min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
+        <div dir="rtl" className={`app-shell min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
-                <header className="mb-8 flex justify-between items-center">
-                    <div className="text-right">
-                        <h1 className="text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
-                        <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                <header className="app-header mb-8 flex justify-between items-center">
+                    <div className="app-header-copy text-right">
+                        <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
+                        <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="app-header-actions flex items-center gap-4">
                         <Legend />
                         <div className="relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
@@ -2871,13 +2950,13 @@ const App = () => {
                 <>
                     <StatsPanel />
 
-                    <div className={`p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
-                            <div className={`flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                    <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
+                        <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
+                            <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
                                 <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
                             </div>
-                            <div className="flex justify-center">
+                            <div className="app-clear-control flex justify-center">
                                 <button
                                     type="button"
                                     onClick={handleClearText}
@@ -2887,7 +2966,7 @@ const App = () => {
                                     אפס
                                 </button>
                             </div>
-                            <label className="flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
+                            <label className="app-text-size-control flex items-center justify-self-end gap-2 text-sm font-semibold noselect">
                                 <span>גופן</span>
                                 <select
                                     dir="rtl"
