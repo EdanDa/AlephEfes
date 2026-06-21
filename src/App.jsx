@@ -314,6 +314,84 @@ const GlobalStyles = () => (
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
+            .app-title {
+                font-size: clamp(2.15rem, 11vw, 3rem);
+                white-space: normal;
+            }
+            .app-subtitle,
+            .app-results-title {
+                font-size: clamp(1.35rem, 6vw, 1.75rem);
+                line-height: 1.25;
+            }
+            .app-legend {
+                overflow: visible;
+            }
+            .app-legend-items {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.45rem;
+                width: 100%;
+                max-width: 100%;
+                padding: 0.5rem;
+            }
+            .app-legend-items > .w-px {
+                display: none;
+            }
+            .app-legend-items button {
+                justify-content: center;
+                min-width: 0;
+                padding: 0.45rem 0.5rem;
+            }
+            .app-value-table-card {
+                padding: 1rem;
+            }
+            .app-value-table-title {
+                font-size: 1.35rem;
+                line-height: 1.25;
+            }
+            .app-value-tables {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .app-value-tables table {
+                max-width: none;
+                font-size: 0.95rem;
+            }
+            .app-value-tables th,
+            .app-value-tables td {
+                padding: 0.45rem;
+            }
+            .app-distribution-card .app-results-title {
+                font-size: clamp(1.45rem, 6vw, 1.9rem);
+            }
+            .app-dr-row {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 0.5rem;
+                min-height: 0;
+                overflow: visible;
+            }
+            .app-dr-item {
+                width: auto;
+                min-width: 0;
+                height: 4.9rem;
+            }
+            .app-dr-label {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.05rem;
+                font-size: 0.95rem;
+                line-height: 1.05;
+                margin-top: 0.1rem;
+            }
+            .app-dr-prefix {
+                font-size: 0.72rem;
+                opacity: 0.75;
+            }
+            .app-view-nav {
+                margin-top: 1rem;
+            }
             .app-textarea {
                 padding: 0.875rem;
             }
@@ -3033,9 +3111,9 @@ const App = () => {
                 </header>
 
                 {isValueTableOpen && (
-                    <div ref={valueTableRef} className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                        <h2 className="text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א:0' : 'א:1'})</h2>
-                        <div className="flex justify-center gap-8">
+                    <div ref={valueTableRef} className={`app-value-table-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                        <h2 className="app-value-table-title text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א:0' : 'א:1'})</h2>
+                        <div className="app-value-tables flex justify-center gap-8">
                             { [0, 11].map(offset => (
                                 <table key={offset} className="text-center w-full max-w-xs"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                     <tr>{['אות', 'אחדות', 'עשרות', 'מאות'].map(header => <th key={header} className="p-2 font-semibold">{header}</th>)}</tr>
@@ -3144,7 +3222,7 @@ const App = () => {
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}>ש"ד {dr}</div>
+                                                <div className={`app-dr-label font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span><span>{dr}</span></div>
                                             </button>
                                         </div>
                                     );
