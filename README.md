@@ -4,6 +4,8 @@ This repository contains a React-based calculator and research notes around the 
 The project treats the abjad consonants as a deliberately engineered system where Hebrew letters are mapped to positions **0–21** and processed through a **three-layer decimal valuation** (Units, Tens, Hundreds).
 
 > The calculator interface is currently only in **Hebrew**. I will add an English option in the future.
+You can visit the app without installing here:
+[https://aleph-efes.vercel.app/]
 
 ---
 
