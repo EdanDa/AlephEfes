@@ -131,7 +131,7 @@ const GlobalStyles = () => (
         }
 
         .app-title {
-            font-size: clamp(2.75rem, 12vw, 3rem);
+            font-size: 3rem;
             line-height: 0.95;
         }
         .app-header-actions,
@@ -203,6 +203,116 @@ const GlobalStyles = () => (
                 flex-basis: 100%;
                 justify-content: center;
                 order: 3;
+            }
+
+            .app-header {
+                text-align: right;
+            }
+            .app-title {
+                font-size: clamp(2.5rem, 14vw, 3.5rem);
+                line-height: 0.95;
+                white-space: nowrap;
+            }
+            .app-subtitle {
+                max-width: 100%;
+            }
+            .app-header-actions {
+                align-self: stretch;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 0.75rem;
+                width: 100%;
+            }
+            .app-legend {
+                flex: 0 0 100%;
+                order: 2;
+            }
+            .app-header-actions > :not(.app-legend) {
+                order: 1;
+            }
+            .app-legend-items {
+                max-width: 100%;
+            }
+            .app-card,
+            .app-results-card,
+            .app-distribution-card {
+                padding: 1rem;
+                margin-bottom: 1.25rem;
+            }
+            .app-results-header {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 0.875rem;
+            }
+            .app-results-header > .flex-1,
+            .app-results-header > .flex-none {
+                flex: none;
+                width: 100%;
+            }
+            .app-results-title {
+                font-size: clamp(1.7rem, 8vw, 2.25rem);
+                line-height: 1.15;
+            }
+            .app-export-toolbar {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .app-export-toolbar button {
+                justify-content: center;
+                min-height: 3rem;
+                padding: 0.5rem;
+                white-space: normal;
+            }
+            .app-distribution-card .app-results-header {
+                align-items: center;
+            }
+            .app-dr-row {
+                height: auto;
+                min-height: 6rem;
+                justify-content: flex-start;
+                gap: 0.35rem;
+                overflow-x: auto;
+                padding: 0.5rem;
+                scrollbar-width: none;
+            }
+            .app-dr-row::-webkit-scrollbar {
+                display: none;
+            }
+            .app-dr-item {
+                flex: 0 0 4.25rem;
+                width: 4.25rem;
+            }
+            .app-view-nav {
+                bottom: 0;
+                margin: 1.25rem -0.875rem 1.5rem;
+                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+                top: auto;
+            }
+            .app-view-tabs {
+                border-radius: 1.25rem;
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                width: 100%;
+            }
+            .app-view-tab {
+                flex-direction: column;
+                font-size: 0.78rem;
+                gap: 0.15rem;
+                justify-content: center;
+                min-width: 0;
+                padding: 0.45rem 0.25rem;
+            }
+            .app-view-tab svg {
+                height: 1rem;
+                width: 1rem;
+            }
+            .app-view-tab-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
             .app-textarea {
                 padding: 0.875rem;
@@ -616,7 +726,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
     };
 
     return (
-        <div className="flex gap-2">
+        <div className="app-export-toolbar flex gap-2">
             <button 
                 onClick={handleCopy} 
                 disabled={isCopying}
@@ -857,13 +967,13 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
 
     
     return (
-        <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} onClick={unpinOnBackgroundClick}>
-            <div className="flex justify-between items-center mb-4">
+        <div className={`app-results-card p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} onClick={unpinOnBackgroundClick}>
+            <div className="app-results-header flex justify-between items-center mb-4">
                 <div className="flex-1 flex justify-start">
                     <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} getJSON={prepareSummaryJSON} id='summary' />
                 </div>
                 <div className="relative group text-center flex-grow">
-                    <h2 className="text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
+                    <h2 className="app-results-title text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none noselect">
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
                     </div>
@@ -2992,13 +3102,13 @@ const App = () => {
                     </div>
 
                     {hasInput && (
-                        <div className="sticky top-3 z-40 flex justify-center my-8">
-                            <div className={`flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
-                                <button onClick={() => handleViewChange('hot-words')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" />שכיחות</button>
-                                <button onClick={() => handleViewChange('lines')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" />פירוט</button>
-                                <button onClick={() => handleViewChange('clusters')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" />קבוצות</button>
-                                <button onClick={() => handleViewChange('graph')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" />גרף</button>
-                                <button onClick={() => handleViewChange('network')} className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" />רשת</button>
+                        <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
+                            <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
+                                <button onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
+                                <button onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
+                                <button onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
+                                <button onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">גרף</span></button>
+                                <button onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת</span></button>
                             </div>
                         </div>
                     )}
@@ -3006,13 +3116,13 @@ const App = () => {
                     <div ref={viewContentTopRef} />
 
                     {stats && (
-                        <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                            <div className="flex justify-between items-center mb-4 noselect">
+                        <div className={`app-distribution-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                            <div className="app-results-header flex justify-between items-center mb-4 noselect">
                                 <div className="flex-1"></div>
-                                <h3 className="text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
+                                <h3 className="app-results-title text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
-                            <div className={`flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                            <div className={`app-dr-row flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
                                 {drOrder.map((dr) => {
                                     const count = stats.drDistribution[dr] || 0;
                                     const maxCount = Math.max(...stats.drDistribution.slice(1));
@@ -3022,7 +3132,7 @@ const App = () => {
                                     const indicatorSize = hasWords ? 22 + (12 * (hasWords && maxCount > 0 ? Math.pow(count / maxCount, 0.75) : 0)) : 0;
                                     
                                     return (
-                                        <div key={dr} className="flex flex-col items-center w-1/12 h-full justify-center group">
+                                        <div key={dr} className="app-dr-item flex flex-col items-center w-1/12 h-full justify-center group">
                                             <button
                                                 type="button"
                                                 disabled={!hasWords}
