@@ -3222,7 +3222,7 @@ const App = () => {
                                                 <div className="h-8 flex items-center justify-center mb-1">
                                                     {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
                                                 </div>
-                                                <div className={`app-dr-label font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span><span>{dr}</span></div>
+                                                <div className={`app-dr-label font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span>{" "}<span>{dr}</span></div>
                                             </button>
                                         </div>
                                     );
