@@ -395,6 +395,35 @@ const GlobalStyles = () => (
             .app-textarea {
                 padding: 0.875rem;
             }
+            .app-line-card {
+                padding: 1rem;
+            }
+            .app-line-heading {
+                font-size: 1.65rem;
+            }
+            .app-line-text {
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+                overflow-wrap: anywhere;
+            }
+            .app-line-totals {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.5rem;
+                padding: 0.75rem;
+            }
+            .app-line-totals-label {
+                grid-column: 1 / -1;
+            }
+            .app-line-word-count {
+                grid-column: 1 / -1;
+                margin-inline: 0;
+            }
+            .app-line-total {
+                margin-inline: 0;
+                min-width: 0;
+                white-space: nowrap;
+            }
         }
     `}</style>
 );
@@ -3305,23 +3334,28 @@ const App = () => {
                                         const isExpanded = !!expandedRows[lineIndex];
                                         const visibleWords = visibleWordsByLine[lineIndex] || [];
                                         const showTotalsLine = !isExpanded || lineResult.words.length > 1;
+                                        const unitsVisible = isValueVisible('U', lineResult.isPrimeTotals.U, filters);
+                                        const tensVisible = isValueVisible('T', lineResult.isPrimeTotals.T, filters);
+                                        const hundredsVisible = isValueVisible('H', lineResult.isPrimeTotals.H, filters);
+                                        const tensUsesDitto = tensVisible && unitsVisible && lineResult.totals.tens === lineResult.totals.units;
+                                        const hundredsUsesDitto = hundredsVisible && tensVisible && lineResult.totals.hundreds === lineResult.totals.tens;
                                         if (visibleWords.length === 0) return null;
 
                                         return (
                                             <div
                                                 key={lineIndex}
-                                                className={`p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}
+                                                className={`app-line-card p-4 sm:p-6 rounded-xl border mb-8 transition-shadow ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}
                                                 style={{ contentVisibility: 'auto', containIntrinsicSize: '560px' }}
                                             >
                                                 <button type="button" className="w-full text-right cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })} aria-expanded={isExpanded} aria-label={`החלף מצב תצוגה עבור שורה ${lineIndex + 1}`}>
-                                                    <div className="flex justify-between items-center"><h2 className="text-2xl font-bold mb-1 text-center flex-grow">שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
-                                                    <p className={`text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
-                                                    {showTotalsLine && <div className={`font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}>סה"כ שורה: 
-                                                        {lineResult.words.length > 1 && <span className="mx-2">({lineResult.words.length} מילים)</span>}
-                                                        {isValueVisible('U', lineResult.isPrimeTotals.U, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
-                                                        {isValueVisible('T', lineResult.isPrimeTotals.T, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.T ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={lineResult.totals.tens}{lineResult.isPrimeTotals.T && '♢'}</span>}
-                                                        {isValueVisible('H', lineResult.isPrimeTotals.H, filters) && <span className={`mx-2 ${lineResult.isPrimeTotals.H ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && '♢'}</span>}
-                                                        <span className="mx-2">ש"ד={lineResult.totalsDR}</span>
+                                                    <div className="flex justify-between items-center"><h2 className="app-line-heading text-2xl font-bold mb-1 text-center flex-grow">שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
+                                                    <p className={`app-line-text text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    {showTotalsLine && <div className={`app-line-totals font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}><span className="app-line-totals-label">סה"כ שורה:</span>
+                                                        {lineResult.words.length > 1 && <span className="app-line-word-count mx-2">({lineResult.words.length} מילים)</span>}
+                                                        {unitsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
+                                                        {tensVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.T && !tensUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={tensUsesDitto ? '〃' : lineResult.totals.tens}{lineResult.isPrimeTotals.T && !tensUsesDitto && '♢'}</span>}
+                                                        {hundredsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.H && !hundredsUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={hundredsUsesDitto ? '〃' : lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && !hundredsUsesDitto && '♢'}</span>}
+                                                        <span className="app-line-total mx-2">ש"ד={lineResult.totalsDR}</span>
                                                     </div>}
                                                 </button>
                                                 {isExpanded && (
