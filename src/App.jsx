@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredVa
 import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
+import { shouldUseDitto } from './utils/valueDisplay';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
     BASE_LETTER_VALUES,
@@ -692,7 +693,7 @@ const ValueCell = memo(({ value, isPrimeFlag, previousValue, previousLayer, prev
     if (!isVisible) return <td className={className}></td>;
 
     const previousVisible = previousLayer ? isValueVisible(previousLayer, previousIsPrimeFlag, filters) : false;
-    if (value === previousValue && previousVisible) return <td className={className}>〃</td>;
+    if (shouldUseDitto(value, previousValue, previousVisible)) return <td className={className}>〃</td>;
     return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title="ראשוני">♢</span>}</td>;
 });
 
@@ -3337,8 +3338,8 @@ const App = () => {
                                         const unitsVisible = isValueVisible('U', lineResult.isPrimeTotals.U, filters);
                                         const tensVisible = isValueVisible('T', lineResult.isPrimeTotals.T, filters);
                                         const hundredsVisible = isValueVisible('H', lineResult.isPrimeTotals.H, filters);
-                                        const tensUsesDitto = tensVisible && unitsVisible && lineResult.totals.tens === lineResult.totals.units;
-                                        const hundredsUsesDitto = hundredsVisible && tensVisible && lineResult.totals.hundreds === lineResult.totals.tens;
+                                        const tensUsesDitto = tensVisible && shouldUseDitto(lineResult.totals.tens, lineResult.totals.units, unitsVisible);
+                                        const hundredsUsesDitto = hundredsVisible && shouldUseDitto(lineResult.totals.hundreds, lineResult.totals.tens, tensVisible);
                                         if (visibleWords.length === 0) return null;
 
                                         return (
