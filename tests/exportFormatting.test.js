@@ -21,8 +21,8 @@ test('stripTrailingSpacesPerLine handles non-string inputs safely', () => {
 
 
 test('formatTextForClipboard prepends legend header to copied text', () => {
-    const output = formatTextForClipboard('מצב חישוב: א:0');
-    assert.equal(output, "א'-אחדות ע'-עשרות מ'-מאות ♢-ראשוני\n---\n\nמצב חישוב: א:0");
+    const output = formatTextForClipboard('מצב חישוב: א=0');
+    assert.equal(output, "א'-אחדות ע'-עשרות מ'-מאות ♢-ראשוני\n---\n\nמצב חישוב: א=0");
 });
 
 test('formatTextForClipboard avoids duplicating legend if already present', () => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
+import React, { Suspense, lazy, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
@@ -33,6 +33,8 @@ import {
 import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
 import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
 import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues } from './core/wordConnections';
+
+const TanakhNavigator = lazy(() => import('./components/TanakhNavigator.jsx'));
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -81,7 +83,8 @@ function useAppStats() {
         isStatsCollapsed: state?.isStatsCollapsed,
         isDarkMode: state?.isDarkMode,
         connectionValues: state?.connectionValues,
-    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues]);
+        corpusSelection: state?.corpusSelection,
+    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues, state?.corpusSelection]);
 }
 
 // -----------------------------------------------------------------------------
@@ -97,7 +100,7 @@ const TEXT_SIZE_OPTIONS = Object.freeze([
     { value: 'md', label: 'בינוני' },
     { value: 'lg', label: 'גדול' },
 ]);
-const HEB_MARKS_RE = /[\u0591-\u05BD\u05BF-\u05C7]/g;
+const HEB_MARKS_RE = /[\u034F\u0591-\u05BD\u05BF-\u05C7\uFB1E]/g;
 const INPUT_PUNCT_TO_SPACE_RE = /[^\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5\n ]+/g;
 const INPUT_HEBREW_JOINERS_RE = /([\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])["'׳״‘’“”]+(?=[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5])/g;
 const INPUT_MULTI_SPACE_RE = / {2,}/g;
@@ -498,12 +501,15 @@ const initialState = {
 	hotSort: { key: 'count', order: 'desc' },
 	expandedRows: {},
 	primeColor: 'yellow',
-    filters: { U: true, T: true, H: true, Prime: false }
+	corpusSelection: null,
+	filters: { U: true, T: true, H: true, Prime: false }
 };
 
 function appReducer(state, action) {
 	switch (action.type) {
 		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
+		case 'LOAD_CORPUS_SELECTION': return { ...state, text: action.payload.text, corpusSelection: action.payload.selection, pinnedWord: null, selectedDR: null, searchTerm: '' };
+		case 'CLEAR_CORPUS_SELECTION': return { ...state, corpusSelection: null };
 		case 'SET_CORE_RESULTS': return { ...state, coreResults: normalizeCoreResults(action.payload) };
 		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
 		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
@@ -862,23 +868,37 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
 };
 
 const StatsPanel = memo(() => {
-    const { stats, isStatsCollapsed, isDarkMode, connectionValues } = useAppStats();
+    const { stats, isStatsCollapsed, isDarkMode, connectionValues, corpusSelection } = useAppStats();
     const dispatch = useAppDispatch();
     if (!stats) return null;
+
+    const isSectionSelection = Boolean(corpusSelection && corpusSelection.sectionCount === stats.totalLines);
+    const unitName = isSectionSelection ? 'פרשיות' : 'שורות';
+    const uniqueShare = stats.totalWords > 0 ? ((stats.uniqueWords / stats.totalWords) * 100).toFixed(1) : '0.0';
+    const averageWords = stats.totalLines > 0 ? (stats.totalWords / stats.totalLines).toFixed(1) : '0.0';
+    const summaryItems = [
+        { label: unitName, value: stats.totalLines, title: `מספר ה${unitName} בטקסט המחושב` },
+        { label: 'מילים', value: stats.totalWords, title: 'מספר כל מופעי המילים בטקסט' },
+        { label: 'מילים ייחודיות', value: stats.uniqueWords, secondary: `${uniqueShare}% מן המופעים`, title: 'מספר צורות המילה השונות ושיעורן מכלל המופעים' },
+        { label: `מילים ל${isSectionSelection ? 'פרשיה' : 'שורה'}`, value: averageWords, title: `הממוצע האריתמטי של מספר המילים בכל ${isSectionSelection ? 'פרשיה' : 'שורה'}` },
+        { label: `${unitName} עם סכום ראשוני`, value: stats.primeLineTotals, title: `מספר ה${unitName} שבהן לפחות אחד מסכומי האחדות, העשרות או המאות הוא מספר ראשוני` },
+        { label: 'ערכים מקשרים', value: connectionValues.size, title: 'ערכים מספריים המופיעים ביותר ממילה ייחודית אחת בשכבות המוצגות' },
+    ];
 
     return (
         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
                 <div className="flex-1"></div>
-                <span className="text-center flex-grow">ניתוח סטטיסטי</span>
+                <span className="text-center flex-grow">תקציר הטקסט</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
             </button>
             {!isStatsCollapsed && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center my-6">
-                    {[{label: 'סה"כ שורות', value: stats.totalLines}, {label: 'סה"כ מילים', value: stats.totalWords}, {label: 'מילים ייחודיות', value: stats.uniqueWords}, {label: 'שורות ראשוניות', value: stats.primeLineTotals}, {label: 'קבוצות קשרים', value: connectionValues.size}].map(item => (
-                        <div key={item.label} className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-default">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-center mt-6">
+                    {summaryItems.map(item => (
+                        <div key={item.label} title={item.title} className="min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center">
                             <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
                             <p className="text-3xl font-bold text-slate-900 dark:text-gray-100">{item.value}</p>
+                            {item.secondary && <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{item.secondary}</p>}
                         </div>
                     ))}
                 </div>
@@ -2594,8 +2614,9 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending
+        hasExplicitThemeChoice, isPending, corpusSelection
     } = state;
+    const [isTanakhOpen, setIsTanakhOpen] = useState(false);
 
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
@@ -2874,7 +2895,7 @@ const App = () => {
     const prepareAllDetailsText = useCallback(() => {
         if (!coreResults || !stats) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
-        const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
+        const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'}`;
         const filterText = selectedDR !== null ? ` | מסונן לפי ש"ד: ${selectedDR}` : "";
         const lines = [
             `${modeText}${filterText}\n---\n`,
@@ -2888,7 +2909,7 @@ const App = () => {
         ];
         
         // ... Grand Totals logic remains same ...
-        if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ א: ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
+        if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ א= ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
         if (isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
         if (isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
         lines.push(`ש"ד כללי: ${coreResults.grandTotals.dr}\n`);
@@ -2898,7 +2919,7 @@ const App = () => {
              visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
-                if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`א: ${w.units}${w.isPrimeU ? " ♢" : ""}`);
+                if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`א= ${w.units}${w.isPrimeU ? " ♢" : ""}`);
                 if (isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
                 if (isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
                 lines.push(`- ${w.word}: ${calc} | ${valuesArr.join(' | ')} | ש"ד: ${w.dr}`);
@@ -2917,7 +2938,7 @@ const App = () => {
                 const primeU = wordData.isPrimeU ? " ♢" : "";
                 
                 let valuesArr = [];
-                if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`א: ${wordData.units}${primeU}`);
+                if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`א= ${wordData.units}${primeU}`);
                 if (isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
                 if (isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
                 
@@ -2973,12 +2994,12 @@ const App = () => {
     const prepareSummaryText = useCallback(() => {
         if (!coreResults) return "";
         const primeMarker = (isPrime) => isPrime ? " ♢" : "";
-        const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}`;
+        const modeText = `מצב חישוב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'}`;
         const lines = [`${modeText}\n---\n`];
 
         const formatWord = (wordData) => {
             const values = [];
-            if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`א: ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
+            if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`א= ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
             if (isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
             if (isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
             if (values.length === 0) return null; 
@@ -3022,10 +3043,10 @@ const App = () => {
     const prepareHotWordsText = useCallback(() => {
         if (!coreResults || selectedHotValue === null) return "";
         const primeU = (w) => w.isPrimeU ? " ♢" : "";
-        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
+        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
         visibleHotWords.forEach(w => {
             let parts = [];
-            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`א: ${w.units}${primeU(w)}`);
+            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`א= ${w.units}${primeU(w)}`);
             if (isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
             if (isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
             const valuesString = parts.join(' | ');
@@ -3041,7 +3062,7 @@ const App = () => {
 
     const prepareFrequenciesText = useCallback(() => {
         if (!coreResults) return "";
-        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א:0' : 'א:1'}\n---\n`];
+        const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'}\n---\n`];
         if (hotView === 'values') {
             lines.push("סיכום שכיחות ערכים\n-------------------\n");
             // USE SORTED LIST
@@ -3089,7 +3110,10 @@ const App = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
-    const handleClearText = useCallback(() => dispatch({ type: 'SET_TEXT', payload: '' }), [dispatch]);
+    const handleClearText = useCallback(() => {
+        dispatch({ type: 'SET_TEXT', payload: '' });
+        dispatch({ type: 'CLEAR_CORPUS_SELECTION' });
+    }, [dispatch]);
     const drOrder = mode === 'aleph-zero' ? ALEPH_ZERO_DR_ORDER : DEFAULT_DR_ORDER;
     
     const handleDrillDown = useCallback((dr) => {
@@ -3115,6 +3139,24 @@ const App = () => {
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
     const handleTextChange = useCallback((nextText) => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
+        dispatch({ type: 'CLEAR_CORPUS_SELECTION' });
+    }, [dispatch]);
+    const handleCorpusSelection = useCallback((selectedText, selection, book) => {
+        dispatch({
+            type: 'LOAD_CORPUS_SELECTION',
+            payload: {
+                text: selectedText,
+                selection: {
+                    bookSlug: book.slug,
+                    bookName: book.name,
+                    scope: selection.scope,
+                    startSectionOrdinal: selection.startOrdinal,
+                    endSectionOrdinal: selection.endOrdinal,
+                    sectionCount: selection.sectionCount,
+                    locator: selection.locators,
+                },
+            },
+        });
     }, [dispatch]);
     const hasInput = text.trim().length > 0;
 
@@ -3124,7 +3166,7 @@ const App = () => {
             <div className="max-w-7xl mx-auto">
                 <header className="app-header mb-8 flex justify-between items-center">
                     <div className="app-header-copy text-right">
-                        <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א:0' : 'מצב א:1'}</h1>
+                        <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א=0' : 'מצב א=1'}</h1>
                         <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
@@ -3142,7 +3184,7 @@ const App = () => {
 
                 {isValueTableOpen && (
                     <div ref={valueTableRef} className={`app-value-table-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                        <h2 className="app-value-table-title text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א:0' : 'א:1'})</h2>
+                        <h2 className="app-value-table-title text-2xl font-bold mb-4 text-center">טבלת ערכי אותיות ({mode === 'aleph-zero' ? 'א=0' : 'א=1'})</h2>
                         <div className="app-value-tables flex justify-center gap-8">
                             { [0, 11].map(offset => (
                                 <table key={offset} className="text-center w-full max-w-xs"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
@@ -3166,13 +3208,37 @@ const App = () => {
                 
                 {!isValueTableOpen && (
                 <>
-                    <StatsPanel />
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsTanakhOpen((open) => !open)}
+                            className={`rounded-full border px-5 py-2 font-semibold transition-colors ${isTanakhOpen ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : (isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100')}`}
+                            aria-expanded={isTanakhOpen}
+                        >
+                            {isTanakhOpen ? 'סגור תנ״ך' : 'פתח תנ״ך'}
+                        </button>
+                        {corpusSelection && (
+                            <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                MAM · {corpusSelection.bookName} · {corpusSelection.scope === 'book'
+                                    ? 'הספר כולו'
+                                    : corpusSelection.sectionCount === 1
+                                        ? `פרשיה ${corpusSelection.startSectionOrdinal}`
+                                        : `פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}
+                            </span>
+                        )}
+                    </div>
+
+                    {isTanakhOpen && (
+                        <Suspense fallback={<div className={`rounded-xl border p-8 mb-8 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-300'}`}>טוען תנ״ך…</div>}>
+                            <TanakhNavigator currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} />
+                        </Suspense>
+                    )}
 
                     <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
                         <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
                             <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:0</button>
-                                <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א:1</button>
+                                <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=0</button>
+                                <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=1</button>
                             </div>
                             <div className="app-clear-control flex justify-center">
                                 <button
@@ -3209,14 +3275,16 @@ const App = () => {
                         </div>
                     </div>
 
+                    <StatsPanel />
+
                     {hasInput && (
                         <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
                             <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
                                 <button onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
                                 <button onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
                                 <button onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
-                                <button onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">גרף</span></button>
-                                <button onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת</span></button>
+                                <button onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
+                                <button onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
                             </div>
                         </div>
                     )}

@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0.0",
+  "corpusId": "mam-parsed-plus-ketiv-sections",
+  "language": "he",
+  "direction": "rtl",
+  "provenance": "provenance.json",
+  "contentHash": "a637e0768d41789963a999c187d17d419c57692ecbe8eb8d4ff32cb0ff3499b8",
+  "statistics": {
+    "books": 24,
+    "sections": 4024,
+    "boundaries": 4000,
+    "words": 305385
+  },
+  "divisions": [
+    {
+      "id": "torah",
+      "name": "תורה",
+      "books": [
+        {
+          "slug": "genesis",
+          "name": "בראשית",
+          "file": "books/genesis.json",
+          "sections": 92,
+          "words": 20612
+        },
+        {
+          "slug": "exodus",
+          "name": "שמות",
+          "file": "books/exodus.json",
+          "sections": 208,
+          "words": 16713
+        },
+        {
+          "slug": "leviticus",
+          "name": "ויקרא",
+          "file": "books/leviticus.json",
+          "sections": 100,
+          "words": 11950
+        },
+        {
+          "slug": "numbers",
+          "name": "במדבר",
+          "file": "books/numbers.json",
+          "sections": 159,
+          "words": 16407
+        },
+        {
+          "slug": "deuteronomy",
+          "name": "דברים",
+          "file": "books/deuteronomy.json",
+          "sections": 226,
+          "words": 14294
+        }
+      ]
+    },
+    {
+      "id": "neviim",
+      "name": "נביאים",
+      "books": [
+        {
+          "slug": "joshua",
+          "name": "יהושע",
+          "file": "books/joshua.json",
+          "sections": 122,
+          "words": 10030
+        },
+        {
+          "slug": "judges",
+          "name": "שופטים",
+          "file": "books/judges.json",
+          "sections": 175,
+          "words": 9885
+        },
+        {
+          "slug": "samuel",
+          "name": "שמואל",
+          "file": "books/samuel.json",
+          "sections": 417,
+          "words": 24289
+        },
+        {
+          "slug": "kings",
+          "name": "מלכים",
+          "file": "books/kings.json",
+          "sections": 203,
+          "words": 25408
+        },
+        {
+          "slug": "isaiah",
+          "name": "ישעיהו",
+          "file": "books/isaiah.json",
+          "sections": 242,
+          "words": 16921
+        },
+        {
+          "slug": "jeremiah",
+          "name": "ירמיהו",
+          "file": "books/jeremiah.json",
+          "sections": 281,
+          "words": 21827
+        },
+        {
+          "slug": "ezekiel",
+          "name": "יחזקאל",
+          "file": "books/ezekiel.json",
+          "sections": 185,
+          "words": 18724
+        },
+        {
+          "slug": "twelve",
+          "name": "תרי עשר",
+          "file": "books/twelve.json",
+          "sections": 136,
+          "words": 14349
+        }
+      ]
+    },
+    {
+      "id": "ketuvim",
+      "name": "כתובים",
+      "books": [
+        {
+          "slug": "psalms",
+          "name": "תהלים",
+          "file": "books/psalms.json",
+          "sections": 285,
+          "words": 19580
+        },
+        {
+          "slug": "proverbs",
+          "name": "משלי",
+          "file": "books/proverbs.json",
+          "sections": 50,
+          "words": 6907
+        },
+        {
+          "slug": "job",
+          "name": "איוב",
+          "file": "books/job.json",
+          "sections": 38,
+          "words": 8337
+        },
+        {
+          "slug": "song-of-songs",
+          "name": "שיר השירים",
+          "file": "books/song-of-songs.json",
+          "sections": 20,
+          "words": 1250
+        },
+        {
+          "slug": "ruth",
+          "name": "רות",
+          "file": "books/ruth.json",
+          "sections": 2,
+          "words": 1293
+        },
+        {
+          "slug": "lamentations",
+          "name": "איכה",
+          "file": "books/lamentations.json",
+          "sections": 134,
+          "words": 1541
+        },
+        {
+          "slug": "ecclesiastes",
+          "name": "קהלת",
+          "file": "books/ecclesiastes.json",
+          "sections": 31,
+          "words": 2987
+        },
+        {
+          "slug": "esther",
+          "name": "אסתר",
+          "file": "books/esther.json",
+          "sections": 34,
+          "words": 3045
+        },
+        {
+          "slug": "daniel",
+          "name": "דניאל",
+          "file": "books/daniel.json",
+          "sections": 30,
+          "words": 5920
+        },
+        {
+          "slug": "ezra-nehemiah",
+          "name": "עזרא ונחמיה",
+          "file": "books/ezra-nehemiah.json",
+          "sections": 302,
+          "words": 9066
+        },
+        {
+          "slug": "chronicles",
+          "name": "דברי הימים",
+          "file": "books/chronicles.json",
+          "sections": 552,
+          "words": 24050
+        }
+      ]
+    }
+  ]
+}

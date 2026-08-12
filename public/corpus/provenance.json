@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "1.0.0",
+  "converterVersion": "1.0.0",
+  "corpusId": "mam-parsed-plus-ketiv-sections",
+  "source": {
+    "name": "MAM-parsed",
+    "revision": "95f64d734fc2c4fff139a841c0b9961b0193c76f",
+    "format": "MAM-parsed/plus JSON [C,D,E] verse tuples",
+    "files": [
+      "plus/A1-Genesis.json",
+      "plus/A2-Exodus.json",
+      "plus/A3-Levit.json",
+      "plus/A4-Numbers.json",
+      "plus/A5-Deuter.json",
+      "plus/B1-Joshua.json",
+      "plus/B2-Judges.json",
+      "plus/BA-Samuel.json",
+      "plus/BC-Kings.json",
+      "plus/C1-Isaiah.json",
+      "plus/C2-Jeremiah.json",
+      "plus/C3-Ezekiel.json",
+      "plus/CA-The-12-Minor-Prophets.json",
+      "plus/D1-Psalms.json",
+      "plus/D2-Proverbs.json",
+      "plus/D3-Job.json",
+      "plus/E1-Song of Songs.json",
+      "plus/E2-Ruth.json",
+      "plus/E3-Lamentations.json",
+      "plus/E4-Ecclesiastes.json",
+      "plus/E5-Esther.json",
+      "plus/F1-Daniel.json",
+      "plus/FA-Ezra-Nexemiah.json",
+      "plus/FC-Chronicles.json"
+    ]
+  },
+  "semanticsReference": {
+    "name": "MAM-basics",
+    "revision": "73f8ea3c857cc3c9258500e1ac5a74791d0cf218",
+    "reusePolicy": "Semantics were independently implemented; GPL source code was not copied."
+  },
+  "transformation": {
+    "textPolicy": "ketiv-only",
+    "qerePolicy": "omitted, including qere-without-ketiv; ketiv-without-qere retained",
+    "sourceText": "Selected upstream Hebrew spans preserve code-point order; only inter-span ASCII whitespace is joined.",
+    "calculationText": "Derived with AlephEfes forceHebrewInput; Hebrew marks, MAM ordering controls (U+034F), and U+FB1E are removed, and maqaf is resolved by the canonical tokenizer.",
+    "verseAndChapterRole": "locator metadata only; never analytical boundaries",
+    "bookRole": "storage/navigation partition and initial stream boundary only",
+    "dualCantillation": "מ:כפול selects only the כפול (combined/codex) branch",
+    "documentation": "נוסח and מ:הערה-2 contribute only their target parameter; notes are excluded",
+    "repeatedEditorialMaterial": "good_ending_plus is excluded",
+    "structuralInterpretation": [
+      "פפ/פפפ normalize to petuhah; סס/ססס normalize to setumah.",
+      "מ:ששש is retained as a distinct shirah setumah-like section divider.",
+      "Documented נוסח targets ר1/ר3/ר4 become setumah/petuhah only when the note explicitly identifies that parashah; other ר0–ר4 are layout.",
+      "The two ססס adjacent to inverted nuns at Numbers 10:35–36 are spacing, not boundaries."
+    ]
+  },
+  "statistics": {
+    "activeTemplates": {
+      "מ:ספר חדש": 24,
+      "נוסח": 3856,
+      "מ:אות-מיוחדת-במילה": 52,
+      "מ:פסק": 503,
+      "פפ": 1553,
+      "מ:לגרמיה-2": 1774,
+      "מ:אין פרשה בתחילת פרק": 139,
+      "סס": 1554,
+      "מ:הערה-2": 31,
+      "כו״ק": 884,
+      "מ:קמץ": 360,
+      "מ:קו״כ-אם-2": 148,
+      "מ:כו״ק מיוחד": 37,
+      "מ:כפול": 34,
+      "קו״כ": 126,
+      "מ:אין רווח של פרשה בתחילת פרשת השבוע": 1,
+      "מ:ששש": 328,
+      "ססס": 430,
+      "מ:נו״ן הפוכה": 9,
+      "ר4": 4231,
+      "ר3": 123,
+      "פפפ": 18,
+      "קרי ולא כתיב": 9,
+      "כתיב ולא קרי": 8,
+      "מ:רווח בתרי עשר בפסוק הראשון": 12,
+      "מ:רווח לספר בתהלים בפסוק הראשון": 5,
+      "מ:מקף אפור": 116,
+      "ר1": 4586,
+      "מ:דחי": 2298,
+      "ר2": 568,
+      "ר0": 536,
+      "מ:צינור": 56,
+      "מ:אין פרשה בתחילת פרק בספרי אמ״ת": 33
+    },
+    "boundaryExact": {
+      "פפ": 1553,
+      "סס": 1554,
+      "מ:ששש": 328,
+      "ססס": 428,
+      "פפפ": 18,
+      "ר1": 34,
+      "ר3": 47,
+      "ר4": 38
+    },
+    "boundaryNormalized": {
+      "petuhah": 1656,
+      "setumah": 2016,
+      "shirah-setumah-like": 328
+    },
+    "ketivQere": {
+      "כו״ק": 884,
+      "מ:קו״כ-אם-2": 148,
+      "מ:כו״ק מיוחד": 37,
+      "קו״כ": 126,
+      "קרי ולא כתיב": 9,
+      "כתיב ולא קרי": 8
+    },
+    "poeticDocumentedBoundaries": {
+      "ר1": 34,
+      "ר3": 47,
+      "ר4": 38
+    },
+    "poeticLayout": {
+      "ר4": 4231,
+      "ר3": 123,
+      "ר1": 4586,
+      "ר2": 568,
+      "ר0": 536
+    },
+    "specialConstructs": {
+      "special-letter-words": 52,
+      "targeted-editorial-notes": 31,
+      "dual-cantillation": 34,
+      "inverted-nun": 9
+    },
+    "structuralExceptions": {
+      "numbers-10-inverted-nun-neighbor": 2
+    },
+    "sourceFiles": 24,
+    "book39s": 39,
+    "chapters": 929,
+    "verses": 23202,
+    "sections": 4024,
+    "boundaries": 4000,
+    "words": 305385
+  },
+  "contentHash": "a637e0768d41789963a999c187d17d419c57692ecbe8eb8d4ff32cb0ff3499b8",
+  "ambiguousCases": [
+    {
+      "marker": "מ:ששש",
+      "occurrences": 328,
+      "resolution": "retained as the distinct analytical type shirah-setumah-like",
+      "evidenceConflict": [
+        "MAM authoring semantics describe it as a setumah-like section divider.",
+        "MAM renderers emit shirah spacing and the sampe distributor does not classify it with פ/ס."
+      ],
+      "rationale": "Retaining the exact marker as a separate type preserves its divider semantics without claiming that it is an ordinary petuhah or setumah."
+    }
+  ],
+  "exceptionalCases": [
+    {
+      "type": "non-boundary",
+      "marker": "ססס",
+      "locations": [
+        "Numbers 10:35",
+        "Numbers 10:36"
+      ],
+      "reason": "inverted-nun-neighbor spacing"
+    },
+    {
+      "type": "contextual-boundary",
+      "markers": [
+        "ר1",
+        "ר3",
+        "ר4"
+      ],
+      "count": 119
+    },
+    {
+      "type": "dual-cantillation",
+      "passages": [
+        "Genesis 35:22",
+        "Exodus 20",
+        "Deuteronomy 5"
+      ],
+      "selectedBranch": "כפול"
+    }
+  ],
+  "license": {
+    "corpus": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attributionEnglish": "Hebrew Wikisource",
+    "attributionHebrew": "ויקיטקסט",
+    "sourcePageEnglish": "https://en.wikisource.org/wiki/User:Dovi/Miqra_according_to_the_Masorah#beginning",
+    "sourcePageHebrew": "https://he.wikisource.org/wiki/מקרא_על_פי_המסורה#ראש",
+    "credits": [
+      "Seth (Avi) Kadish",
+      "Erel Segal-Halevi",
+      "Benjamin Denckla"
+    ]
+  }
+}

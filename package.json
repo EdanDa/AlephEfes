@@ -15,7 +15,10 @@
     "lint": "node scripts/lint.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "perf:check": "node scripts/perf-check.mjs",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run perf:check"
+    "corpus:generate": "node scripts/generate-tanakh-corpus.mjs",
+    "corpus:check": "node scripts/generate-tanakh-corpus.mjs --check",
+    "bundle:check": "node scripts/check-corpus-bundle.mjs",
+    "check": "npm run lint && npm run typecheck && npm run corpus:check && npm run test && npm run build && npm run bundle:check && npm run perf:check"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

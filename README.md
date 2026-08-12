@@ -20,8 +20,8 @@ The calculator includes the following capabilities:
   - *Lines (פירוט)*: full line-by-line and word-by-word breakdowns, including line totals, per-word values, grand totals, and digital roots. Shift between line input presentation and unique words presentation.
   - *Clusters (קבוצות)*: digital-root neighborhoods with interactive cards and pin/hover relation highlighting. Grouped by digital root
   - *Hot Words (שכיחות)*: frequency analysis in two modes (*values* and *words*) with sortable tables and drill-down from value → matching words.
-  - *Graph (גרף)*: a quantitative chart showing which values dominate by total occurrences, unique-word coverage, and cross-layer bridge score.
-  - *Network (רשת)*: an interactive force-directed graph linking words to visible numeric values (U/T/H) with zoom, pan, drag and click selection.
+  - *Value Map (מפת ערכים)*: a quantitative chart showing which values dominate by total occurrences, unique-word coverage, and cross-layer bridge score.
+  - *Connection Network (רשת קשרים)*: an interactive force-directed graph linking words to visible numeric values (U/T/H) with zoom, pan, drag and click selection.
 
 - **Dual Calculation Modes**
   Switch between Aleph-Zero (א=0) and Aleph-One (א=1) mappings. Both modes apply the same 3-layer valuation with different base indexing.
@@ -93,6 +93,7 @@ It stores the last analysed text in `localStorage` for convenience.
 │   ├── App.jsx
 │   ├── main.jsx
 │   ├── components/
+│   │   ├── TanakhNavigator.jsx
 │   │   └── VirtualizedList.jsx
 │   ├── core/
 │   │   └── analysisCore.js
@@ -103,7 +104,16 @@ It stores the last analysed text in `localStorage` for convenience.
 │       └── coreResults.worker.js
 ├── tests/
 │   ├── analysisCore.test.js
-│   └── appReducer.test.js
+│   ├── appReducer.test.js
+│   └── tanakhCorpus.test.js
+├── scripts/
+│   ├── check-corpus-bundle.mjs
+│   ├── generate-tanakh-corpus.mjs
+│   └── validate-tanakh-corpus.mjs
+├── public/corpus/
+│   ├── manifest.json
+│   ├── provenance.json
+│   └── books/*.json
 ├── docs/
 │   └── demo.png
 ├── package.json
@@ -111,6 +121,105 @@ It stores the last analysed text in `localStorage` for convenience.
 ```
 
 ---
+
+## Built-in Tanakh corpus
+
+AlephEfes includes a generated, read-only Tanakh corpus derived from the local
+`MAM-parsed/plus` JSON source. Open **פתח תנ״ך** to choose from
+תורה, נביאים, and כתובים, then select the complete book (the default), one ordered
+Masoretic section, or a range of sections. The selection enters the same AlephEfes
+calculation flow as ordinary input; multi-section selections retain one
+analytical line per Masoretic section. The corpus navigator and its data are
+loaded only when opened: the book
+JSON files in `public/corpus/` are copied as external production assets and are
+not imported into the initial JavaScript bundle.
+
+### Text and structure policy
+
+- The display text preserves MAM's Hebrew source representation. The
+  calculation text is a deterministic consonantal derivation produced by the
+  canonical AlephEfes input machinery; cantillation, vocalization, MAM mark
+  ordering controls, punctuation, and maqaf do not alter the consonantal word
+  stream.
+- Ketiv is used exclusively. Qere readings and explanatory/editorial text are
+  omitted. The converter handles both MAM ketiv/qere orders, conditional ketiv,
+  special ketiv, written-but-not-read and read-but-not-written cases, documented
+  variants, special letters, dual cantillation, and other wrappers according to
+  the upstream MAM semantics.
+- The analytical unit is the continuous text between genuine Masoretic section
+  boundaries. Chapter and verse references are stored only as locators. They do
+  not split sections, while a genuine boundary inside a verse does.
+- Exact source markers are retained as metadata. At the revisions recorded in
+  `public/corpus/provenance.json`, the 4,000 genuine boundaries comprise 1,553
+  `פפ`, 18 `פפפ`, 1,554 `סס`, 428 genuine `ססס`, 328 `מ:ששש`, 34 documented
+  poetic `ר1`, 47 documented poetic `ר3`, and 38 documented poetic `ר4` markers.
+  Structurally these are 1,656 open, 2,016 closed, and 328 distinct
+  shirah-setumah-like boundaries, producing 4,024 nonempty sections across the
+  24 Masoretic book containers.
+- Poetic spacing is contextual, not inferred from an `ר*` token alone. The two
+  `ססס` tokens beside the inverted nuns at Numbers 10:35–36 and undocumented
+  poetic spacing are layout rather than boundaries. A poetic `ר1`, `ר3`, or
+  `ר4` becomes a boundary only when its MAM variant note explicitly identifies
+  an open or closed section. `מ:ששש` has conflicting upstream signals: MAM's
+  authoring semantics call it a setumah-like section divider, while renderers
+  emit shirah spacing and the sampe distributor does not group it with `פ`/`ס`.
+  AlephEfes therefore retains it as an explicit, distinct
+  `shirah-setumah-like` analytical type rather than silently treating it as
+  ordinary spacing or collapsing it into a closed section. This recorded
+  resolution is the only boundary-taxonomy ambiguity at the pinned revisions.
+
+The generated records store source and calculation text, start/end locators,
+the exact following boundary, word count, and content hashes. Full numerical
+results are intentionally not duplicated: they depend on the selected AlephEfes
+mode and are computed by the existing canonical engine when a section is
+selected. The word count and hashes are stable integrity fields, not a second
+calculation implementation.
+
+### Regeneration and validation
+
+Place the three repositories as siblings, without renaming them:
+
+```text
+AlephEfesWorkspace/
+├── AlephEfes/
+├── MAM-parsed/
+└── MAM-basics/
+```
+
+Then, from `AlephEfes/`, run:
+
+```bash
+npm run corpus:generate
+npm run corpus:check
+npm run build
+npm run bundle:check
+```
+
+The generator derives the sibling paths from the repository location, so it
+does not contain a username or machine-specific absolute path. `--source`,
+`--basics`, and `--output` may be supplied for an equivalent layout. It does not
+write to either upstream repository. With identical upstream revisions and
+converter code it emits byte-identical JSON. The provenance file records the
+available Git revisions, MAM `plus` format, converter and corpus schema versions,
+ketiv policy, structural interpretation, corpus statistics, licenses, and
+attribution. `npm run check` performs corpus fidelity and determinism tests in
+addition to the ordinary test, lint, type, build, bundle, and performance checks.
+
+### Source, attribution, and license
+
+The biblical corpus is based on **MAM — Mikra According to the Masorah**, from
+[Hebrew Wikisource](https://he.wikisource.org/wiki/מקרא_על_פי_המסורה#ראש), via
+[MAM-parsed](https://github.com/bdenckla/MAM-parsed), and is provided under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Credit: Seth
+(Avi) Kadish, Erel Segal-Halevi, Benjamin Denckla, and Hebrew Wikisource
+contributors. MAM-basics was consulted to interpret nontrivial source constructs;
+its code was not copied into AlephEfes. The built-in corpus navigator shows a
+concise source and license notice; exact attribution and license details remain
+in this README and the machine-readable provenance file. They are not attached
+to user-entered text.
+
+---
+
 ## Research backdrop: theory and evidence to date
 
 I treat **א=0** as a historical object of investigation: a possible reconstruction of an alphabetic-number technology used selectively by ancient scribes, editors, calendar specialists, priests, administrators, and canon-forming institutions.
