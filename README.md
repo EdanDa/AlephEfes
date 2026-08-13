@@ -368,6 +368,32 @@ In the one-based system the first sign is the first positive quantity.
 
 In the zero-based system the first sign is the coordinate before the first positive step.
 
+
+### Algebraic formulation
+
+Let Σ be the 27 modern Hebrew surface glyphs and let Γ be the 22-letter base alphabet. Final-form normalization induces
+
+Σ* → Γ*.
+
+For each mode j ∈ {0,1}, the three displayed letter values define a weight map
+
+a_j : Γ → ℕ₀³.
+
+By additive extension, this determines a unique commutative-monoid homomorphism
+
+Φ_j : Σ* → ℕ₀³,
+
+with the canonical factorization
+
+Σ* → Γ* → ℕ₀^Γ → ℕ₀³,
+     ν*   Parikh   V_j
+
+where ν* normalizes final forms, the Parikh map records normalized letter counts, and V_j applies the three U/T/H weight vectors.
+
+Thus AlephEfes values depend on normalized letter multiplicities, not letter order. For א=0, א maps to (0,0,0), so Φ₀ additionally factors through deletion of א.
+
+The image of Φ_j is a finitely generated affine commutative monoid. Its associated structures include the numerical kernel congruence on words and, after group completion, the integer relation lattice of V_j.
+
 ---
 
 ## 2) Aleph as a null operator
