@@ -13,6 +13,8 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 const CORPUS_ROOT = path.join(REPO_ROOT, 'public', 'corpus');
+const MAM_PARSED_ROOT = path.resolve(process.env.MAM_PARSED_PATH || path.join(WORKSPACE_ROOT, 'MAM-parsed'));
+const MAM_BASICS_ROOT = path.resolve(process.env.MAM_BASICS_PATH || path.join(WORKSPACE_ROOT, 'MAM-basics'));
 
 function readJson(relativePath) {
     return JSON.parse(fs.readFileSync(path.join(CORPUS_ROOT, relativePath), 'utf8'));
@@ -32,8 +34,8 @@ function allSections() {
 
 test('generated corpus is byte-for-byte deterministic from local siblings', () => {
     const generated = expectedOutput({
-        sourcePath: path.join(WORKSPACE_ROOT, 'MAM-parsed'),
-        basicsPath: path.join(WORKSPACE_ROOT, 'MAM-basics'),
+        sourcePath: MAM_PARSED_ROOT,
+        basicsPath: MAM_BASICS_ROOT,
         outputPath: CORPUS_ROOT,
     });
     for (const [relativePath, expected] of generated.files.entries()) {

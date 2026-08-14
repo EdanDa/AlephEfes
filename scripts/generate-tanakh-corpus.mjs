@@ -425,8 +425,8 @@ function stableJson(value, pretty = false) {
 
 function readArguments(argv) {
     const options = {
-        sourcePath: path.join(WORKSPACE_ROOT, 'MAM-parsed'),
-        basicsPath: path.join(WORKSPACE_ROOT, 'MAM-basics'),
+        sourcePath: path.resolve(process.env.MAM_PARSED_PATH || path.join(WORKSPACE_ROOT, 'MAM-parsed')),
+        basicsPath: path.resolve(process.env.MAM_BASICS_PATH || path.join(WORKSPACE_ROOT, 'MAM-basics')),
         outputPath: path.join(REPO_ROOT, 'public', 'corpus'),
         check: false,
     };
