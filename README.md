@@ -197,7 +197,9 @@ npm run bundle:check
 
 The generator derives the sibling paths from the repository location, so it
 does not contain a username or machine-specific absolute path. `--source`,
-`--basics`, and `--output` may be supplied for an equivalent layout. It does not
+`--basics`, and `--output` may be supplied for an equivalent layout. The
+`MAM_PARSED_PATH` and `MAM_BASICS_PATH` environment variables provide the same
+source-path overrides for `npm run check` and CI environments. It does not
 write to either upstream repository. With identical upstream revisions and
 converter code it emits byte-identical JSON. The provenance file records the
 available Git revisions, MAM `plus` format, converter and corpus schema versions,

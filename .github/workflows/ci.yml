@@ -14,6 +14,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout pinned MAM-parsed source
+        uses: actions/checkout@v4
+        with:
+          repository: bdenckla/MAM-parsed
+          ref: 95f64d734fc2c4fff139a841c0b9961b0193c76f
+          path: upstream/MAM-parsed
+
+      - name: Checkout pinned MAM-basics semantics reference
+        uses: actions/checkout@v4
+        with:
+          repository: bdenckla/MAM-basics
+          ref: 73f8ea3c857cc3c9258500e1ac5a74791d0cf218
+          path: upstream/MAM-basics
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -25,3 +39,6 @@ jobs:
 
       - name: Run quality gates
         run: npm run check
+        env:
+          MAM_PARSED_PATH: ${{ github.workspace }}/upstream/MAM-parsed
+          MAM_BASICS_PATH: ${{ github.workspace }}/upstream/MAM-basics
