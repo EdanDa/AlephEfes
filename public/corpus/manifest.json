@@ -4,12 +4,12 @@
   "language": "he",
   "direction": "rtl",
   "provenance": "provenance.json",
-  "contentHash": "a637e0768d41789963a999c187d17d419c57692ecbe8eb8d4ff32cb0ff3499b8",
+  "contentHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
   "statistics": {
     "books": 24,
-    "sections": 4024,
-    "boundaries": 4000,
-    "words": 305385
+    "sections": 4039,
+    "boundaries": 4015,
+    "words": 305437
   },
   "divisions": [
     {
@@ -42,7 +42,7 @@
           "name": "במדבר",
           "file": "books/numbers.json",
           "sections": 159,
-          "words": 16407
+          "words": 16408
         },
         {
           "slug": "deuteronomy",
@@ -62,7 +62,7 @@
           "name": "יהושע",
           "file": "books/joshua.json",
           "sections": 122,
-          "words": 10030
+          "words": 10031
         },
         {
           "slug": "judges",
@@ -76,42 +76,42 @@
           "name": "שמואל",
           "file": "books/samuel.json",
           "sections": 417,
-          "words": 24289
+          "words": 24293
         },
         {
           "slug": "kings",
           "name": "מלכים",
           "file": "books/kings.json",
           "sections": 203,
-          "words": 25408
+          "words": 25413
         },
         {
           "slug": "isaiah",
           "name": "ישעיהו",
           "file": "books/isaiah.json",
           "sections": 242,
-          "words": 16921
+          "words": 16925
         },
         {
           "slug": "jeremiah",
           "name": "ירמיהו",
           "file": "books/jeremiah.json",
           "sections": 281,
-          "words": 21827
+          "words": 21831
         },
         {
           "slug": "ezekiel",
           "name": "יחזקאל",
           "file": "books/ezekiel.json",
           "sections": 185,
-          "words": 18724
+          "words": 18730
         },
         {
           "slug": "twelve",
           "name": "תרי עשר",
           "file": "books/twelve.json",
-          "sections": 136,
-          "words": 14349
+          "sections": 147,
+          "words": 14354
         }
       ]
     },
@@ -123,22 +123,22 @@
           "slug": "psalms",
           "name": "תהלים",
           "file": "books/psalms.json",
-          "sections": 285,
-          "words": 19580
+          "sections": 289,
+          "words": 19581
         },
         {
           "slug": "proverbs",
           "name": "משלי",
           "file": "books/proverbs.json",
           "sections": 50,
-          "words": 6907
+          "words": 6915
         },
         {
           "slug": "job",
           "name": "איוב",
           "file": "books/job.json",
           "sections": 38,
-          "words": 8337
+          "words": 8340
         },
         {
           "slug": "song-of-songs",
@@ -152,14 +152,14 @@
           "name": "רות",
           "file": "books/ruth.json",
           "sections": 2,
-          "words": 1293
+          "words": 1294
         },
         {
           "slug": "lamentations",
           "name": "איכה",
           "file": "books/lamentations.json",
           "sections": 134,
-          "words": 1541
+          "words": 1542
         },
         {
           "slug": "ecclesiastes",
@@ -180,7 +180,7 @@
           "name": "דניאל",
           "file": "books/daniel.json",
           "sections": 30,
-          "words": 5920
+          "words": 5923
         },
         {
           "slug": "ezra-nehemiah",
@@ -194,7 +194,7 @@
           "name": "דברי הימים",
           "file": "books/chronicles.json",
           "sections": 552,
-          "words": 24050
+          "words": 24055
         }
       ]
     }

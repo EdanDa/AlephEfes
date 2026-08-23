@@ -181,14 +181,18 @@ The corpus follows a strict textual policy:
 * **Ketiv only.**
 * Qere readings without written Ketiv contribute no calculation text.
 * Written Ketiv remains even when it is not read.
+* When an omitted Qere carries the maqaf that separates the selected Ketiv from the following word, that word boundary is retained as a plain space; Qere text and its maqaf remain omitted.
 * Cantillation and vocalization do not affect the consonantal calculation stream.
 * Punctuation and maqaf do not create numerical content.
 * Final letter forms are preserved in source representation but normalized mathematically to their base letters.
 * Chapter and verse references are retained as locators only.
 * Analytical divisions follow genuine Masoretic section boundaries rather than chapter or verse divisions.
 * A genuine section boundary inside a verse remains a boundary.
+* The defined Masoretic spacing before the later prophets of the Twelve and the later internal books of Psalms closes the preceding section; its initial occurrence does not create an empty section.
 * Poetic spacing is distinguished from section structure rather than inferred mechanically from every layout marker.
 * Ambiguous or special upstream boundary types remain explicitly recorded rather than silently collapsed into ordinary open or closed sections.
+
+At the pinned source revisions, the corpus contains 4,039 nonempty sections and 4,015 genuine boundaries. The exact markers comprise 1,553 `פפ`, 18 `פפפ`, 1,554 `סס`, 428 genuine `ססס`, 328 `מ:ששש`, 34 documented poetic `ר1`, 47 documented poetic `ר3`, 38 documented poetic `ר4`, 11 `מ:רווח בתרי עשר בפסוק הראשון`, and 4 `מ:רווח לספר בתהלים בפסוק הראשון`. Their normalized structural types are 1,656 open, 2,016 closed, 328 distinct shirah-setumah-like, and 15 Masoretic book-part spacing boundaries.
 
 Exact provenance, source-marker interpretation, and boundary taxonomy are recorded in:
 

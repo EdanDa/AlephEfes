@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { computeCoreResults } from '../src/core/analysisCore.js';
 import { createTanakhSelection } from '../src/core/tanakhSelection.js';
-import { expectedOutput } from './generate-tanakh-corpus.mjs';
+import { BOOKS, expectedOutput } from './generate-tanakh-corpus.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -30,6 +30,30 @@ function allSections() {
         const payload = readJson(book.file);
         return payload.sections.map((section) => ({ book, section }));
     }));
+}
+
+function endsWithMaqaf(node) {
+    if (typeof node === 'string') return node.endsWith('־');
+    if (!Array.isArray(node)) return false;
+    for (let index = node.length - 1; index >= 0; index -= 1) {
+        const child = node[index];
+        if (typeof child === 'string' && child.length === 0) continue;
+        return endsWithMaqaf(child);
+    }
+    return false;
+}
+
+function countQereOnlyTrailingMaqaf(node) {
+    if (Array.isArray(node)) return node.reduce((sum, child) => sum + countQereOnlyTrailingMaqaf(child), 0);
+    if (!node || typeof node !== 'object') return 0;
+    const marker = node.tmpl_name;
+    const isStandardKetivQere = marker === 'כו״ק' || marker === 'קו״כ' || marker === 'מ:כו״ק מיוחד';
+    const ownCount = isStandardKetivQere
+        && endsWithMaqaf(node.tmpl_params?.['2'])
+        && !endsWithMaqaf(node.tmpl_params?.['1'])
+        ? 1
+        : 0;
+    return ownCount + Object.values(node).reduce((sum, child) => sum + countQereOnlyTrailingMaqaf(child), 0);
 }
 
 test('generated corpus is byte-for-byte deterministic from local siblings', () => {
@@ -58,17 +82,48 @@ test('complete source traversal and discovered boundary taxonomy are stable', ()
         'ר1': 34,
         'ר3': 47,
         'ר4': 38,
+        'מ:רווח בתרי עשר בפסוק הראשון': 11,
+        'מ:רווח לספר בתהלים בפסוק הראשון': 4,
     });
     assert.deepEqual(provenance.statistics.boundaryNormalized, {
         petuhah: 1656,
         setumah: 2016,
         'shirah-setumah-like': 328,
+        'masoretic-book-part-spacing': 15,
     });
     assert.equal(provenance.statistics.structuralExceptions['numbers-10-inverted-nun-neighbor'], 2);
     assert.equal(provenance.ambiguousCases.length, 1);
     assert.equal(provenance.ambiguousCases[0].marker, 'מ:ששש');
     assert.equal(provenance.ambiguousCases[0].occurrences, 328);
     assert.match(provenance.ambiguousCases[0].resolution, /shirah-setumah-like/u);
+});
+
+test('Masoretic book-part spacing keeps all Twelve prophets and five Psalms divisions structurally visible', () => {
+    const twelve = readJson('books/twelve.json');
+    const representedProphets = new Set(twelve.sections.map((section) => section.locators.start.subBook));
+    assert.deepEqual(
+        [...representedProphets],
+        twelve.sourceBookNames.map((sourceBook) => sourceBook.subBook),
+    );
+    assert.ok(twelve.sections.every((section) => section.locators.start.subBook === section.locators.end.subBook));
+
+    const amosEnding = twelve.sections.find((section) => (
+        section.locators.end.subBook === 'עמוס'
+        && section.locators.end.chapter === 9
+        && section.locators.end.verse === 15
+    ));
+    assert.equal(amosEnding.boundaryAfter.upstreamMarker, 'מ:רווח בתרי עשר בפסוק הראשון');
+    assert.equal(amosEnding.boundaryAfter.normalizedType, 'masoretic-book-part-spacing');
+    assert.equal(amosEnding.boundaryAfter.argument, 'עֹבדיה');
+    const obadiahSections = twelve.sections.filter((section) => section.locators.start.subBook === 'עבדיה');
+    assert.ok(obadiahSections.length > 0);
+    assert.equal(obadiahSections[0].locators.start.verse, 1);
+    assert.equal(obadiahSections.at(-1).locators.end.verse, 21);
+
+    const psalms = readJson('books/psalms.json');
+    const firstPsalmsDivision = psalms.sections.find((section) => section.boundaryAfter?.argument === 'ספר שני');
+    assert.equal(firstPsalmsDivision.locators.end.chapter, 41);
+    assert.equal(firstPsalmsDivision.boundaryAfter.normalizedType, 'masoretic-book-part-spacing');
 });
 
 test('sections cross locator boundaries but split at genuine mid-verse boundaries', () => {
@@ -95,11 +150,49 @@ test('ketiv-only policy handles every active K/Q construct and keeps editorial n
     });
     assert.equal(provenance.statistics.specialConstructs['targeted-editorial-notes'], 31);
     assert.equal(provenance.statistics.specialConstructs['special-letter-words'], 52);
+    assert.equal(provenance.statistics.specialConstructs['ketiv-word-boundary-from-qere-maqaf'], 52);
 
     for (const { section } of allSections()) {
         assert.doesNotMatch(section.sourceText, /מקורות=|הערות דותן|מ"ש ובדפוסים/u);
         assert.match(section.calculationText, /^[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5 ]+$/u);
     }
+});
+
+test('ketiv words remain separate when an omitted qere carries the maqaf', () => {
+    const kings = readJson('books/kings.json');
+    const section = kings.sections.find((item) => (
+        item.locators.start.subBook === 'מל"א'
+        && item.locators.start.chapter <= 17
+        && item.locators.end.chapter >= 17
+        && item.sourceText.includes('תתן')
+    ));
+
+    assert.ok(section, '1 Kings 17:14 must be present');
+    assert.match(section.sourceText, /תתן יְהֹוָ֛ה/u);
+    assert.match(section.calculationText, /תתן יהוה/u);
+    assert.doesNotMatch(section.sourceText, /תתןיְהֹוָ֛ה/u);
+    assert.doesNotMatch(section.calculationText, /תתןיהוה/u);
+});
+
+test('every qere-only trailing maqaf in MAM is accounted for as a ketiv word boundary', () => {
+    let sourceBoundaryCount = 0;
+    for (const book of BOOKS) {
+        const source = JSON.parse(fs.readFileSync(path.join(MAM_PARSED_ROOT, 'plus', book.file), 'utf8'));
+        for (const sourceBook of source.book39s) {
+            for (const verses of Object.values(sourceBook.chapters)) {
+                for (const columns of Object.values(verses)) {
+                    sourceBoundaryCount += countQereOnlyTrailingMaqaf(columns[2]);
+                }
+            }
+        }
+    }
+
+    const provenance = readJson('provenance.json');
+    assert.equal(sourceBoundaryCount, 52);
+    assert.equal(
+        provenance.statistics.specialConstructs['ketiv-word-boundary-from-qere-maqaf'],
+        sourceBoundaryCount,
+    );
 });
 
 test('Genesis creation-day regression agrees with the canonical calculation engine', () => {

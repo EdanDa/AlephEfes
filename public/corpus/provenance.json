@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "converterVersion": "1.0.0",
+  "converterVersion": "1.1.0",
   "corpusId": "mam-parsed-plus-ketiv-sections",
   "source": {
     "name": "MAM-parsed",
@@ -41,6 +41,7 @@
   "transformation": {
     "textPolicy": "ketiv-only",
     "qerePolicy": "omitted, including qere-without-ketiv; ketiv-without-qere retained",
+    "ketivWordBoundaries": "When an omitted qere branch ends in maqaf but its selected ketiv does not, the encoded boundary before the following word is retained as a plain space; qere text and its maqaf remain omitted.",
     "sourceText": "Selected upstream Hebrew spans preserve code-point order; only inter-span ASCII whitespace is joined.",
     "calculationText": "Derived with AlephEfes forceHebrewInput; Hebrew marks, MAM ordering controls (U+034F), and U+FB1E are removed, and maqaf is resolved by the canonical tokenizer.",
     "verseAndChapterRole": "locator metadata only; never analytical boundaries",
@@ -51,6 +52,7 @@
     "structuralInterpretation": [
       "פפ/פפפ normalize to petuhah; סס/ססס normalize to setumah.",
       "מ:ששש is retained as a distinct shirah setumah-like section divider.",
+      "The first-verse spacing markers for later Twelve book-parts and Psalms divisions are retained as masoretic-book-part-spacing boundaries; the initial marker in each storage container has no preceding section to close.",
       "Documented נוסח targets ר1/ר3/ר4 become setumah/petuhah only when the note explicitly identifies that parashah; other ר0–ר4 are layout.",
       "The two ססס adjacent to inverted nuns at Numbers 10:35–36 are spacing, not boundaries."
     ]
@@ -97,14 +99,17 @@
       "מ:ששש": 328,
       "ססס": 428,
       "פפפ": 18,
+      "מ:רווח בתרי עשר בפסוק הראשון": 11,
       "ר1": 34,
       "ר3": 47,
-      "ר4": 38
+      "ר4": 38,
+      "מ:רווח לספר בתהלים בפסוק הראשון": 4
     },
     "boundaryNormalized": {
       "petuhah": 1656,
       "setumah": 2016,
-      "shirah-setumah-like": 328
+      "shirah-setumah-like": 328,
+      "masoretic-book-part-spacing": 15
     },
     "ketivQere": {
       "כו״ק": 884,
@@ -130,7 +135,8 @@
       "special-letter-words": 52,
       "targeted-editorial-notes": 31,
       "dual-cantillation": 34,
-      "inverted-nun": 9
+      "inverted-nun": 9,
+      "ketiv-word-boundary-from-qere-maqaf": 52
     },
     "structuralExceptions": {
       "numbers-10-inverted-nun-neighbor": 2
@@ -139,11 +145,11 @@
     "book39s": 39,
     "chapters": 929,
     "verses": 23202,
-    "sections": 4024,
-    "boundaries": 4000,
-    "words": 305385
+    "sections": 4039,
+    "boundaries": 4015,
+    "words": 305437
   },
-  "contentHash": "a637e0768d41789963a999c187d17d419c57692ecbe8eb8d4ff32cb0ff3499b8",
+  "contentHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
   "ambiguousCases": [
     {
       "marker": "מ:ששש",

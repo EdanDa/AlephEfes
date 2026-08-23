@@ -11,7 +11,7 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 
 const SCHEMA_VERSION = '1.0.0';
-const CONVERTER_VERSION = '1.0.0';
+const CONVERTER_VERSION = '1.1.0';
 const MID_VERSE_ARGUMENT = 'פסקא באמצע פסוק';
 const HEBREW_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/u;
 const PARASHAH_MARKERS = new Map([
@@ -22,6 +22,10 @@ const PARASHAH_MARKERS = new Map([
     ['מ:ששש', 'shirah-setumah-like'],
 ]);
 const POETIC_LAYOUT_MARKERS = new Set(['ר0', 'ר1', 'ר2', 'ר3', 'ר4']);
+const MASORETIC_BOOK_PART_SPACING_MARKERS = new Set([
+    'מ:רווח בתרי עשר בפסוק הראשון',
+    'מ:רווח לספר בתהלים בפסוק הראשון',
+]);
 
 const BOOKS = Object.freeze([
     { file: 'A1-Genesis.json', slug: 'genesis', name: 'בראשית', division: 'torah' },
@@ -119,6 +123,29 @@ function isNumbersInvertedNunNeighbor(context, marker) {
         && (context.verse === 35 || context.verse === 36);
 }
 
+function endsWithMaqaf(node) {
+    if (typeof node === 'string') return node.endsWith('־');
+    if (!Array.isArray(node)) return false;
+    for (let index = node.length - 1; index >= 0; index -= 1) {
+        const child = node[index];
+        if (typeof child === 'string' && child.length === 0) continue;
+        return endsWithMaqaf(child);
+    }
+    return false;
+}
+
+function appendKetivWordBoundaryWhenQereCarriesMaqaf(params, context, output, outputStart) {
+    if (!endsWithMaqaf(params['2'])) return;
+    const renderedKetiv = output
+        .slice(outputStart)
+        .filter((event) => event.type === 'text')
+        .map((event) => event.source)
+        .join('');
+    if (!renderedKetiv || /[־\s]$/u.test(renderedKetiv)) return;
+    output.push({ type: 'text', source: ' ', calculation: ' ' });
+    increment(context.stats.specialConstructs, 'ketiv-word-boundary-from-qere-maqaf');
+}
+
 function renderSequence(node, context, output = []) {
     if (typeof node === 'string') {
         if (context.column === 'E') output.push({ type: 'text', source: node, calculation: node });
@@ -156,6 +183,22 @@ function renderSequence(node, context, output = []) {
         return output;
     }
 
+    if (MASORETIC_BOOK_PART_SPACING_MARKERS.has(marker)) {
+        if (!context.hasPendingText) return output;
+        output.push({
+            type: 'boundary',
+            upstreamMarker: marker,
+            normalizedType: 'masoretic-book-part-spacing',
+            location: sourceLocation(context),
+            column: context.column,
+            sourcePath: context.path,
+            position: 'before-verse',
+            argument: params['1'] || null,
+            documentedBy: null,
+        });
+        return output;
+    }
+
     if (marker === 'נוסח') {
         const poeticBoundary = poeticBoundaryFromDocumentation(params['1'], params['2']);
         if (poeticBoundary) {
@@ -183,7 +226,10 @@ function renderSequence(node, context, output = []) {
 
     if (marker === 'כו״ק' || marker === 'קו״כ' || marker === 'מ:כו״ק מיוחד') {
         increment(context.stats.ketivQere, marker);
-        return renderSequence(params['1'], { ...context, path: `${context.path}/${marker}:1` }, output);
+        const outputStart = output.length;
+        renderSequence(params['1'], { ...context, path: `${context.path}/${marker}:1` }, output);
+        appendKetivWordBoundaryWhenQereCarriesMaqaf(params, context, output, outputStart);
+        return output;
     }
 
     if (marker === 'מ:קו״כ-אם-2') {
@@ -261,8 +307,6 @@ function renderSequence(node, context, output = []) {
 
     const ignoredColumnCTemplates = new Set([
         'מ:ספר חדש',
-        'מ:רווח בתרי עשר בפסוק הראשון',
-        'מ:רווח לספר בתהלים בפסוק הראשון',
         'מ:אין פרשה בתחילת פרק',
         'מ:אין פרשה בתחילת פרק בספרי אמ״ת',
         'מ:אין רווח של פרשה בתחילת פרשת השבוע',
@@ -368,6 +412,7 @@ function convertBook(book, data, globalStats) {
                     chapter,
                     verse,
                     stats: globalStats,
+                    hasPendingText: firstLocator !== null,
                 };
 
                 const cEvents = renderSequence(columns[0], { ...baseContext, column: 'C', path: 'C' });
@@ -490,6 +535,7 @@ function expectedOutput(options) {
         transformation: {
             textPolicy: 'ketiv-only',
             qerePolicy: 'omitted, including qere-without-ketiv; ketiv-without-qere retained',
+            ketivWordBoundaries: 'When an omitted qere branch ends in maqaf but its selected ketiv does not, the encoded boundary before the following word is retained as a plain space; qere text and its maqaf remain omitted.',
             sourceText: 'Selected upstream Hebrew spans preserve code-point order; only inter-span ASCII whitespace is joined.',
             calculationText: 'Derived with AlephEfes forceHebrewInput; Hebrew marks, MAM ordering controls (U+034F), and U+FB1E are removed, and maqaf is resolved by the canonical tokenizer.',
             verseAndChapterRole: 'locator metadata only; never analytical boundaries',
@@ -500,6 +546,7 @@ function expectedOutput(options) {
             structuralInterpretation: [
                 'פפ/פפפ normalize to petuhah; סס/ססס normalize to setumah.',
                 'מ:ששש is retained as a distinct shirah setumah-like section divider.',
+                'The first-verse spacing markers for later Twelve book-parts and Psalms divisions are retained as masoretic-book-part-spacing boundaries; the initial marker in each storage container has no preceding section to close.',
                 'Documented נוסח targets ר1/ר3/ר4 become setumah/petuhah only when the note explicitly identifies that parashah; other ר0–ר4 are layout.',
                 'The two ססס adjacent to inverted nuns at Numbers 10:35–36 are spacing, not boundaries.',
             ],
