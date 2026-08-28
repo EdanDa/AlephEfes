@@ -149,7 +149,22 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                         <h2 className="text-2xl font-bold">מקרא על פי המסורה</h2>
                         <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>כתיב בלבד · פרשיות מסורה רציפות · פרקים ופסוקים לאיתור בלבד</p>
                     </div>
-                    {manifest && <span className={`text-xs rounded-full px-3 py-1 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-50 text-blue-700'}`}>{manifest.statistics.sections.toLocaleString('he-IL')} פרשיות</span>}
+                    {manifest && (
+                        <div className="tanakh-meta-actions flex flex-col items-end gap-2">
+                            <span className={`text-xs rounded-full px-3 py-1 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-50 text-blue-700'}`}>
+                                {manifest.statistics.sections.toLocaleString('he-IL')} פרשיות
+                            </span>
+                            {manifest.downloads?.fullCorpusJson && (
+                                <a
+                                    href={corpusUrl(manifest.downloads.fullCorpusJson)}
+                                    download="aleph-efes-tanakh-corpus.json"
+                                    className="tanakh-download inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                                >
+                                    הורד קורפוס מלא · JSON
+                                </a>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {manifest && (

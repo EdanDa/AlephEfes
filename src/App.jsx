@@ -109,7 +109,6 @@ const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
 const MIN_INPUT_ROWS = 4;
 const MAX_INPUT_ROWS = 18;
 const SAFE_BASE_LETTER_VALUES = typeof BASE_LETTER_VALUES !== 'undefined' ? BASE_LETTER_VALUES : {};
-const FULL_CORPUS_URL = `${import.meta.env.BASE_URL}corpus/aleph-efes-tanakh-corpus.json`;
 
 const GlobalStyles = () => (
     <style>{`
@@ -337,16 +336,6 @@ const GlobalStyles = () => (
             .app-value-tables td {
                 padding: 0.45rem;
             }
-            .app-corpus-download {
-                align-items: stretch;
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-            .app-corpus-download a {
-                justify-content: center;
-                min-height: 2.75rem;
-                width: 100%;
-            }
             .app-distribution-card .app-results-title {
                 font-size: clamp(1.45rem, 6vw, 1.9rem);
             }
@@ -426,6 +415,14 @@ const GlobalStyles = () => (
             .tanakh-header-row {
                 align-items: stretch;
                 flex-direction: column;
+            }
+            .tanakh-meta-actions {
+                align-items: stretch;
+                width: 100%;
+            }
+            .tanakh-download {
+                min-height: 2.75rem;
+                text-align: center;
             }
             .tanakh-division-tabs {
                 display: grid;
@@ -3242,20 +3239,6 @@ const App = () => {
                                     })}
                                 </tbody></table>
                             ))}
-                        </div>
-                        <div className={`app-corpus-download mt-5 pt-4 border-t flex items-center justify-between gap-4 ${isDarkMode ? 'border-gray-700' : 'border-slate-200'}`}>
-                            <div>
-                                <h3 className="font-bold">מאגר המקרא המלא</h3>
-                                <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>קובץ JSON אחד הכולל 24 ספרים, פרשיות, נתוני איתור ופרטי מקור.</p>
-                            </div>
-                            <a
-                                href={FULL_CORPUS_URL}
-                                download="aleph-efes-tanakh-corpus.json"
-                                className="flex flex-none items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700"
-                            >
-                                <Icon name="download" className="w-4 h-4" />
-                                הורד JSON
-                            </a>
                         </div>
                     </div>
                 )}
