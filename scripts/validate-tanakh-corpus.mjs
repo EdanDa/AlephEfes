@@ -259,3 +259,17 @@ test('all 24 lazy-loaded book payloads preserve ordered, traceable section text'
         },
     );
 });
+
+test('full-corpus JSON contains every book plus reproducibility and attribution metadata', () => {
+    const manifest = readJson('manifest.json');
+    const fullCorpus = readJson(manifest.downloads.fullCorpusJson);
+    const manifestBooks = manifest.divisions.flatMap((division) => division.books);
+
+    assert.equal(fullCorpus.schemaVersion, manifest.schemaVersion);
+    assert.equal(fullCorpus.corpusId, manifest.corpusId);
+    assert.equal(fullCorpus.contentHash, manifest.contentHash);
+    assert.deepEqual(fullCorpus.books.map((payload) => payload.book.slug), manifestBooks.map((book) => book.slug));
+    assert.equal(fullCorpus.books.reduce((sum, payload) => sum + payload.sections.length, 0), manifest.statistics.sections);
+    assert.equal(fullCorpus.provenance.license.corpus, 'CC-BY-SA-4.0');
+    assert.ok(fullCorpus.provenance.license.sourcePageHebrew);
+});

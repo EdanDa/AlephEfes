@@ -14,6 +14,7 @@ function assert(condition, message) {
 
 assert(fs.existsSync(INDEX_PATH), 'dist/index.html is missing; run npm run build first');
 assert(fs.existsSync(path.join(CORPUS_PATH, 'manifest.json')), 'dist/corpus/manifest.json is missing');
+assert(fs.existsSync(path.join(CORPUS_PATH, 'aleph-efes-tanakh-corpus.json')), 'dist full-corpus JSON is missing');
 
 const indexHtml = fs.readFileSync(INDEX_PATH, 'utf8');
 assert(!/corpus\//u.test(indexHtml), 'Initial HTML contains a corpus preload or request');
@@ -33,4 +34,8 @@ assert(!indexHtml.includes(navigatorChunks[0]), 'Tanakh navigator was preloaded 
 const bookFiles = fs.readdirSync(path.join(CORPUS_PATH, 'books')).filter((name) => name.endsWith('.json'));
 assert(bookFiles.length === 24, `Expected 24 external book files, found ${bookFiles.length}`);
 
-process.stdout.write(`Verified external corpus: 24 book files and one lazy navigator chunk are outside the initial bundle.\n`);
+const fullCorpus = JSON.parse(fs.readFileSync(path.join(CORPUS_PATH, 'aleph-efes-tanakh-corpus.json'), 'utf8'));
+assert(fullCorpus.books.length === 24, `Expected 24 books in the full-corpus download, found ${fullCorpus.books.length}`);
+assert(fullCorpus.provenance?.license?.corpus === 'CC-BY-SA-4.0', 'Full-corpus download is missing its corpus license');
+
+process.stdout.write(`Verified external corpus: 24 book files, one full-corpus download, and one lazy navigator chunk are outside the initial bundle.\n`);

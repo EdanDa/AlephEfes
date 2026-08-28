@@ -174,6 +174,14 @@ Selections enter the same calculation engine as manually pasted text.
 
 For multi-section input, each genuine Masoretic section remains a separate analytical line.
 
+The complete corpus can also be downloaded as one JSON file from beneath the letter-value mapping. The same generated artifact is stored at:
+
+```text
+public/corpus/aleph-efes-tanakh-corpus.json
+```
+
+It contains the manifest, provenance and attribution metadata, and all 24 book payloads.
+
 ### Text and structure policy
 
 The corpus follows a strict textual policy:

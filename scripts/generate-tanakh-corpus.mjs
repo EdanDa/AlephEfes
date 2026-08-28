@@ -12,6 +12,7 @@ const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 
 const SCHEMA_VERSION = '1.0.0';
 const CONVERTER_VERSION = '1.1.0';
+const FULL_CORPUS_FILE = 'aleph-efes-tanakh-corpus.json';
 const MID_VERSE_ARGUMENT = 'פסקא באמצע פסוק';
 const HEBREW_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/u;
 const PARASHAH_MARKERS = new Map([
@@ -587,6 +588,9 @@ function expectedOutput(options) {
         language: 'he',
         direction: 'rtl',
         provenance: 'provenance.json',
+        downloads: {
+            fullCorpusJson: FULL_CORPUS_FILE,
+        },
         contentHash,
         statistics: {
             books: BOOKS.length,
@@ -608,8 +612,18 @@ function expectedOutput(options) {
         })),
     };
 
+    const fullCorpus = {
+        schemaVersion: SCHEMA_VERSION,
+        corpusId: provenance.corpusId,
+        contentHash,
+        manifest,
+        provenance,
+        books: bookPayloads.map(({ payload }) => payload),
+    };
+
     files.set('provenance.json', stableJson(provenance, true));
     files.set('manifest.json', stableJson(manifest, true));
+    files.set(FULL_CORPUS_FILE, stableJson(fullCorpus));
     return { files, manifest, provenance };
 }
 
@@ -662,6 +676,7 @@ export {
     BOOKS,
     CONVERTER_VERSION,
     DIVISIONS,
+    FULL_CORPUS_FILE,
     SCHEMA_VERSION,
     deriveCalculationText,
     expectedOutput,

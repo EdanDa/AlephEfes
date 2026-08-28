@@ -4,6 +4,9 @@
   "language": "he",
   "direction": "rtl",
   "provenance": "provenance.json",
+  "downloads": {
+    "fullCorpusJson": "aleph-efes-tanakh-corpus.json"
+  },
   "contentHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
   "statistics": {
     "books": 24,

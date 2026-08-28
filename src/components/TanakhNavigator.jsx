@@ -143,8 +143,8 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
 
     return (
         <section className={`rounded-xl border mb-8 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} aria-label="בחירת טקסט מן התנ״ך">
-            <div className={`p-5 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-slate-200 bg-white/70'}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className={`tanakh-header p-5 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-slate-200 bg-white/70'}`}>
+                <div className="tanakh-header-row flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2 className="text-2xl font-bold">מקרא על פי המסורה</h2>
                         <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>כתיב בלבד · פרשיות מסורה רציפות · פרקים ופסוקים לאיתור בלבד</p>
@@ -153,7 +153,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                 </div>
 
                 {manifest && (
-                    <div className={`inline-flex mt-4 p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-slate-200'}`}>
+                    <div className={`tanakh-division-tabs inline-flex mt-4 p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-slate-200'}`}>
                         {manifest.divisions.map((division) => (
                             <button
                                 key={division.id}
@@ -169,9 +169,9 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                 )}
             </div>
 
-            <div className="p-5">
+            <div className="tanakh-content p-5">
                 {activeDivision && (
-                    <div className="flex flex-wrap gap-2 mb-5" aria-label="ספרים">
+                    <div className="tanakh-books flex flex-wrap gap-2 mb-5" aria-label="ספרים">
                         {activeDivision.books.map((book) => (
                             <button
                                 key={book.slug}
@@ -191,9 +191,9 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                 {error && <p className="rounded-lg bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 p-3 mb-4" role="alert">{error}</p>}
 
                 {bookData && activeSelection && (
-                    <div className="grid lg:grid-cols-[19rem_1fr] gap-5">
-                        <div className={`rounded-xl p-4 ${isDarkMode ? 'bg-gray-700/60' : 'bg-slate-100'}`}>
-                            <div className={`grid grid-cols-3 gap-1 p-1 rounded-lg mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-slate-200'}`} aria-label="היקף הבחירה">
+                    <div className="tanakh-workspace grid lg:grid-cols-[19rem_1fr] gap-5">
+                        <div className={`tanakh-controls rounded-xl p-4 ${isDarkMode ? 'bg-gray-700/60' : 'bg-slate-100'}`}>
+                            <div className={`tanakh-scope-tabs grid grid-cols-3 gap-1 p-1 rounded-lg mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-slate-200'}`} aria-label="היקף הבחירה">
                                 {SELECTION_SCOPES.map((scope) => (
                                     <button
                                         key={scope.id}
@@ -208,7 +208,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                             </div>
 
                             {selectionScope === 'range' ? (
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="tanakh-range-fields grid grid-cols-2 gap-2">
                                     <label className="block text-sm font-bold" htmlFor="tanakh-range-start">
                                         התחלה
                                         <select
@@ -260,10 +260,10 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                         </div>
 
                         <div>
-                            <div className={`rounded-xl border p-5 max-h-96 overflow-y-auto whitespace-pre-wrap text-xl leading-9 ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
+                            <div className={`tanakh-preview rounded-xl border p-5 max-h-96 overflow-y-auto whitespace-pre-wrap text-xl leading-9 ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
                                 {activeSelection.sourceText}
                             </div>
-                            <div className="mt-4 flex justify-end">
+                            <div className="tanakh-actions mt-4 flex justify-end">
                                 <button
                                     type="button"
                                     onClick={() => onSelect(activeSelection.calculationText, activeSelection, selectedBook)}

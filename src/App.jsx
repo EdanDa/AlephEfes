@@ -109,6 +109,7 @@ const LARGE_INPUT_SANITIZE_THRESHOLD = 80_000;
 const MIN_INPUT_ROWS = 4;
 const MAX_INPUT_ROWS = 18;
 const SAFE_BASE_LETTER_VALUES = typeof BASE_LETTER_VALUES !== 'undefined' ? BASE_LETTER_VALUES : {};
+const FULL_CORPUS_URL = `${import.meta.env.BASE_URL}corpus/aleph-efes-tanakh-corpus.json`;
 
 const GlobalStyles = () => (
     <style>{`
@@ -144,27 +145,45 @@ const GlobalStyles = () => (
             min-width: 0;
         }
         @media (max-width: 640px) {
-            .app-shell {
-                padding: 1rem 0.875rem 1.5rem;
+            html {
+                overflow-y: auto;
+            }
+            body {
                 overflow-x: hidden;
             }
+            button,
+            select,
+            summary {
+                touch-action: manipulation;
+            }
+            .app-shell {
+                overflow-x: clip;
+                padding: 0.75rem 0.625rem 1.5rem;
+            }
+            .app-shell.app-shell-has-nav {
+                padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+            }
+
             .app-header {
                 align-items: flex-start;
                 flex-direction: column;
-                gap: 1rem;
-                margin-bottom: 1.25rem;
+                gap: 0.875rem;
+                margin-bottom: 1rem;
+                text-align: right;
             }
             .app-header-copy {
                 max-width: 100%;
             }
             .app-title {
-                font-size: clamp(2.65rem, 17vw, 4rem);
+                font-size: clamp(2.35rem, 12vw, 3.25rem);
+                line-height: 0.95;
                 overflow-wrap: anywhere;
+                white-space: normal;
             }
             .app-subtitle {
-                font-size: 1.125rem;
-                line-height: 1.55;
-                max-width: 12rem;
+                font-size: 1rem;
+                line-height: 1.45;
+                max-width: 100%;
             }
             .app-header-actions {
                 align-self: stretch;
@@ -174,75 +193,64 @@ const GlobalStyles = () => (
                 width: 100%;
             }
             .app-legend {
+                grid-column: 1 / -1;
+                grid-row: 2;
                 min-width: 0;
-                overflow-x: auto;
-                overflow-y: visible;
-                padding-bottom: 0.125rem;
-                scrollbar-width: none;
-            }
-            .app-legend::-webkit-scrollbar {
-                display: none;
-            }
-            .app-legend-items {
-                width: max-content;
-                max-width: none;
-            }
-            .app-card {
-                padding: 1rem;
-                margin-bottom: 1.25rem;
-            }
-            .app-input-toolbar {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                gap: 0.75rem;
-            }
-            .app-mode-toggle {
-                order: 1;
-            }
-            .app-text-size-control {
-                order: 2;
-            }
-            .app-clear-control {
-                flex-basis: 100%;
-                justify-content: center;
-                order: 3;
-            }
-
-            .app-header {
-                text-align: right;
-            }
-            .app-title {
-                font-size: clamp(2.5rem, 14vw, 3.5rem);
-                line-height: 0.95;
-                white-space: nowrap;
-            }
-            .app-subtitle {
-                max-width: 100%;
-            }
-            .app-header-actions {
-                align-self: stretch;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: flex-start;
-                gap: 0.75rem;
+                position: static;
                 width: 100%;
             }
-            .app-legend {
-                flex: 0 0 100%;
-                order: 2;
+            .app-header-actions > .relative {
+                grid-column: 2;
+                grid-row: 1;
             }
-            .app-header-actions > :not(.app-legend) {
-                order: 1;
+            .app-header-actions > button {
+                grid-column: 3;
+                grid-row: 1;
             }
             .app-legend-items {
+                border-radius: 1rem;
+                display: grid;
+                font-size: 0.875rem;
+                gap: 0.4rem;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 max-width: 100%;
+                padding: 0.5rem;
+                width: 100%;
+            }
+            .app-legend-items > .w-px {
+                display: none;
+            }
+            .app-legend-items button {
+                justify-content: center;
+                min-height: 2.75rem;
+                min-width: 0;
+                padding: 0.45rem 0.5rem;
             }
             .app-card,
+            .app-stats-panel,
             .app-results-card,
             .app-distribution-card {
-                padding: 1rem;
-                margin-bottom: 1.25rem;
+                margin-bottom: 1rem;
+                padding: 0.875rem;
+            }
+            .app-input-toolbar {
+                display: grid;
+                gap: 0.75rem;
+                grid-template-columns: 1fr auto;
+            }
+            .app-mode-toggle {
+                justify-self: start;
+            }
+            .app-mode-toggle button,
+            .app-clear-control button,
+            .app-text-size-control select {
+                min-height: 2.75rem;
+            }
+            .app-text-size-control {
+                justify-self: end;
+            }
+            .app-clear-control {
+                grid-column: 1 / -1;
             }
             .app-results-header {
                 align-items: stretch;
@@ -254,10 +262,6 @@ const GlobalStyles = () => (
                 flex: none;
                 width: 100%;
             }
-            .app-results-title {
-                font-size: clamp(1.7rem, 8vw, 2.25rem);
-                line-height: 1.15;
-            }
             .app-export-toolbar {
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -266,33 +270,24 @@ const GlobalStyles = () => (
             }
             .app-export-toolbar button {
                 justify-content: center;
-                min-height: 3rem;
-                padding: 0.5rem;
+                min-height: 2.75rem;
+                padding: 0.45rem;
                 white-space: normal;
+            }
+            .app-stats-grid > div {
+                min-height: 5.5rem;
+                padding: 0.75rem;
+            }
+            .app-stats-grid .text-3xl {
+                font-size: 1.65rem;
             }
             .app-distribution-card .app-results-header {
                 align-items: center;
             }
-            .app-dr-row {
-                height: auto;
-                min-height: 6rem;
-                justify-content: flex-start;
-                gap: 0.35rem;
-                overflow-x: auto;
-                padding: 0.5rem;
-                scrollbar-width: none;
-            }
-            .app-dr-row::-webkit-scrollbar {
-                display: none;
-            }
-            .app-dr-item {
-                flex: 0 0 4.25rem;
-                width: 4.25rem;
-            }
             .app-view-nav {
                 bottom: 0;
-                margin: 1.25rem -0.875rem 1.5rem;
-                padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+                margin: 1rem -0.625rem 1.25rem;
+                padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom));
                 top: auto;
             }
             .app-view-tabs {
@@ -303,11 +298,12 @@ const GlobalStyles = () => (
             }
             .app-view-tab {
                 flex-direction: column;
-                font-size: 0.78rem;
+                font-size: 0.7rem;
                 gap: 0.15rem;
                 justify-content: center;
                 min-width: 0;
-                padding: 0.45rem 0.25rem;
+                min-height: 3.2rem;
+                padding: 0.4rem 0.15rem;
             }
             .app-view-tab svg {
                 height: 1rem;
@@ -318,36 +314,12 @@ const GlobalStyles = () => (
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
-            .app-title {
-                font-size: clamp(2.15rem, 11vw, 3rem);
-                white-space: normal;
-            }
-            .app-subtitle,
             .app-results-title {
                 font-size: clamp(1.35rem, 6vw, 1.75rem);
                 line-height: 1.25;
             }
-            .app-legend {
-                overflow: visible;
-            }
-            .app-legend-items {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0.45rem;
-                width: 100%;
-                max-width: 100%;
-                padding: 0.5rem;
-            }
-            .app-legend-items > .w-px {
-                display: none;
-            }
-            .app-legend-items button {
-                justify-content: center;
-                min-width: 0;
-                padding: 0.45rem 0.5rem;
-            }
             .app-value-table-card {
-                padding: 1rem;
+                padding: 0.875rem;
             }
             .app-value-table-title {
                 font-size: 1.35rem;
@@ -364,6 +336,16 @@ const GlobalStyles = () => (
             .app-value-tables th,
             .app-value-tables td {
                 padding: 0.45rem;
+            }
+            .app-corpus-download {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .app-corpus-download a {
+                justify-content: center;
+                min-height: 2.75rem;
+                width: 100%;
             }
             .app-distribution-card .app-results-title {
                 font-size: clamp(1.45rem, 6vw, 1.9rem);
@@ -427,6 +409,64 @@ const GlobalStyles = () => (
                 margin-inline: 0;
                 min-width: 0;
                 white-space: nowrap;
+            }
+            .app-scroll-top {
+                bottom: calc(5.25rem + env(safe-area-inset-bottom));
+                right: 0.75rem;
+                top: auto;
+                transform: none;
+            }
+            .app-scroll-top button {
+                padding: 0.625rem;
+            }
+            .tanakh-header,
+            .tanakh-content {
+                padding: 0.875rem;
+            }
+            .tanakh-header-row {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .tanakh-division-tabs {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                width: 100%;
+            }
+            .tanakh-division-tabs button {
+                min-height: 2.75rem;
+                padding-inline: 0.5rem;
+            }
+            .tanakh-books {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .tanakh-books button {
+                min-height: 2.75rem;
+                min-width: 0;
+            }
+            .tanakh-workspace {
+                gap: 0.875rem;
+            }
+            .tanakh-controls {
+                padding: 0.75rem;
+            }
+            .tanakh-scope-tabs button {
+                line-height: 1.2;
+                min-height: 3rem;
+                padding-inline: 0.25rem;
+            }
+            .tanakh-range-fields {
+                grid-template-columns: 1fr;
+            }
+            .tanakh-preview {
+                font-size: 1.05rem;
+                line-height: 2;
+                max-height: 18rem;
+                padding: 0.875rem;
+            }
+            .tanakh-actions button {
+                min-height: 3rem;
+                width: 100%;
             }
         }
     `}</style>
@@ -886,14 +926,14 @@ const StatsPanel = memo(() => {
     ];
 
     return (
-        <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+        <div className={`app-stats-panel p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">תקציר הטקסט</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
             </button>
             {!isStatsCollapsed && (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-center mt-6">
+                <div className="app-stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-center mt-6">
                     {summaryItems.map(item => (
                         <div key={item.label} title={item.title} className="min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center">
                             <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
@@ -3161,7 +3201,7 @@ const App = () => {
     const hasInput = text.trim().length > 0;
 
     return (
-        <div dir="rtl" className={`app-shell min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
+        <div dir="rtl" className={`app-shell ${hasInput ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="app-header mb-8 flex justify-between items-center">
@@ -3202,6 +3242,20 @@ const App = () => {
                                     })}
                                 </tbody></table>
                             ))}
+                        </div>
+                        <div className={`app-corpus-download mt-5 pt-4 border-t flex items-center justify-between gap-4 ${isDarkMode ? 'border-gray-700' : 'border-slate-200'}`}>
+                            <div>
+                                <h3 className="font-bold">מאגר המקרא המלא</h3>
+                                <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>קובץ JSON אחד הכולל 24 ספרים, פרשיות, נתוני איתור ופרטי מקור.</p>
+                            </div>
+                            <a
+                                href={FULL_CORPUS_URL}
+                                download="aleph-efes-tanakh-corpus.json"
+                                className="flex flex-none items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-blue-700"
+                            >
+                                <Icon name="download" className="w-4 h-4" />
+                                הורד JSON
+                            </a>
                         </div>
                     </div>
                 )}
@@ -3280,11 +3334,11 @@ const App = () => {
                     {hasInput && (
                         <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
                             <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
-                                <button onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
-                                <button onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
-                                <button onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
-                                <button onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
-                                <button onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
+                                <button aria-label="שכיחות" onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
+                                <button aria-label="פירוט" onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
+                                <button aria-label="קבוצות" onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
+                                <button aria-label="מפת ערכים" onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
+                                <button aria-label="רשת קשרים" onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
                             </div>
                         </div>
                     )}
@@ -3335,7 +3389,7 @@ const App = () => {
                                 <>
                                     {coreResults.grandTotals && (
                                         <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                                            <div className="flex justify-between items-center mb-4">
+                                            <div className="app-results-header flex justify-between items-center mb-4">
                                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
                                                 <div className="flex-1 flex justify-end">
@@ -3459,7 +3513,7 @@ const App = () => {
                                 </>
                             ) : (
                                 <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                                    <div className="flex justify-between items-center mb-4">
+                                    <div className="app-results-header flex justify-between items-center mb-4">
                                         <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                         <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום מילים ייחודיות ({coreResults.allWords.length} מילים)</h2></div>
                                         <div className="flex-1 flex justify-end">
@@ -3631,7 +3685,7 @@ const App = () => {
                 </>
                 )}
                 {showScrollTop && (
-                    <div className="fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
+                    <div className="app-scroll-top fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
                         <button onClick={scrollToTop} aria-label="גלול לראש העמוד" className="bg-gray-800/55 dark:bg-white/20 text-white p-3 rounded-full hover:bg-gray-800/75 dark:hover:bg-white/30 transition-opacity shadow-lg">
                             <Icon name="arrow-up" className="w-7 h-7" />
                         </button>
