@@ -198,13 +198,23 @@ const GlobalStyles = () => (
                 position: static;
                 width: 100%;
             }
-            .app-header-actions > .relative {
+            .app-value-table-action {
                 grid-column: 2;
                 grid-row: 1;
+                justify-self: end;
             }
-            .app-header-actions > button {
+            .app-theme-toggle {
                 grid-column: 3;
                 grid-row: 1;
+                justify-self: end;
+            }
+            .app-value-table-action > button,
+            .app-theme-toggle {
+                align-items: center;
+                display: inline-flex;
+                height: 2.75rem;
+                justify-content: center;
+                width: 2.75rem;
             }
             .app-legend-items {
                 border-radius: 1rem;
@@ -235,7 +245,7 @@ const GlobalStyles = () => (
             .app-input-toolbar {
                 display: grid;
                 gap: 0.75rem;
-                grid-template-columns: 1fr auto;
+                grid-template-columns: 1fr 1fr;
             }
             .app-mode-toggle {
                 justify-self: start;
@@ -246,10 +256,13 @@ const GlobalStyles = () => (
                 min-height: 2.75rem;
             }
             .app-text-size-control {
+                grid-column: 1 / -1;
                 justify-self: end;
             }
             .app-clear-control {
-                grid-column: 1 / -1;
+                grid-column: 2;
+                grid-row: 1;
+                justify-self: end;
             }
             .app-results-header {
                 align-items: stretch;
@@ -343,8 +356,9 @@ const GlobalStyles = () => (
                 display: grid;
                 grid-template-columns: repeat(5, minmax(0, 1fr));
                 gap: 0.5rem;
+                height: auto;
                 min-height: 0;
-                overflow: visible;
+                padding-block: 0.75rem;
             }
             .app-dr-item {
                 width: auto;
@@ -368,7 +382,19 @@ const GlobalStyles = () => (
                 margin-top: 1rem;
             }
             .app-textarea {
+                display: block;
+                max-width: 100%;
+                overflow-x: hidden;
+                overflow-wrap: anywhere;
                 padding: 0.875rem;
+                white-space: pre-wrap;
+            }
+            .app-cluster-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .app-cluster-grid > * {
+                min-width: 0;
             }
             .app-line-card {
                 padding: 1rem;
@@ -1158,7 +1184,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         onClick={unpinOnBackgroundClick}
                     >
                         <h3 className="text-xl font-bold text-violet-900 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
-                        <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
+                        <div className="app-cluster-grid flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                             {words.map((wordData, index) => (
                                 <WordCard 
                                     key={wordData.word}
@@ -3208,12 +3234,12 @@ const App = () => {
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
-                        <div className="relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
+                        <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
-                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
+                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`app-theme-toggle p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} aria-label={isDarkMode ? 'עבור למצב בהיר' : 'עבור למצב כהה'}>
                             {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
                         </button>
                     </div>
