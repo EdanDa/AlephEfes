@@ -235,7 +235,7 @@ const GlobalStyles = () => (
             .app-input-toolbar {
                 display: grid;
                 gap: 0.75rem;
-                grid-template-columns: 1fr auto;
+                grid-template-columns: 1fr 1fr;
             }
             .app-mode-toggle {
                 justify-self: start;
@@ -246,10 +246,13 @@ const GlobalStyles = () => (
                 min-height: 2.75rem;
             }
             .app-text-size-control {
+                grid-column: 1 / -1;
                 justify-self: end;
             }
             .app-clear-control {
-                grid-column: 1 / -1;
+                grid-column: 2;
+                grid-row: 1;
+                justify-self: end;
             }
             .app-results-header {
                 align-items: stretch;
@@ -343,8 +346,9 @@ const GlobalStyles = () => (
                 display: grid;
                 grid-template-columns: repeat(5, minmax(0, 1fr));
                 gap: 0.5rem;
+                height: auto;
                 min-height: 0;
-                overflow: visible;
+                padding-block: 0.75rem;
             }
             .app-dr-item {
                 width: auto;
@@ -368,7 +372,19 @@ const GlobalStyles = () => (
                 margin-top: 1rem;
             }
             .app-textarea {
+                display: block;
+                max-width: 100%;
+                overflow-x: hidden;
+                overflow-wrap: anywhere;
                 padding: 0.875rem;
+                white-space: pre-wrap;
+            }
+            .app-cluster-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .app-cluster-grid > * {
+                min-width: 0;
             }
             .app-line-card {
                 padding: 1rem;
@@ -1158,7 +1174,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                         onClick={unpinOnBackgroundClick}
                     >
                         <h3 className="text-xl font-bold text-violet-900 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
-                        <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
+                        <div className="app-cluster-grid flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                             {words.map((wordData, index) => (
                                 <WordCard 
                                     key={wordData.word}
