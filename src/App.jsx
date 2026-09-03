@@ -198,13 +198,23 @@ const GlobalStyles = () => (
                 position: static;
                 width: 100%;
             }
-            .app-header-actions > .relative {
+            .app-value-table-action {
                 grid-column: 2;
                 grid-row: 1;
+                justify-self: end;
             }
-            .app-header-actions > button {
+            .app-theme-toggle {
                 grid-column: 3;
                 grid-row: 1;
+                justify-self: end;
+            }
+            .app-value-table-action > button,
+            .app-theme-toggle {
+                align-items: center;
+                display: inline-flex;
+                height: 2.75rem;
+                justify-content: center;
+                width: 2.75rem;
             }
             .app-legend-items {
                 border-radius: 1rem;
@@ -3224,12 +3234,12 @@ const App = () => {
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
-                        <div className="relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
+                        <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
-                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}>
+                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`app-theme-toggle p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} aria-label={isDarkMode ? 'עבור למצב בהיר' : 'עבור למצב כהה'}>
                             {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
                         </button>
                     </div>
