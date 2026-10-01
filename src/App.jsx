@@ -186,34 +186,22 @@ const GlobalStyles = () => (
             }
             .app-header-actions {
                 align-self: stretch;
-                display: grid;
-                grid-template-columns: 1fr auto auto auto;
-                gap: 0.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
                 width: 100%;
             }
+            .app-header-utilities {
+                align-self: flex-end;
+            }
             .app-legend {
-                grid-column: 1 / -1;
-                grid-row: 2;
                 min-width: 0;
                 position: static;
                 width: 100%;
             }
-            .app-github-link {
-                grid-column: 2;
-                grid-row: 1;
-                justify-self: end;
+            .app-utility-buttons {
+                gap: 0.5rem;
             }
-            .app-value-table-action {
-                grid-column: 3;
-                grid-row: 1;
-                justify-self: end;
-            }
-            .app-theme-toggle {
-                grid-column: 4;
-                grid-row: 1;
-                justify-self: end;
-            }
-            .app-github-link,
             .app-value-table-action > button,
             .app-theme-toggle {
                 align-items: center;
@@ -221,6 +209,11 @@ const GlobalStyles = () => (
                 height: 2.75rem;
                 justify-content: center;
                 width: 2.75rem;
+            }
+            .app-github-link {
+                min-height: 2.5rem;
+                padding-inline: 0.85rem;
+                width: auto;
             }
             .app-legend-items {
                 border-radius: 1rem;
@@ -663,7 +656,7 @@ const Legend = React.memo(() => {
     };
 
     const handleMouseLeave = () => {
-        colorPickerTimeoutRef.current = setTimeout(() => setIsColorPickerOpen(false), 300);
+        colorPickerTimeoutRef.current = setTimeout(() => setIsColorPickerOpen(false), 700);
     };
 
     const handleColorSelection = (color) => {
@@ -744,7 +737,11 @@ const Legend = React.memo(() => {
                  </button>
             </div>
             {isColorPickerOpen && (
-                <div className="absolute top-1/2 left-full -translate-y-1/2 ml-4 z-20 pointer-events-auto">
+                <div
+                    className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-auto"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
                     <div className="relative w-28 h-28">
                         <button key="yellow" onClick={() => handleColorSelection("yellow")} className={`absolute w-8 h-8 rounded-full bg-yellow-400 transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} aria-label="Select yellow color"/>
                         {Object.entries(COLOR_PALETTE).filter(([k]) => k !== 'yellow').map(([key, { bg }], index, arr) => {
@@ -3238,7 +3235,7 @@ const App = () => {
                     <div className="app-header-copy text-right">
                         <div
                             dir="ltr"
-                            className={`mb-2 inline-block text-sm sm:text-base font-semibold tracking-[0.08em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}
+                            className={`mb-2 block w-full text-center text-sm sm:text-base font-semibold tracking-[0.08em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}
                         >
                             Aleph Efes
                         </div>
@@ -3249,25 +3246,29 @@ const App = () => {
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
-                        <a
-                            href="https://github.com/EdanDa/AlephEfes"
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`app-github-link inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
-                            aria-label="פתח את Aleph Efes ב-GitHub"
-                            title="GitHub"
-                        >
-                            <Icon name="github" className="w-5 h-5" />
-                            <span className="hidden sm:inline" dir="ltr">GitHub</span>
-                        </a>
-                        <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
-                            <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
-                                <Icon name="hash" className="w-5 h-5 text-purple-600"/>
-                            </button>
+                        <div className="app-header-utilities flex flex-col items-center gap-2">
+                            <div className="app-utility-buttons flex items-center gap-4">
+                                <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
+                                    <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
+                                        <Icon name="hash" className="w-5 h-5 text-purple-600"/>
+                                    </button>
+                                </div>
+                                <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`app-theme-toggle p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} aria-label={isDarkMode ? 'עבור למצב בהיר' : 'עבור למצב כהה'}>
+                                    {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
+                                </button>
+                            </div>
+                            <a
+                                href="https://github.com/EdanDa/AlephEfes"
+                                target="_blank"
+                                rel="noreferrer"
+                                className={`app-github-link inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
+                                aria-label="פתח את Aleph Efes ב-GitHub"
+                                title="GitHub"
+                            >
+                                <Icon name="github" className="w-5 h-5" />
+                                <span dir="ltr">GitHub</span>
+                            </a>
                         </div>
-                        <button onClick={() => dispatch({ type: 'TOGGLE_THEME_MODE' })} className={`app-theme-toggle p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`} aria-label={isDarkMode ? 'עבור למצב בהיר' : 'עבור למצב כהה'}>
-                            {isDarkMode ? <Icon name="sun" className="w-5 h-5 text-yellow-400"/> : <Icon name="moon" className="w-5 h-5 text-blue-600"/>}
-                        </button>
                     </div>
                 </header>
 
