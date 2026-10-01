@@ -3230,7 +3230,19 @@ const App = () => {
                 <header className="app-header mb-8 flex justify-between items-center">
                     <div className="app-header-copy text-right">
                         <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א=0' : 'מצב א=1'}</h1>
-                        <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>כלי הצבה לקסיומטרי לטקסט עברי</p>
+                        <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            <span dir="ltr" className="font-semibold">Aleph Efes</span>
+                            {' — '}כלי הצבה לקסיומטרי לטקסט עברי
+                            {' · '}
+                            <a
+                                href="https://github.com/EdanDa/AlephEfes"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2 hover:text-blue-600 dark:hover:text-blue-300"
+                            >
+                                GitHub
+                            </a>
+                        </p>
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
