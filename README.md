@@ -1,4 +1,4 @@
-# Aleph Efes (AlephEfes, א=0 / א=1) — Hebrew Bible lexiometry and compositional analysis
+# Aleph Efes (AlephEfes, א=0 / א=1) — quantitative textual and compositional analysis of the Hebrew Bible
 
 **Aleph Efes** is an open-source research project by **Edan-David Eyon** (GitHub: **EdanDa**). This repository, **EdanDa/AlephEfes**, contains the Aleph Efes calculator, a built-in Tanakh corpus, tests, corpus-generation tools, reproducible research code, and research documentation for the **א=0 / א=1** alphabetic system.
 
