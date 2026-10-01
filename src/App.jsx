@@ -187,7 +187,7 @@ const GlobalStyles = () => (
             .app-header-actions {
                 align-self: stretch;
                 display: grid;
-                grid-template-columns: 1fr auto auto;
+                grid-template-columns: 1fr auto auto auto;
                 gap: 0.5rem;
                 width: 100%;
             }
@@ -198,16 +198,22 @@ const GlobalStyles = () => (
                 position: static;
                 width: 100%;
             }
-            .app-value-table-action {
+            .app-github-link {
                 grid-column: 2;
                 grid-row: 1;
                 justify-self: end;
             }
-            .app-theme-toggle {
+            .app-value-table-action {
                 grid-column: 3;
                 grid-row: 1;
                 justify-self: end;
             }
+            .app-theme-toggle {
+                grid-column: 4;
+                grid-row: 1;
+                justify-self: end;
+            }
+            .app-github-link,
             .app-value-table-action > button,
             .app-theme-toggle {
                 align-items: center;
@@ -623,6 +629,7 @@ const Icon = React.memo(({ name, className }) => {
         case 'sun': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
         case 'moon': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
         case 'hash': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>;
+        case 'github': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.59 2 12.253c0 4.53 2.865 8.373 6.839 9.729.5.095.682-.222.682-.493 0-.243-.009-.888-.014-1.743-2.782.62-3.369-1.374-3.369-1.374-.455-1.185-1.11-1.5-1.11-1.5-.908-.636.069-.623.069-.623 1.004.073 1.532 1.057 1.532 1.057.892 1.568 2.341 1.115 2.91.853.091-.664.349-1.116.635-1.372-2.221-.259-4.555-1.139-4.555-5.065 0-1.119.389-2.034 1.029-2.751-.103-.26-.446-1.303.098-2.717 0 0 .84-.276 2.75 1.051A9.303 9.303 0 0 1 12 7.98a9.31 9.31 0 0 1 2.504.345c1.909-1.327 2.748-1.051 2.748-1.051.546 1.414.203 2.457.1 2.717.641.717 1.027 1.632 1.027 2.751 0 3.936-2.338 4.803-4.566 5.057.359.318.679.946.679 1.907 0 1.376-.012 2.486-.012 2.824 0 .274.18.593.688.492C19.138 20.622 22 16.782 22 12.253 22 6.59 17.523 2 12 2Z"/></svg>;
         case 'copy': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>;
         case 'check': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
         case 'grid': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>;
@@ -3229,23 +3236,30 @@ const App = () => {
             <div className="max-w-7xl mx-auto">
                 <header className="app-header mb-8 flex justify-between items-center">
                     <div className="app-header-copy text-right">
+                        <div
+                            dir="ltr"
+                            className={`mb-2 inline-block text-sm sm:text-base font-semibold tracking-[0.08em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}
+                        >
+                            Aleph Efes
+                        </div>
                         <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א=0' : 'מצב א=1'}</h1>
-                        <p className={`app-subtitle text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            <span dir="ltr" className="font-semibold">Aleph Efes</span>
-                            {' — '}כלי לניתוח אלפביתי־מספרי וכמותי של טקסט עברי
-                            {' · '}
-                            <a
-                                href="https://github.com/EdanDa/AlephEfes"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline underline-offset-2 hover:text-blue-600 dark:hover:text-blue-300"
-                            >
-                                GitHub
-                            </a>
+                        <p className={`app-subtitle text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            כלי לניתוח אלפביתי־מספרי ומבני של טקסט עברי
                         </p>
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
+                        <a
+                            href="https://github.com/EdanDa/AlephEfes"
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`app-github-link inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
+                            aria-label="פתח את Aleph Efes ב-GitHub"
+                            title="GitHub"
+                        >
+                            <Icon name="github" className="w-5 h-5" />
+                            <span className="hidden sm:inline" dir="ltr">GitHub</span>
+                        </a>
                         <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
