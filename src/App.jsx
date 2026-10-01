@@ -187,7 +187,7 @@ const GlobalStyles = () => (
             .app-header-actions {
                 align-self: stretch;
                 display: grid;
-                grid-template-columns: 1fr auto auto auto;
+                grid-template-columns: 1fr auto auto;
                 gap: 0.5rem;
                 width: 100%;
             }
@@ -198,22 +198,16 @@ const GlobalStyles = () => (
                 position: static;
                 width: 100%;
             }
-            .app-github-link {
+            .app-value-table-action {
                 grid-column: 2;
                 grid-row: 1;
                 justify-self: end;
             }
-            .app-value-table-action {
+            .app-theme-toggle {
                 grid-column: 3;
                 grid-row: 1;
                 justify-self: end;
             }
-            .app-theme-toggle {
-                grid-column: 4;
-                grid-row: 1;
-                justify-self: end;
-            }
-            .app-github-link,
             .app-value-table-action > button,
             .app-theme-toggle {
                 align-items: center;
@@ -3234,14 +3228,21 @@ const App = () => {
         <div dir="rtl" className={`app-shell ${hasInput ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
+                <div className="mb-5 flex justify-center">
+                    <a
+                        href="https://github.com/EdanDa/AlephEfes"
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm sm:text-base font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
+                        aria-label="פתח את Aleph Efes ב-GitHub"
+                        title="Aleph Efes on GitHub"
+                    >
+                        <Icon name="github" className="w-5 h-5" />
+                        <span dir="ltr">Aleph Efes</span>
+                    </a>
+                </div>
                 <header className="app-header mb-8 flex justify-between items-center">
                     <div className="app-header-copy text-right">
-                        <div
-                            dir="ltr"
-                            className={`mb-2 inline-block text-sm sm:text-base font-semibold tracking-[0.08em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}
-                        >
-                            Aleph Efes
-                        </div>
                         <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">{mode === 'aleph-zero' ? 'מצב א=0' : 'מצב א=1'}</h1>
                         <p className={`app-subtitle text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             כלי לניתוח אלפביתי־מספרי ומבני של טקסט עברי
@@ -3249,17 +3250,6 @@ const App = () => {
                     </div>
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
-                        <a
-                            href="https://github.com/EdanDa/AlephEfes"
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`app-github-link inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
-                            aria-label="פתח את Aleph Efes ב-GitHub"
-                            title="GitHub"
-                        >
-                            <Icon name="github" className="w-5 h-5" />
-                            <span className="hidden sm:inline" dir="ltr">GitHub</span>
-                        </a>
                         <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
                             <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
