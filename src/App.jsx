@@ -706,7 +706,7 @@ const Legend = React.memo(() => {
                     <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-700/70 text-sky-400 dark:text-sky-500'}`}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
-                    <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>אחדות</span>
+                    <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>יחידות</span>
                  </button>
                  <button
                     onClick={() => toggleFilter('T')}
@@ -945,7 +945,7 @@ const StatsPanel = memo(() => {
         { label: 'מילים', value: stats.totalWords, title: 'מספר כל מופעי המילים בטקסט' },
         { label: 'מילים ייחודיות', value: stats.uniqueWords, secondary: `${uniqueShare}% מן המופעים`, title: 'מספר צורות המילה השונות ושיעורן מכלל המופעים' },
         { label: `מילים ל${isSectionSelection ? 'פרשיה' : 'שורה'}`, value: averageWords, title: `הממוצע האריתמטי של מספר המילים בכל ${isSectionSelection ? 'פרשיה' : 'שורה'}` },
-        { label: `${unitName} עם סכום ראשוני`, value: stats.primeLineTotals, title: `מספר ה${unitName} שבהן לפחות אחד מסכומי האחדות, העשרות או המאות הוא מספר ראשוני` },
+        { label: `${unitName} עם סכום ראשוני`, value: stats.primeLineTotals, title: `מספר ה${unitName} שבהן לפחות אחד מסכומי היחידות, העשרות או המאות הוא מספר ראשוני` },
         { label: 'ערכים מקשרים', value: connectionValues.size, title: 'ערכים מספריים המופיעים ביותר ממילה ייחודית אחת בשכבות המוצגות' },
     ];
 
@@ -3024,7 +3024,7 @@ const App = () => {
         if (coreResults.primeSummary.length > 0) {
             lines.push(`\n\nסיכום ראשוניים מסכומי השורות\n---------------------------\n`);
             coreResults.primeSummary.forEach(p => {
-                 const layers = p.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
+                 const layers = p.layers.map(l => l === 'יחידות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
                  if (layers.some(l => filters[l])) lines.push(`שורה ${p.line}: ${p.value} (שכבת ${p.layers.join(', ')})`);
             });
         }
@@ -3267,7 +3267,7 @@ const App = () => {
                         <div className="app-value-tables flex justify-center gap-8">
                             { [0, 11].map(offset => (
                                 <table key={offset} className="text-center w-full max-w-xs"><thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
-                                    <tr>{['אות', 'אחדות', 'עשרות', 'מאות'].map(header => <th key={header} className="p-2 font-semibold">{header}</th>)}</tr>
+                                    <tr>{['אות', 'יחידות', 'עשרות', 'מאות'].map(header => <th key={header} className="p-2 font-semibold">{header}</th>)}</tr>
                                 </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
                                     {Object.keys(SAFE_BASE_LETTER_VALUES).slice(offset, offset + 11).map(letter => {
                                         const rec = letterTable.get(letter);
@@ -3425,7 +3425,7 @@ const App = () => {
                                                 </div>
                                             </div>
                                             <div className="grid grid-cols-2 md:grid-flow-col md:auto-cols-fr gap-4 text-center">
-                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-אחדות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
+                                                <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-יחידות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.units} isPrimeFlag={coreResults.grandTotals.isPrime.U} primeColor={primeColor} layer="U" filters={filters}/> </div>
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-עשרות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.tens} isPrimeFlag={coreResults.grandTotals.isPrime.T} primeColor={primeColor} layer="T" filters={filters}/> </div>
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">Σ-מאות (סה"כ)</p> <TotalNumberDisplay value={coreResults.grandTotals.hundreds} isPrimeFlag={coreResults.grandTotals.isPrime.H} primeColor={primeColor} layer="H" filters={filters}/> </div>
                                                 <div className="p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50"> <p className="text-sm text-gray-700 dark:text-gray-300 uppercase font-semibold">ש"ד (סה"כ)</p> <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{coreResults.grandTotals.dr}</p> </div>
@@ -3465,7 +3465,7 @@ const App = () => {
                                                             <tr><th className="px-4 py-3 text-center">שורה</th><th className="px-4 py-3 text-center">ערך ראשוני</th><th className="px-4 py-3 text-center">שכבה</th></tr>
                                                         </thead><tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
                                                             {coreResults.primeSummary.map((primeInfo, index) => {
-                                                                const layers = primeInfo.layers.map(l => l === 'אחדות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
+                                                                const layers = primeInfo.layers.map(l => l === 'יחידות' ? 'U' : l === 'עשרות' ? 'T' : 'H');
                                                                 if (!layers.some(l => filters[l])) return null;
 
                                                                 return (
@@ -3500,7 +3500,7 @@ const App = () => {
                                                     <p className={`app-line-text text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
                                                     {showTotalsLine && <div className={`app-line-totals font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}><span className="app-line-totals-label">סה"כ שורה:</span>
                                                         {lineResult.words.length > 1 && <span className="app-line-word-count mx-2">({lineResult.words.length} מילים)</span>}
-                                                        {unitsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>אחדות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
+                                                        {unitsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>יחידות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
                                                         {tensVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.T && !tensUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>עשרות={tensUsesDitto ? '〃' : lineResult.totals.tens}{lineResult.isPrimeTotals.T && !tensUsesDitto && '♢'}</span>}
                                                         {hundredsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.H && !hundredsUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>מאות={hundredsUsesDitto ? '〃' : lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && !hundredsUsesDitto && '♢'}</span>}
                                                         <span className="app-line-total mx-2">ש"ד={lineResult.totalsDR}</span>
@@ -3513,7 +3513,7 @@ const App = () => {
                                                                 <tr>
                                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider rounded-r-lg">מילה</th>
                                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider">חישוב</th>
-                                                                    {filters.U && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-אחדות</th>}
+                                                                    {filters.U && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-יחידות</th>}
                                                                     {filters.T && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-עשרות</th>}
                                                                     {filters.H && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-מאות</th>}
                                                                     <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider rounded-l-lg">ש"ד</th>
@@ -3554,7 +3554,7 @@ const App = () => {
                                                 <tr>
                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider rounded-r-lg">מילה</th>
                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider">חישוב</th>
-                                                    {filters.U && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-אחדות</th>}
+                                                    {filters.U && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-יחידות</th>}
                                                     {filters.T && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-עשרות</th>}
                                                     {filters.H && <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider">Σ-מאות</th>}
                                                     <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider rounded-l-lg">ש"ד</th>
