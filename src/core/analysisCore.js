@@ -356,7 +356,7 @@ function computeCoreResults(text, mode) {
         const linePrimes = {};
         if (isPrimeLineU) {
             if (!linePrimes[lineU]) linePrimes[lineU] = [];
-            linePrimes[lineU].push('אחדות');
+            linePrimes[lineU].push('יחידות');
         }
         if (isPrimeLineT) {
             if (!linePrimes[lineT]) linePrimes[lineT] = [];
