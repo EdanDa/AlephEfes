@@ -26,8 +26,8 @@ test('forceHebrewInput transliterates and normalizes spacing/punctuation', () =>
 });
 
 test('forceHebrewInput converts slash and non-letter separators into spaces', () => {
-    const value = forceHebrewInput('חודש/ירח — אחדות…איחוד');
-    assert.equal(value, 'חודש ירח אחדות איחוד');
+    const value = forceHebrewInput('חודש/ירח — יחידות…איחוד');
+    assert.equal(value, 'חודש ירח יחידות איחוד');
 });
 
 test('forceHebrewInput preserves Hebrew abbreviations joined by quotes', () => {
