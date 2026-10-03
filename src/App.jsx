@@ -3034,7 +3034,7 @@ const App = () => {
     const prepareAllDetailsCSV = useCallback(() => {
         if (detailsView === 'words') {
             return toCSV(
-                ['mode','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'],
+                ['mode','word','dr','יחידות','עשרות','מאות','is_prime_u','is_prime_t','is_prime_h'],
                 visibleAllWords.map((w) => [mode, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]),
             );
         }
@@ -3052,7 +3052,7 @@ const App = () => {
                 visibleWords.map((w) => `${w.word}:${w.hundreds}`).join('|'),
             ]);
         });
-        return toCSV(['mode','line_number','word_count','words','dr_by_word','units_by_word','tens_by_word','hundreds_by_word'], rows);
+        return toCSV(['mode','line_number','word_count','words','dr_by_word','יחידות_לפי_מילה','עשרות_לפי_מילה','מאות_לפי_מילה'], rows);
     }, [detailsView, visibleAllWords, mode, coreResults, visibleWordsByLine, toCSV]);
 
     const prepareSummaryText = useCallback(() => {
@@ -3101,7 +3101,7 @@ const App = () => {
         } else if (view === 'clusters') {
             filteredWordsInView.forEach(({ dr, words }) => words.forEach((w) => rows.push([mode, 'clusters', selectedDR ?? '', w.word, dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0])));
         }
-        return toCSV(['mode','view','context_word','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'], rows);
+        return toCSV(['mode','view','context_word','word','dr','יחידות','עשרות','מאות','is_prime_u','is_prime_t','is_prime_h'], rows);
     }, [view, mode, pinnedWord, getPinnedRelevantWords, filteredWordsInView, selectedDR, toCSV]);
 
     const prepareHotWordsText = useCallback(() => {
@@ -3120,7 +3120,7 @@ const App = () => {
     }, [coreResults, selectedHotValue, mode, visibleHotWords, filters]);
 
     const prepareHotWordsCSV = useCallback(() => toCSV(
-        ['mode','selected_value','word','dr','units','tens','hundreds','is_prime_u','is_prime_t','is_prime_h'],
+        ['mode','selected_value','word','dr','יחידות','עשרות','מאות','is_prime_u','is_prime_t','is_prime_h'],
         visibleHotWords.map((w) => [mode, selectedHotValue, w.word, w.dr, w.units, w.tens, w.hundreds, w.isPrimeU ? 1 : 0, w.isPrimeT ? 1 : 0, w.isPrimeH ? 1 : 0]),
     ), [toCSV, visibleHotWords, mode, selectedHotValue]);
 
