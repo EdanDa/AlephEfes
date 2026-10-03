@@ -2973,7 +2973,7 @@ const App = () => {
         ];
         
         // ... Grand Totals logic remains same ...
-        if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ א= ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
+        if (isValueVisible('U', coreResults.grandTotals.isPrime.U, filters)) lines.push(`סה"כ י'= ${coreResults.grandTotals.units}${primeMarker(coreResults.grandTotals.isPrime.U)}`);
         if (isValueVisible('T', coreResults.grandTotals.isPrime.T, filters)) lines.push(`סה"כ ע: ${coreResults.grandTotals.tens}${primeMarker(coreResults.grandTotals.isPrime.T)}`);
         if (isValueVisible('H', coreResults.grandTotals.isPrime.H, filters)) lines.push(`סה"כ מ: ${coreResults.grandTotals.hundreds}${primeMarker(coreResults.grandTotals.isPrime.H)}`);
         lines.push(`ש"ד כללי: ${coreResults.grandTotals.dr}\n`);
@@ -2983,7 +2983,7 @@ const App = () => {
              visibleAllWords.forEach(w => {
                 const calc = getLetterDetails(w.word, letterTable).map(l => `${l.char}(${l.value})`).join('+');
                 let valuesArr = [];
-                if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`א= ${w.units}${w.isPrimeU ? " ♢" : ""}`);
+                if (isValueVisible('U', w.isPrimeU, filters)) valuesArr.push(`י'= ${w.units}${w.isPrimeU ? " ♢" : ""}`);
                 if (isValueVisible('T', w.isPrimeT, filters)) valuesArr.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
                 if (isValueVisible('H', w.isPrimeH, filters)) valuesArr.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
                 lines.push(`- ${w.word}: ${calc} | ${valuesArr.join(' | ')} | ש"ד: ${w.dr}`);
@@ -3002,7 +3002,7 @@ const App = () => {
                 const primeU = wordData.isPrimeU ? " ♢" : "";
                 
                 let valuesArr = [];
-                if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`א= ${wordData.units}${primeU}`);
+                if (isValueVisible('U', wordData.isPrimeU, filters)) valuesArr.push(`י'= ${wordData.units}${primeU}`);
                 if (isValueVisible('T', wordData.isPrimeT, filters)) valuesArr.push(`ע: ${wordData.tens}${wordData.isPrimeT ? " ♢" : ""}`);
                 if (isValueVisible('H', wordData.isPrimeH, filters)) valuesArr.push(`מ: ${wordData.hundreds}${wordData.isPrimeH ? " ♢" : ""}`);
                 
@@ -3011,7 +3011,7 @@ const App = () => {
             });
             // ... Line totals logic ...
             const lineValues = [];
-            if (isValueVisible('U', line.isPrimeTotals.U, filters)) lineValues.push(`א=${line.totals.units}${primeMarker(line.isPrimeTotals.U)}`);
+            if (isValueVisible('U', line.isPrimeTotals.U, filters)) lineValues.push(`י'=${line.totals.units}${primeMarker(line.isPrimeTotals.U)}`);
             if (isValueVisible('T', line.isPrimeTotals.T, filters)) lineValues.push(`ע=${line.totals.tens}${primeMarker(line.isPrimeTotals.T)}`);
             if (isValueVisible('H', line.isPrimeTotals.H, filters)) lineValues.push(`מ=${line.totals.hundreds}${primeMarker(line.isPrimeTotals.H)}`);
             const lineWordCount = line.words.length;
@@ -3063,7 +3063,7 @@ const App = () => {
 
         const formatWord = (wordData) => {
             const values = [];
-            if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`א= ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
+            if (isValueVisible('U', wordData.isPrimeU, filters)) values.push(`י'= ${wordData.units}${primeMarker(wordData.isPrimeU)}`);
             if (isValueVisible('T', wordData.isPrimeT, filters)) values.push(`ע: ${wordData.tens}${primeMarker(wordData.isPrimeT)}`);
             if (isValueVisible('H', wordData.isPrimeH, filters)) values.push(`מ: ${wordData.hundreds}${primeMarker(wordData.isPrimeH)}`);
             if (values.length === 0) return null; 
@@ -3110,7 +3110,7 @@ const App = () => {
         const lines = [`מצב חישוב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'}\n---\n`, `מילים עם הערך ${selectedHotValue}\n-------------------\n`];
         visibleHotWords.forEach(w => {
             let parts = [];
-            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`א= ${w.units}${primeU(w)}`);
+            if (isValueVisible('U', w.isPrimeU, filters)) parts.push(`י'= ${w.units}${primeU(w)}`);
             if (isValueVisible('T', w.isPrimeT, filters)) parts.push(`ע: ${w.tens}${w.isPrimeT ? " ♢" : ""}`);
             if (isValueVisible('H', w.isPrimeH, filters)) parts.push(`מ: ${w.hundreds}${w.isPrimeH ? " ♢" : ""}`);
             const valuesString = parts.join(' | ');
