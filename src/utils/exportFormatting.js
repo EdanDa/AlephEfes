@@ -7,7 +7,7 @@ export function stripTrailingSpacesPerLine(text) {
 }
 
 
-export const COPY_LAYER_LEGEND = "א'-יחידות ע'-עשרות מ'-מאות";
+export const COPY_LAYER_LEGEND = "י'-יחידות ע'-עשרות מ'-מאות";
 export const COPY_PRIME_LEGEND = "♢-ראשוני";
 
 export function formatTextForClipboard(text) {
