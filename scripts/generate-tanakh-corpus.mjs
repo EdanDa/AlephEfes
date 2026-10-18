@@ -5,13 +5,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { computeCoreResults, forceHebrewInput } from '../src/core/analysisCore.js';
+import { createCorpusAnalyses } from './tanakh-corpus-analysis.mjs';
+import { createCorpusIndexes, TOKEN_LOCATIONS_FILE, WORD_OCCURRENCES_FILE } from './tanakh-corpus-indexes.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const WORKSPACE_ROOT = path.resolve(REPO_ROOT, '..');
 
 const SCHEMA_VERSION = '1.0.0';
-const CONVERTER_VERSION = '1.1.0';
+const CONVERTER_VERSION = '1.2.0';
 const FULL_CORPUS_FILE = 'aleph-efes-tanakh-corpus.json';
 const MID_VERSE_ARGUMENT = 'פסקא באמצע פסוק';
 const HEBREW_LETTER_RE = /[\u05D0-\u05EA\u05DA\u05DD\u05DF\u05E3\u05E5]/u;
@@ -338,14 +340,24 @@ function emptyStats() {
     };
 }
 
-function convertBook(book, data, globalStats) {
+function convertBook(book, data, globalStats, sectionVerseMappings = []) {
     const sections = [];
     const sourceParts = [];
     const calculationParts = [];
+    const calculationSpans = [];
+    const verseWordCounts = new Map();
     let firstLocator = null;
     let lastLocator = null;
     let locatorCount = 0;
     let lastLocatorKey = null;
+
+    function appendCalculation(text, locator) {
+        calculationParts.push(text);
+        const key = JSON.stringify(locator);
+        const previous = calculationSpans.at(-1);
+        if (previous?.key === key) previous.text += text;
+        else calculationSpans.push({ key, locator, text });
+    }
 
     function touchLocator(location) {
         const key = `${location.book24}|${location.subBook || ''}|${location.chapter}|${location.verse}`;
@@ -370,6 +382,21 @@ function convertBook(book, data, globalStats) {
         }
 
         const canonicalResults = computeCoreResults(calculationText, 'aleph-zero');
+        const mappedWords = [];
+        const verseSpans = calculationSpans.flatMap((span) => {
+            const normalized = deriveCalculationText(normalizeJoinedSourceWhitespace(span.text));
+            const words = normalized ? computeCoreResults(normalized, 'aleph-zero').lines.flatMap((line) => line.words.map((word) => word.word)) : [];
+            if (!words.length) return [];
+            const verseStartWordPosition = (verseWordCounts.get(span.key) || 0) + 1;
+            verseWordCounts.set(span.key, verseStartWordPosition - 1 + words.length);
+            const startWordPosition = mappedWords.length + 1;
+            mappedWords.push(...words);
+            return [{ locator: span.locator, startWordPosition, wordCount: words.length, verseStartWordPosition }];
+        });
+        calculationSpans.length = 0;
+        if (mappedWords.join(' ') !== canonicalResults.lines[0].words.map((word) => word.word).join(' ')) {
+            throw new Error(`Verse token mapping changes the calculation stream in ${book.slug} section ${sections.length + 1}`);
+        }
         const record = {
             id: `${book.slug}-${String(sections.length + 1).padStart(4, '0')}`,
             ordinal: sections.length + 1,
@@ -386,6 +413,7 @@ function convertBook(book, data, globalStats) {
             boundaryAfter,
         };
         sections.push(record);
+        sectionVerseMappings.push({ sectionId: record.id, verseSpans });
         globalStats.words += record.wordCount;
         firstLocator = null;
         lastLocator = null;
@@ -438,11 +466,11 @@ function convertBook(book, data, globalStats) {
                             touchLocator(sourceLocation(baseContext));
                         }
                         sourceParts.push(event.source);
-                        calculationParts.push(event.calculation);
+                        appendCalculation(event.calculation, sourceLocation(baseContext));
                     }
                 }
                 sourceParts.push(' ');
-                calculationParts.push(' ');
+                appendCalculation(' ', sourceLocation(baseContext));
             }
         }
     }
@@ -504,13 +532,14 @@ function expectedOutput(options) {
     };
     const files = new Map();
     const bookPayloads = [];
+    const sectionVerseMappings = [];
 
     for (const book of BOOKS) {
         const sourceFile = path.join(plusPath, book.file);
         if (!fs.existsSync(sourceFile)) throw new Error(`Missing source book: ${sourceFile}`);
         const data = JSON.parse(fs.readFileSync(sourceFile, 'utf8'));
         stats.sourceFiles += 1;
-        const payload = convertBook(book, data, stats);
+        const payload = convertBook(book, data, stats, sectionVerseMappings);
         const contents = stableJson(payload);
         const relativeFile = `books/${book.slug}.json`;
         files.set(relativeFile, contents);
@@ -540,6 +569,7 @@ function expectedOutput(options) {
             sourceText: 'Selected upstream Hebrew spans preserve code-point order; only inter-span ASCII whitespace is joined.',
             calculationText: 'Derived with AlephEfes forceHebrewInput; Hebrew marks, MAM ordering controls (U+034F), and U+FB1E are removed, and maqaf is resolved by the canonical tokenizer.',
             verseAndChapterRole: 'locator metadata only; never analytical boundaries',
+            tokenLocations: 'Every calculation token is mapped to its selected MAM verse; one-based verse word positions count the ketiv-only calculation stream and continue across genuine mid-verse section boundaries.',
             bookRole: 'storage/navigation partition and initial stream boundary only',
             dualCantillation: 'מ:כפול selects only the כפול (combined/codex) branch',
             documentation: 'נוסח and מ:הערה-2 contribute only their target parameter; notes are excluded',
@@ -590,6 +620,8 @@ function expectedOutput(options) {
         provenance: 'provenance.json',
         downloads: {
             fullCorpusJson: FULL_CORPUS_FILE,
+            wordOccurrencesJson: WORD_OCCURRENCES_FILE,
+            tokenLocationsJson: TOKEN_LOCATIONS_FILE,
         },
         contentHash,
         statistics: {
@@ -619,11 +651,15 @@ function expectedOutput(options) {
         manifest,
         provenance,
         books: bookPayloads.map(({ payload }) => payload),
+        ...createCorpusAnalyses(bookPayloads.map(({ payload }) => payload)),
     };
 
     files.set('provenance.json', stableJson(provenance, true));
     files.set('manifest.json', stableJson(manifest, true));
     files.set(FULL_CORPUS_FILE, stableJson(fullCorpus));
+    const indexes = createCorpusIndexes(fullCorpus, sectionVerseMappings);
+    files.set(WORD_OCCURRENCES_FILE, stableJson(indexes.wordOccurrences));
+    files.set(TOKEN_LOCATIONS_FILE, stableJson(indexes.tokenLocations));
     return { files, manifest, provenance };
 }
 
@@ -678,7 +714,9 @@ export {
     DIVISIONS,
     FULL_CORPUS_FILE,
     SCHEMA_VERSION,
+    convertBook,
     deriveCalculationText,
+    emptyStats,
     expectedOutput,
     generateCorpus,
     poeticBoundaryFromDocumentation,

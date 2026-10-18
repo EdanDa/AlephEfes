@@ -37,5 +37,21 @@ assert(bookFiles.length === 24, `Expected 24 external book files, found ${bookFi
 const fullCorpus = JSON.parse(fs.readFileSync(path.join(CORPUS_PATH, 'aleph-efes-tanakh-corpus.json'), 'utf8'));
 assert(fullCorpus.books.length === 24, `Expected 24 books in the full-corpus download, found ${fullCorpus.books.length}`);
 assert(fullCorpus.provenance?.license?.corpus === 'CC-BY-SA-4.0', 'Full-corpus download is missing its corpus license');
+assert(fullCorpus.analysisSchemaVersion === '2.0.0', 'Full-corpus shared analysis schema is missing');
+assert(fullCorpus.analysisShared?.totalWordCount === fullCorpus.manifest.statistics.words, 'Full-corpus shared word data is incomplete');
+assert(fullCorpus.analysisShared?.sections.length === fullCorpus.manifest.statistics.sections, 'Full-corpus shared section data is incomplete');
+for (const mode of ['aleph-zero', 'aleph-one']) {
+    const analysis = fullCorpus.analysisByMode?.[mode];
+    assert(analysis?.sections.length === fullCorpus.manifest.statistics.sections, `Full-corpus ${mode} section data is incomplete`);
+    assert(analysis?.wordValues.length === fullCorpus.analysisShared.uniqueWordCount, `Full-corpus ${mode} numerical word data is incomplete`);
+    assert(analysis?.drDistribution.reduce((sum, count) => sum + count, 0) === fullCorpus.analysisShared.uniqueWordCount, `Full-corpus ${mode} unique-word distribution differs`);
+    assert(analysis?.drOccurrenceDistribution.reduce((sum, count) => sum + count, 0) === fullCorpus.analysisShared.totalWordCount, `Full-corpus ${mode} occurrence distribution differs`);
+}
+for (const key of ['wordOccurrencesJson', 'tokenLocationsJson']) {
+    const relativeFile = fullCorpus.manifest.downloads[key];
+    assert(relativeFile && fs.existsSync(path.join(CORPUS_PATH, relativeFile)), `Corpus index ${key} is missing`);
+    const index = JSON.parse(fs.readFileSync(path.join(CORPUS_PATH, relativeFile), 'utf8'));
+    assert(index.contentHash === fullCorpus.contentHash && index.sharedAnalysisHash === fullCorpus.sharedAnalysisHash, `Corpus index ${key} does not match the corpus`);
+}
 
 process.stdout.write(`Verified external corpus: 24 book files, one full-corpus download, and one lazy navigator chunk are outside the initial bundle.\n`);

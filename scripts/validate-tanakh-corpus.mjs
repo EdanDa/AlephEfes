@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { computeCoreResults } from '../src/core/analysisCore.js';
 import { createTanakhSelection } from '../src/core/tanakhSelection.js';
-import { BOOKS, expectedOutput } from './generate-tanakh-corpus.mjs';
+import { BOOKS, deriveCalculationText, emptyStats, expectedOutput, renderSequence } from './generate-tanakh-corpus.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -65,6 +65,41 @@ test('generated corpus is byte-for-byte deterministic from local siblings', () =
     for (const [relativePath, expected] of generated.files.entries()) {
         assert.equal(fs.readFileSync(path.join(CORPUS_ROOT, relativePath), 'utf8'), expected, relativePath);
     }
+});
+
+test('every token verse assignment agrees with the selected MAM source verse', () => {
+    const corpus = readJson('aleph-efes-tanakh-corpus.json');
+    const locations = readJson(corpus.manifest.downloads.tokenLocationsJson);
+    const shared = corpus.analysisShared;
+    const wordsByVerse = locations.verseLocators.map(() => []);
+    for (const [index, section] of locations.sections.entries()) {
+        const wordIndices = shared.sections[index].wordIndices;
+        for (const [start, count, verseIndex] of section.verseSpans) {
+            wordsByVerse[verseIndex].push(...wordIndices.slice(start - 1, start - 1 + count).map((wordIndex) => shared.words[wordIndex].word));
+        }
+    }
+    const mapped = new Map(locations.verseLocators.map((locator, index) => [JSON.stringify(locator), wordsByVerse[index]]));
+    const stats = emptyStats();
+    let checkedWords = 0;
+    let checkedVerses = 0;
+    for (const book of BOOKS) {
+        const source = JSON.parse(fs.readFileSync(path.join(MAM_PARSED_ROOT, 'plus', book.file), 'utf8'));
+        for (const sourceBook of source.book39s) {
+            for (const [chapter, verses] of Object.entries(sourceBook.chapters)) {
+                for (const [verse, columns] of Object.entries(verses)) {
+                    const locator = { book24: sourceBook.book24_name, subBook: sourceBook.sub_book_name, chapter: Number(chapter), verse: Number(verse) };
+                    const events = renderSequence(columns[2], { book, ...locator, stats, column: 'E', path: 'E', hasPendingText: true });
+                    const text = deriveCalculationText(events.map((event) => event.type === 'text' ? event.calculation : ' ').join(''));
+                    const words = text ? computeCoreResults(text, 'aleph-zero').lines.flatMap((line) => line.words.map((word) => word.word)) : [];
+                    assert.deepEqual(mapped.get(JSON.stringify(locator)) || [], words, `${book.slug} ${chapter}:${verse}`);
+                    checkedWords += words.length;
+                    if (words.length) checkedVerses += 1;
+                }
+            }
+        }
+    }
+    assert.equal(checkedWords, corpus.manifest.statistics.words);
+    assert.equal(checkedVerses, locations.verseLocators.length);
 });
 
 test('complete source traversal and discovered boundary taxonomy are stable', () => {

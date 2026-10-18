@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "converterVersion": "1.1.0",
+  "converterVersion": "1.2.0",
   "corpusId": "mam-parsed-plus-ketiv-sections",
   "source": {
     "name": "MAM-parsed",
@@ -45,6 +45,7 @@
     "sourceText": "Selected upstream Hebrew spans preserve code-point order; only inter-span ASCII whitespace is joined.",
     "calculationText": "Derived with AlephEfes forceHebrewInput; Hebrew marks, MAM ordering controls (U+034F), and U+FB1E are removed, and maqaf is resolved by the canonical tokenizer.",
     "verseAndChapterRole": "locator metadata only; never analytical boundaries",
+    "tokenLocations": "Every calculation token is mapped to its selected MAM verse; one-based verse word positions count the ketiv-only calculation stream and continue across genuine mid-verse section boundaries.",
     "bookRole": "storage/navigation partition and initial stream boundary only",
     "dualCantillation": "מ:כפול selects only the כפול (combined/codex) branch",
     "documentation": "נוסח and מ:הערה-2 contribute only their target parameter; notes are excluded",

@@ -138,6 +138,14 @@ const GlobalStyles = () => (
             font-size: 3rem;
             line-height: 0.95;
         }
+        .app-header {
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .app-header-actions {
+            flex-wrap: wrap;
+            max-width: 100%;
+        }
         .app-header-actions,
         .app-input-toolbar,
         .app-legend-items {

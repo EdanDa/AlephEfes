@@ -160,9 +160,17 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                                     download="aleph-efes-tanakh-corpus.json"
                                     className="tanakh-download inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                                 >
-                                    הורד קורפוס מלא · JSON
+                                    הורד קורפוס מלא · א=0 / א=1 · JSON
                                 </a>
                             )}
+                            <div className="flex flex-wrap justify-end gap-3 text-xs">
+                                {manifest.downloads?.wordOccurrencesJson && (
+                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.wordOccurrencesJson)} download={manifest.downloads.wordOccurrencesJson}>אינדקס מופעים · JSON</a>
+                                )}
+                                {manifest.downloads?.tokenLocationsJson && (
+                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.tokenLocationsJson)} download={manifest.downloads.tokenLocationsJson}>מיקומי פסוקים · JSON</a>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

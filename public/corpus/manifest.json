@@ -5,7 +5,9 @@
   "direction": "rtl",
   "provenance": "provenance.json",
   "downloads": {
-    "fullCorpusJson": "aleph-efes-tanakh-corpus.json"
+    "fullCorpusJson": "aleph-efes-tanakh-corpus.json",
+    "wordOccurrencesJson": "aleph-efes-tanakh-word-occurrences.json",
+    "tokenLocationsJson": "aleph-efes-tanakh-token-locations.json"
   },
   "contentHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
   "statistics": {
