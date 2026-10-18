@@ -75,6 +75,12 @@ Additional capabilities include:
 
 Requires Node.js 18+ and npm.
 
+### Installing on Android
+
+Open [Aleph Efes](https://aleph-efes.vercel.app/) in Chrome, then choose **⋮ → Add to Home screen → Install** when offered. Chrome may also show an install promotion after you interact with the page and spend time on it. The installed app opens in its own window and uses the same saved text as the website. An internet connection is required to load the app and fetch corpus data.
+
+Installation metadata lives in `public/manifest.webmanifest`, with 192px and 512px icons and a separate maskable Android icon in `public/icons/`.
+
 ### First-time setup
 
 ```bash
