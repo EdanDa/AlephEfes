@@ -69,6 +69,7 @@ function appReducer(state, action) {
                 isValueTableOpen: false,
             };
         case 'SET_MODE':
+            if (state.mode === action.payload) return state;
             return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
         case 'SET_TEXT_SIZE':
             return { ...state, textSize: action.payload };

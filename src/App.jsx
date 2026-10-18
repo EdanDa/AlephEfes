@@ -151,7 +151,67 @@ const GlobalStyles = () => (
         .app-legend-items {
             min-width: 0;
         }
-        @media (max-width: 640px) {
+        .app-network-canvas canvas {
+            touch-action: none;
+        }
+        .app-canvas-tooltip {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        @media (max-width: 1023px) {
+            .app-results-header {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0.75rem;
+            }
+            .app-results-header > * {
+                min-width: 0;
+                width: 100%;
+            }
+            .app-results-header > :empty {
+                display: none;
+            }
+            .app-results-header > .app-results-title,
+            .app-results-header > .app-results-heading {
+                order: -2;
+                padding-inline: 0;
+            }
+            .app-results-header > .app-export-toolbar,
+            .app-results-header > :has(> .app-export-toolbar) {
+                order: 1;
+            }
+            .app-export-toolbar {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.5rem;
+                width: 100%;
+            }
+            .app-export-toolbar button {
+                align-items: center;
+                justify-content: center;
+                min-height: 2.75rem;
+                min-width: 0;
+                padding: 0.5rem 0.25rem;
+                white-space: nowrap;
+            }
+            .app-export-toolbar svg {
+                flex-shrink: 0;
+            }
+            .app-segmented-control {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                width: 100%;
+            }
+            .app-segmented-control button {
+                min-height: 2.75rem;
+                min-width: 0;
+                padding-inline: 0.5rem;
+            }
+        }
+        .app-mobile-scroll-top {
+            display: none;
+        }
+        @media (max-width: 640px), (max-width: 1023px) and (pointer: coarse) {
             html {
                 overflow-y: auto;
             }
@@ -305,8 +365,10 @@ const GlobalStyles = () => (
                 align-items: center;
             }
             .app-view-nav {
+                position: fixed;
+                inset-inline: 0;
                 bottom: 0;
-                margin: 1rem -0.625rem 1.25rem;
+                margin: 0;
                 padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom));
                 top: auto;
             }
@@ -315,6 +377,19 @@ const GlobalStyles = () => (
                 display: grid;
                 grid-template-columns: repeat(5, minmax(0, 1fr));
                 width: 100%;
+            }
+            .app-view-tabs-has-top {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) 2.75rem;
+            }
+            .app-mobile-scroll-top {
+                align-items: center;
+                display: inline-flex;
+                justify-content: center;
+                min-height: 2.75rem;
+                width: 2.75rem;
+            }
+            .app-shell:has(.app-view-nav) .app-scroll-top {
+                display: none;
             }
             .app-view-tab {
                 flex-direction: column;
@@ -330,9 +405,8 @@ const GlobalStyles = () => (
                 width: 1rem;
             }
             .app-view-tab-label {
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                line-height: 1.2;
+                white-space: normal;
             }
             .app-results-title {
                 font-size: clamp(1.35rem, 6vw, 1.75rem);
@@ -363,21 +437,21 @@ const GlobalStyles = () => (
             .app-dr-row {
                 display: grid;
                 grid-template-columns: repeat(5, minmax(0, 1fr));
-                gap: 0.5rem;
+                gap: 0.25rem;
                 height: auto;
                 min-height: 0;
-                padding-block: 0.75rem;
+                padding-block: 0.5rem;
             }
             .app-dr-item {
                 width: auto;
                 min-width: 0;
-                height: 4.9rem;
+                height: 4rem;
             }
             .app-dr-label {
                 display: flex;
-                flex-direction: column;
+                flex-direction: row;
                 align-items: center;
-                gap: 0.05rem;
+                gap: 0.2rem;
                 font-size: 0.95rem;
                 line-height: 1.05;
                 margin-top: 0.1rem;
@@ -386,8 +460,65 @@ const GlobalStyles = () => (
                 font-size: 0.72rem;
                 opacity: 0.75;
             }
-            .app-view-nav {
-                margin-top: 1rem;
+            .app-dr-empty {
+                color: #94a3b8;
+                font-size: 1rem;
+            }
+            .app-frequency-table-header,
+            .app-frequency-table-row {
+                display: grid;
+                grid-template-columns: 3.5rem 4rem minmax(0, 1fr);
+                align-items: center;
+                column-gap: 0.5rem;
+            }
+            .app-frequency-table-header > *,
+            .app-frequency-table-row > * {
+                min-width: 0;
+                width: auto;
+            }
+            .app-frequency-table-header {
+                font-size: 0.85rem;
+                min-height: 2.75rem;
+            }
+            .app-frequency-table-row > * {
+                padding-inline: 0.25rem;
+            }
+            .app-drilldown-header,
+            .app-drilldown-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+            .app-drilldown-actions > button {
+                min-height: 2.75rem;
+            }
+            .app-network-canvas {
+                height: clamp(14rem, 52svh, 30rem);
+            }
+            .app-value-canvas {
+                height: clamp(14rem, 48svh, 25rem);
+            }
+            .app-canvas-toolbar button {
+                min-height: 2.75rem;
+                min-width: 2.75rem;
+            }
+            .app-value-summary {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                font-size: 0.75rem;
+            }
+            .app-value-summary > div {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+                justify-content: center;
+                min-width: 0;
+                text-align: center;
+            }
+            .app-line-card th,
+            .app-line-card td,
+            .app-word-table th,
+            .app-word-table td {
+                padding: 0.65rem 0.5rem;
+                font-size: 0.9rem;
             }
             .app-textarea {
                 display: block;
@@ -586,7 +717,7 @@ function appReducer(state, action) {
 		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
 		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
 		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
-		case 'SET_MODE': return { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
+		case 'SET_MODE': return state.mode === action.payload ? state : { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
 		case 'SET_TEXT_SIZE': return { ...state, textSize: action.payload };
 		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
 		case 'SET_HOVERED_WORD':
@@ -1172,7 +1303,7 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                 <div className="flex-1 flex justify-start">
                     <ExportToolbar getText={copySummaryToClipboard} getCSV={prepareSummaryCSV} getJSON={prepareSummaryJSON} id='summary' />
                 </div>
-                <div className="relative group text-center flex-grow">
+                <div className="app-results-heading relative group text-center flex-grow">
                     <h2 className="app-results-title text-2xl font-bold inline-block noselect">קבוצות לפי שורש דיגיטלי</h2>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none noselect">
                         שורש דיגיטלי של מספר הוא הספרה הבודדת שמתקבלת כשמחברים שוב ושוב את ספרותיו עד שנותרת ספרה אחת.
@@ -1403,6 +1534,15 @@ const buildWordConnectionIndex = (coreResults, filters, selectedDR) => {
     return { nodes, links };
 };
 
+const canvasTooltipStyle = (point, container) => {
+    const width = Math.min(260, (container?.clientWidth || 276) - 16);
+    return {
+        width,
+        left: Math.max(8, Math.min(point.px - width / 2, (container?.clientWidth || 276) - width - 8)),
+        top: Math.max(8, Math.min(point.py + 12, (container?.clientHeight || 320) - 160)),
+    };
+};
+
 const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -1413,6 +1553,7 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
     const selectedIdRef = useRef(null);
     const runningRef = useRef(false);
     const hoverInfoRef = useRef(null);
+    const viewportControlRef = useRef(null);
     const [hoverInfo, setHoverInfo] = useState(null);
 
     const setHoverInfoSafe = (info) => {
@@ -1460,11 +1601,11 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             selectedIdRef.current = null;
         }
 
-        const sizeRef = { width: container.clientWidth, height: 600, dpr: window.devicePixelRatio || 1 };
+        const sizeRef = { width: container.clientWidth, height: container.clientHeight, dpr: window.devicePixelRatio || 1 };
 
         const setCanvasSize = () => {
             const width = container.clientWidth;
-            const height = 600;
+            const height = container.clientHeight;
             const dpr = window.devicePixelRatio || 1;
             sizeRef.width = width;
             sizeRef.height = height;
@@ -1715,7 +1856,9 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             if (alpha <= alphaMin) requestAnimationFrame(render);
         };
 
-        const handleMouseDown = (e) => {
+        const handlePointerDown = (e) => {
+            if (!e.isPrimary || e.button !== 0) return;
+            canvas.setPointerCapture(e.pointerId);
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -1740,7 +1883,8 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             }
         };
 
-        const handleMouseMove = (e) => {
+        const handlePointerMove = (e) => {
+            if (!e.isPrimary) return;
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -1817,7 +1961,8 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
             } 
         };
 
-        const handleMouseUp = () => {
+        const handlePointerUp = (e) => {
+            if (!e.isPrimary) return;
             if (draggingRef.current) {
                 if (draggingRef.current.isClick) {
                     if (draggingRef.current.type === 'node') {
@@ -1846,33 +1991,55 @@ const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWord
                 }
             }
             draggingRef.current = null;
+            if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+        };
+
+        const handlePointerCancel = (e) => { if (e.isPrimary) draggingRef.current = null; };
+        viewportControlRef.current = (action) => {
+            const { x, y, k } = transformRef.current;
+            const nextK = Math.max(0.1, Math.min(5, k * (action === 'in' ? 1.25 : 0.8)));
+            const centerX = sizeRef.width / 2;
+            const centerY = sizeRef.height / 2;
+            transformRef.current = action === 'reset'
+                ? { x: 0, y: 0, k: 1 }
+                : { x: centerX - (centerX - x) * nextK / k, y: centerY - (centerY - y) * nextK / k, k: nextK };
+            requestAnimationFrame(render);
         };
 
         canvas.addEventListener('wheel', handleWheel, { passive: false });
-        canvas.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerCancel);
 
         return () => {
             cancelAnimationFrame(animationRef.current);
             runningRef.current = false;
             ro.disconnect();
             canvas.removeEventListener('wheel', handleWheel);
-            canvas.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
+            canvas.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerCancel);
+            viewportControlRef.current = null;
         };
     }, [graphData, isDarkMode, primeColor]);
 
     return (
-        <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <h2 className="text-2xl font-bold mb-4 text-center">מפת קשרים (רשת)</h2>
-            <div ref={containerRef} className="relative w-full h-[600px] cursor-move overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700">
+        <div className={`app-results-card app-network-card p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+            <h2 className="app-results-title text-2xl font-bold mb-4 text-center">מפת קשרים (רשת)</h2>
+            <div className="app-canvas-toolbar flex flex-wrap items-center justify-center gap-2 mb-3">
+                <button type="button" aria-label="הגדל את רשת הקשרים" onClick={() => viewportControlRef.current?.('in')} className="rounded-lg border px-3 py-2">+</button>
+                <button type="button" aria-label="הקטן את רשת הקשרים" onClick={() => viewportControlRef.current?.('out')} className="rounded-lg border px-3 py-2">−</button>
+                <button type="button" aria-label="אפס את תצוגת הרשת" onClick={() => viewportControlRef.current?.('reset')} className="rounded-lg border px-3 py-2">איפוס תצוגה</button>
+            </div>
+            <p className="mb-3 text-center text-sm text-gray-500 dark:text-gray-400">גררו להזזה · הקישו על מילה לבחירה</p>
+            <div ref={containerRef} className="app-network-canvas relative w-full h-[600px] cursor-move overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700">
                 <canvas ref={canvasRef} className="w-full h-full block" />
                  {hoverInfo && (
                     <div 
-                        className="absolute pointer-events-none p-2 rounded bg-black/80 text-white text-xs z-10 whitespace-nowrap transform -translate-x-1/2 -translate-y-full"
-                        style={{ left: hoverInfo.px, top: hoverInfo.py - 10 }}
+                        className="app-canvas-tooltip absolute pointer-events-none p-2 rounded bg-black/80 text-white text-xs z-10"
+                        style={canvasTooltipStyle(hoverInfo, containerRef.current)}
                     >
                         {hoverInfo.type === 'word' ? (
                             <div className="font-bold text-base">{hoverInfo.id}</div>
@@ -2048,7 +2215,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
 
         const render = () => {
             const width = container.clientWidth;
-            const height = 430;
+            const height = container.clientHeight;
             const dpr = window.devicePixelRatio || 1;
 
             canvas.width = width * dpr;
@@ -2174,37 +2341,31 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     }, [valueInsights.length]);
 
     return (
-        <div className={`p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <div className="flex items-center justify-between gap-4 mb-4">
-                <h2 className="text-2xl font-bold text-center flex-1">גרף ערכים בטקסט</h2>
+        <div className={`app-results-card app-value-map p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+            <div className="app-results-header flex items-center justify-between gap-4 mb-4">
+                <h2 className="app-results-title text-2xl font-bold text-center flex-1">גרף ערכים בטקסט</h2>
                 <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} getJSON={prepareInsightJSON} id='graph-insights' label='העתק' />
             </div>
             <p className={`text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
                 הגרף מציג אילו ערכים בולטים בטקסט לפי שכיחות, ייחודיות ועוצמת קשר בין שכבות.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-sm">
+            <div className="app-value-summary grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-sm">
                 <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים מוצגים: <b>{graphSummary.valueCount}</b></div>
                 <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים ראשוניים: <b>{graphSummary.primeValues}</b></div>
                 <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ציון גישור מצטבר: <b>{graphSummary.totalBridgeScore}</b></div>
             </div>
-            <div ref={containerRef} className="relative w-full h-[430px] cursor-crosshair">
+            <div ref={containerRef} className="app-value-canvas relative w-full h-[430px] cursor-crosshair">
                 <canvas
                     ref={canvasRef}
                     onClick={handleInteraction}
-                    onMouseMove={handleInteraction}
-                    onMouseLeave={() => setHoverInfo(null)}
+                    onPointerMove={handleInteraction}
+                    onPointerLeave={() => setHoverInfo(null)}
                     className="w-full h-full"
                 />
                 {hoverInfo && (
                     <div
-                        className="absolute pointer-events-none p-3 rounded-lg bg-gray-900/90 text-white text-sm z-10 whitespace-nowrap transform -translate-y-full shadow-xl border border-gray-600 w-max max-w-[260px]"
-                        style={{
-                            left: hoverInfo.px,
-                            top: hoverInfo.py - 10,
-                            transform: hoverInfo.px > (containerRef.current?.clientWidth || 0) * 0.7
-                                ? 'translate(-100%, -100%)'
-                                : 'translate(0, -100%)'
-                        }}
+                        className="app-canvas-tooltip absolute pointer-events-none p-3 rounded-lg bg-gray-900/90 text-white text-sm z-10 shadow-xl border border-gray-600"
+                        style={canvasTooltipStyle(hoverInfo, containerRef.current)}
                     >
                         <div className="font-bold text-base mb-1">ערך {hoverInfo.value} {hoverInfo.isPrime && <span className="text-yellow-400">♢</span>}</div>
                         <div>שכבות: {hoverInfo.layers.join('/')}</div>
@@ -3366,12 +3527,13 @@ const App = () => {
 
                     {hasInput && (
                         <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
-                            <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
+                            <div className={`app-view-tabs ${showScrollTop ? 'app-view-tabs-has-top' : ''} flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
                                 <button aria-label="שכיחות" onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
                                 <button aria-label="פירוט" onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
                                 <button aria-label="קבוצות" onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
                                 <button aria-label="מפת ערכים" onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
                                 <button aria-label="רשת קשרים" onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
+                                {showScrollTop && <button type="button" className="app-mobile-scroll-top rounded-full" aria-label="גלול לראש העמוד" onClick={scrollToTop}><Icon name="arrow-up" className="w-5 h-5" /></button>}
                             </div>
                         </div>
                     )}
@@ -3399,15 +3561,15 @@ const App = () => {
                                             <button
                                                 type="button"
                                                 disabled={!hasWords}
-                                                className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all ${hasWords ? 'cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-600/40' : 'cursor-not-allowed opacity-45'} ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`}
+                                                className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all ${hasWords ? 'cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-600/40' : 'cursor-not-allowed'} ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`}
                                                 onClick={() => handleDrillDown(dr)}
                                                 aria-label={`ש"ד ${dr}${hasWords ? '' : ' (ללא תוצאות)'}`}
                                                 title={hasWords ? `סינון לפי ש"ד ${dr}` : `ש"ד ${dr} - ללא מילים`}
                                             >
                                                 <div className="h-8 flex items-center justify-center mb-1">
-                                                    {hasWords && <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div>}
+                                                    {hasWords ? <div className="rounded-full flex items-center justify-center bg-blue-600 text-xs font-bold text-white shadow-md" style={{ width: `${indicatorSize}px`, height: `${indicatorSize}px` }}>{count}</div> : <span className="app-dr-empty text-gray-400" aria-hidden="true">—</span>}
                                                 </div>
-                                                <div className={`app-dr-label font-bold text-lg mt-1 ${selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span>{" "}<span>{dr}</span></div>
+                                                <div className={`app-dr-label font-bold text-lg mt-1 ${!hasWords ? 'text-gray-500 dark:text-gray-400' : selectedDR === dr ? 'text-purple-700 dark:text-purple-300' : isPrimeDR ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-gray-600 dark:text-gray-400'}`}><span className="app-dr-prefix">ש"ד</span>{" "}<span>{dr}</span></div>
                                             </button>
                                         </div>
                                     );
@@ -3426,7 +3588,7 @@ const App = () => {
                                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
                                                 <div className="flex-1 flex justify-end">
-                                                    <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                                                    <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                                         <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
                                                         <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                                     </div>
@@ -3550,14 +3712,14 @@ const App = () => {
                                         <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                         <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום מילים ייחודיות ({coreResults.allWords.length} מילים)</h2></div>
                                         <div className="flex-1 flex justify-end">
-                                            <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                                            <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                                 <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
                                                 <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <table className="min-w-full border-separate" style={{borderSpacing: "0 0.5rem"}}>
+                                        <table className="app-word-table min-w-full border-separate" style={{borderSpacing: "0 0.5rem"}}>
                                             <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                                 <tr>
                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider rounded-r-lg">מילה</th>
@@ -3604,12 +3766,12 @@ const App = () => {
                     )}
 
                     {view === 'hot-words' && coreResults && (
-                        <div className={`p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-                            <div className="flex justify-between items-center mb-4">
+                        <div className={`app-results-card app-frequency-card p-4 sm:p-6 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                            <div className="app-results-header flex justify-between items-center mb-4">
                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={selectedHotValue !== null ? prepareHotWordsText : prepareFrequenciesText} getCSV={selectedHotValue !== null ? prepareHotWordsCSV : prepareFrequenciesCSV} getJSON={selectedHotValue !== null ? prepareHotWordsJSON : prepareFrequenciesJSON} id='hot-words' /></div>
-                                <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">ניתוח שכיחויות</h2></div>
+                                <div className="app-results-heading flex-none px-4"><h2 className="app-results-title text-2xl font-bold text-center noselect">ניתוח שכיחויות</h2></div>
                                 <div className="flex-1 flex justify-end">
-                                    <div className={`flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                                    <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                         <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'values' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'values' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>ערכים</button>
                                         <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                     </div>
@@ -3619,9 +3781,9 @@ const App = () => {
                                 <div>
                                     {selectedHotValue === null ? (
                                         <div>
-                                            <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
+                                            <div className={`app-frequency-table-header flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                                 <button type="button" className="w-1/4 text-right cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })} aria-label="מיין לפי ערך">ערך {hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
-                                                <button type="button" className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })} aria-label="מיין לפי כמות מילים">כמות מילים {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
+                                                <button type="button" className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })} aria-label="מיין לפי כמות מילים">כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
                                                 <div className="w-1/2">מילים</div>
                                             </div>
                                             <VirtualizedList
@@ -3630,7 +3792,7 @@ const App = () => {
                                                 listHeight={384} 
                                                 getKey={(item) => item.value}
                                                 renderItem={({ value, count }) => (
-                                                    <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
+                                                    <div className="app-frequency-table-row flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
                                                         <div className="w-1/4 p-2 text-center text-gray-900 dark:text-gray-100">{count}</div>
                                                         <div className="w-1/2 p-2 text-sm text-gray-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
@@ -3640,9 +3802,9 @@ const App = () => {
                                         </div>
                                     ) : (
                                         <div>
-                                            <div className="flex justify-between items-center mb-4 noselect gap-3 flex-wrap">
+                                            <div className="app-drilldown-header flex justify-between items-center mb-4 noselect gap-3 flex-wrap">
                                                 <h3 className="text-xl font-bold">מילים עם הערך {selectedHotValue}</h3>
-                                                <div className="flex items-center gap-2">
+                                                <div className="app-drilldown-actions flex items-center gap-2">
                                                     {pinnedWord && (
                                                         <div className={`text-sm px-3 py-1 rounded-full border ${isDarkMode ? 'bg-amber-900/40 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
                                                             מילה נעוצה: {pinnedWord.word}
@@ -3656,7 +3818,7 @@ const App = () => {
                                                     אין ערכים גלויים תחת הסינון הנוכחי. נסו להפעיל שכבות נוספות באגדת הסינון.
                                                 </div>
                                             ) : (
-                                            <div className="flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
+                                            <div className="app-cluster-grid flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
                                                 {visibleHotWords.map((wordData, index) => (
                                                     <WordCard 
                                                         key={wordData.word}

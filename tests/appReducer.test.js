@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { appReducer, initialState } from '../src/state/appReducer.js';
 
+test('selecting the active calculation mode preserves the existing analysis and selection', () => {
+    for (const mode of ['aleph-zero', 'aleph-one']) {
+        const analyzed = {
+            ...initialState,
+            mode,
+            text: 'בראשית ברא אלהים',
+            coreResults: { lines: [{ words: [{ word: 'בראשית' }] }] },
+            pinnedWord: { word: 'בראשית' },
+            selectedDR: 4,
+            searchTerm: 'בראשית',
+        };
+        assert.equal(appReducer(analyzed, { type: 'SET_MODE', payload: mode }), analyzed);
+    }
+});
+
 test('SET_PINNED_WORD toggles same word off', () => {
     const wordData = { word: 'אבג' };
     const afterPin = appReducer(initialState, { type: 'SET_PINNED_WORD', payload: wordData });
