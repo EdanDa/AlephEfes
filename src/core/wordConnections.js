@@ -82,3 +82,13 @@ export function getConnectionValues(words, filters) {
 
     return connectedValues;
 }
+
+export function getPinnedClusters(clusters, pinnedWord, filters) {
+    if (!pinnedWord) return clusters;
+    const index = buildWordConnectionIndex(clusters.flatMap(({ words }) => words), filters);
+    if (!index.visibleValuesByWord.has(pinnedWord.word)) return [];
+    const connected = computeConnectedWordsSet(pinnedWord, index.visibleValuesByWord, index.wordsByVisibleValue);
+    connected.add(pinnedWord.word);
+    return clusters.map((cluster) => ({ ...cluster, words: cluster.words.filter((word) => connected.has(word.word)) }))
+        .filter(({ words }) => words.length > 0);
+}

@@ -73,7 +73,25 @@ Additional capabilities include:
 
 ## Running the calculator
 
-Requires Node.js 18+ and npm.
+Requires Node.js 20+ and npm for development and browser checks.
+
+### Verification
+
+The app and unit tests share one reducer. Browser regressions run against the production build and cover input integrity, calculation recovery, stale-result guards, export agreement, source restoration, keyboard controls, and mobile layouts in both themes and numerical modes.
+
+```powershell
+$env:MAM_PARSED_PATH = "C:/path/to/MAM-parsed"
+$env:MAM_BASICS_PATH = "C:/path/to/MAM-basics"
+npm run check
+npx playwright install chromium
+npm run test:browser
+```
+
+On Windows, an installed Chrome can be used with `$env:PLAYWRIGHT_CHROMIUM_CHANNEL = "chrome"`. The source paths must point to the pinned MAM revisions listed in the CI workflow. CI runs both the quality checks and browser suite, and retains mobile screenshots and failure traces as artifacts.
+
+`lint` is a lightweight log-policy check. The historical `typecheck` command validates JavaScript and JSX syntax; it does not perform static type analysis. Production compilation, unit/corpus tests, and browser tests provide separate checks.
+
+Saved working sessions use the versioned `alephEfes:session` local-storage record containing the text, calculation mode, and MAM selection. Existing `alephCodeText` is migrated automatically; theme settings retain their existing key. Manual text changes clear the MAM association. Exported analyses record the selected mode and filters in JSON metadata and CSV columns; pinned exports use the same filtered set in every format. Value-map `topWords` groups each word once with its matching `layers` array, and occurrence totals count each text occurrence once per value.
 
 ### Installing on Android
 

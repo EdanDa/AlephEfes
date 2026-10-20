@@ -65,7 +65,6 @@ export function useHebrewInputSanitizer({
     .join('')
     .replace(INPUT_MULTI_SPACE_RE, ' ')
     .replace(/\n[ ]+/g, '\n')
-    .replace(/(^|[ \n])[א-ת](?=($|[ \n]))/g, '$1')
     .replace(INPUT_MULTI_SPACE_RE, ' ')
     .replace(/\n[ ]+/g, '\n'), [
     HEB_MARKS_RE,

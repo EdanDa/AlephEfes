@@ -1,7 +1,9 @@
-import React, { Suspense, lazy, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, useReducer, useContext, createContext, memo } from 'react';
+import React, { Suspense, lazy, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, memo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
+import { withCSVMetadata } from './utils/exportMetadata';
+import { buildValueInsights } from './core/valueInsights';
 import { shouldUseDitto } from './utils/valueDisplay';
 import { matchesSearchQuery } from './core/searchQuery';
 import {
@@ -21,7 +23,6 @@ import {
     isWordVisible,
     layersMatching,
     strongestLayer,
-    topConnectionLayer,
 } from './core/analysisCore';
 import {
     EN_TO_HE_LETTER_MAP,
@@ -30,62 +31,16 @@ import {
     KEYBOARD_CODE_TO_HE_LETTER_MAP,
     normalizeSearchInput,
 } from './core/searchInput';
-import { useCoreResultsEngine } from './hooks/useCoreResultsEngine';
+import { AppProvider, useAppState, useAppCoreState, useAppDispatch, useAppFilters, useAppClipboard, useAppStats } from './state/appStore';
 import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
-import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues } from './core/wordConnections';
+import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues, getPinnedClusters } from './core/wordConnections';
 
 const TanakhNavigator = lazy(() => import('./components/TanakhNavigator.jsx'));
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
 // -----------------------------------------------------------------------------
-const AppContext = createContext(null);
-const AppDispatchContext = createContext(null);
 const EMPTY_SET = new Set();
-
-// Backward-compatible hook aliases for older/local bundles that referenced previous names.
-function useAppCoreState() {
-    return useContext(AppContext);
-}
-
-function useAppCoreDispatch() {
-    return useContext(AppDispatchContext);
-}
-
-
-function useAppState() {
-    return useContext(AppContext);
-}
-
-function useAppDispatch() {
-    return useContext(AppDispatchContext);
-}
-
-function useAppFilters() {
-    const state = useAppState();
-    return useMemo(() => ({
-        filters: state?.filters,
-        primeColor: state?.primeColor,
-    }), [state?.filters, state?.primeColor]);
-}
-
-function useAppClipboard() {
-    const state = useAppState();
-    return useMemo(() => ({
-        copiedId: state?.copiedId,
-    }), [state?.copiedId]);
-}
-
-function useAppStats() {
-    const state = useAppState();
-    return useMemo(() => ({
-        stats: state?.stats,
-        isStatsCollapsed: state?.isStatsCollapsed,
-        isDarkMode: state?.isDarkMode,
-        connectionValues: state?.connectionValues,
-        corpusSelection: state?.corpusSelection,
-    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues, state?.corpusSelection]);
-}
 
 // -----------------------------------------------------------------------------
 // 2. Constants & Styles
@@ -113,6 +68,27 @@ const SAFE_BASE_LETTER_VALUES = typeof BASE_LETTER_VALUES !== 'undefined' ? BASE
 const GlobalStyles = () => (
     <style>{`
         html { overflow-y: scroll; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 3px solid #2563eb;
+            outline-offset: 3px;
+        }
+        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible {
+            outline-color: #93c5fd;
+        }
+        button:disabled { cursor: not-allowed; }
+        .app-analysis-results[inert] { pointer-events: none; }
+        .app-word-card { font: inherit; color: inherit; }
+        .app-frequency-table-row {
+            appearance: none;
+            font: inherit;
+            color: inherit;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0;
+        }
+        .dark .app-frequency-table-row { border-bottom-color: rgba(55, 65, 81, 0.5); }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
@@ -641,119 +617,6 @@ const GlobalStyles = () => (
 // -----------------------------------------------------------------------------
 // 4. Initial State & Reducer
 // -----------------------------------------------------------------------------
-const createFallbackGrandTotals = () => ({
-    units: 0,
-    tens: 0,
-    hundreds: 0,
-    dr: 0,
-    isPrime: { U: false, T: false, H: false },
-});
-
-const normalizeCoreResults = (results) => {
-    if (!results || typeof results !== 'object') return null;
-
-    const allWords = Array.isArray(results.allWords) ? results.allWords : [];
-    const primeSummary = Array.isArray(results.primeSummary) ? results.primeSummary : [];
-    const lines = Array.isArray(results.lines)
-        ? results.lines.map((line) => ({
-            ...line,
-            words: Array.isArray(line?.words) ? line.words : [],
-        }))
-        : [];
-
-    return {
-        ...results,
-        allWords,
-        primeSummary,
-        lines,
-        grandTotals: results.grandTotals && typeof results.grandTotals === 'object'
-            ? results.grandTotals
-            : createFallbackGrandTotals(),
-        wordDataMap: results.wordDataMap instanceof Map
-            ? results.wordDataMap
-            : new Map(allWords.map((wordData) => [wordData.word, wordData])),
-        wordCounts: results.wordCounts instanceof Map ? results.wordCounts : new Map(),
-        drDistribution: results.drDistribution ?? new Uint32Array(10),
-        totalWordCount: Number.isFinite(results.totalWordCount) ? results.totalWordCount : allWords.length,
-    };
-};
-
-const initialState = {
-	text: "",
-	coreResults: null,
-	selectedDR: null,
-	isDarkMode: false,
-	hasExplicitThemeChoice: false,
-	searchTerm: '',
-	isValueTableOpen: false,
-	isValueTablePinned: false,
-	mode: 'aleph-zero',
-	textSize: 'md',
-	copiedId: null,
-	view: 'clusters',
-	hoveredWord: null,
-	isPrimesCollapsed: true,
-	pinnedWord: null,
-	selectedHotValue: null,
-	hotWordsList: [],
-	isStatsCollapsed: true,
-	showScrollTop: false,
-	hotView: 'values',
-	detailsView: 'lines',
-	hotSort: { key: 'count', order: 'desc' },
-	expandedRows: {},
-	primeColor: 'yellow',
-	corpusSelection: null,
-	filters: { U: true, T: true, H: true, Prime: false }
-};
-
-function appReducer(state, action) {
-	switch (action.type) {
-		case 'SET_TEXT': return { ...state, text: action.payload, pinnedWord: null, selectedDR: null, searchTerm: '' };
-		case 'LOAD_CORPUS_SELECTION': return { ...state, text: action.payload.text, corpusSelection: action.payload.selection, pinnedWord: null, selectedDR: null, searchTerm: '' };
-		case 'CLEAR_CORPUS_SELECTION': return { ...state, corpusSelection: null };
-		case 'SET_CORE_RESULTS': return { ...state, coreResults: normalizeCoreResults(action.payload) };
-		case 'SET_DARK_MODE': return { ...state, isDarkMode: action.payload };
-		case 'SET_EXPLICIT_THEME_CHOICE': return { ...state, hasExplicitThemeChoice: action.payload };
-		case 'TOGGLE_THEME_MODE': return { ...state, isDarkMode: !state.isDarkMode, hasExplicitThemeChoice: true };
-		case 'SET_VIEW': return { ...state, view: action.payload, pinnedWord: null, hoveredWord: null, searchTerm: '', selectedDR: null, selectedHotValue: null, hotWordsList: [], isPrimesCollapsed: true, copiedId: null, isValueTableOpen: false };
-		case 'SET_MODE': return state.mode === action.payload ? state : { ...state, mode: action.payload, pinnedWord: null, coreResults: null, selectedDR: null, searchTerm: '' };
-		case 'SET_TEXT_SIZE': return { ...state, textSize: action.payload };
-		case 'SET_SEARCH_TERM': return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
-		case 'SET_HOVERED_WORD':
-            if (state.hoveredWord?.word === action.payload?.word) return state;
-            return { ...state, hoveredWord: action.payload };
-		case 'SET_PINNED_WORD': return { ...state, pinnedWord: state.pinnedWord && state.pinnedWord.word === action.payload.word ? null : action.payload };
-		case 'UNPIN_WORD': return { ...state, pinnedWord: null, hoveredWord: null };
-		case 'SET_SELECTED_DR': 
-            const newSelectedDR = state.selectedDR === action.payload ? null : action.payload;
-            return { ...state, selectedDR: newSelectedDR, pinnedWord: null, searchTerm: '' };
-		case 'SET_COPIED_ID': return { ...state, copiedId: action.payload };
-		case 'TOGGLE_VALUE_TABLE': return { ...state, isValueTableOpen: !state.isValueTableOpen };
-		case 'TOGGLE_VALUE_TABLE_PIN': return { ...state, isValueTablePinned: !state.isValueTablePinned, isValueTableOpen: true };
-		case 'SET_VALUE_TABLE_OPEN': return { ...state, isValueTableOpen: action.payload };
-        case 'CLOSE_VALUE_TABLE': return { ...state, isValueTableOpen: false, isValueTablePinned: false };
-		case 'TOGGLE_PRIMES_COLLAPSED': return { ...state, isPrimesCollapsed: !state.isPrimesCollapsed };
-		case 'TOGGLE_STATS_COLLAPSED': return { ...state, isStatsCollapsed: !state.isStatsCollapsed };
-		case 'SET_SHOW_SCROLL_TOP': return { ...state, showScrollTop: action.payload };
-		case 'SET_HOT_VIEW': return { ...state, hotView: action.payload };
-		case 'SET_DETAILS_VIEW': return { ...state, detailsView: action.payload };
-		case 'SET_HOT_SORT': return { ...state, hotSort: state.hotSort.key === action.payload ? { ...state.hotSort, order: state.hotSort.order === 'desc' ? 'asc' : 'desc' } : { key: action.payload, order: 'desc' } };
-		case 'TOGGLE_ROW_EXPAND': return { ...state, expandedRows: { ...state.expandedRows, [action.payload]: !state.expandedRows[action.payload] } };
-		case 'TOGGLE_ALL_ROWS':
-			const areAllExpanded = state.coreResults && Object.keys(state.expandedRows).length === state.coreResults.lines.length && Object.values(state.expandedRows).every(v => v);
-			if (areAllExpanded) return { ...state, expandedRows: {} };
-			const allExpanded = {}; (state.coreResults?.lines || []).forEach((_, index) => { allExpanded[index] = true; });
-			return { ...state, expandedRows: allExpanded };
-		case 'SET_PRIME_COLOR': return { ...state, primeColor: action.payload };
-		case 'SET_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: action.payload.value, hotWordsList: action.payload.list };
-		case 'CLEAR_SELECTED_HOT_VALUE': return { ...state, selectedHotValue: null, hotWordsList: [] };
-        case 'TOGGLE_FILTER':
-            return { ...state, filters: { ...state.filters, [action.payload]: !state.filters[action.payload] } };
-		default: throw new Error(`Unhandled action type: ${action.type}`);
-	}
-}
-
 // -----------------------------------------------------------------------------
 // 5. Basic UI Components
 // -----------------------------------------------------------------------------
@@ -821,6 +684,7 @@ const Legend = React.memo(() => {
         <div className="app-legend relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <div className="app-legend-items flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button
+                    aria-pressed={filters.Prime}
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
                         'Prime',
@@ -834,6 +698,7 @@ const Legend = React.memo(() => {
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
                  <button
+                    aria-pressed={filters.U}
                     onClick={() => toggleFilter('U')}
                     className={getFilterStyle(
                         'U',
@@ -848,6 +713,7 @@ const Legend = React.memo(() => {
                     <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>יחידות</span>
                  </button>
                  <button
+                    aria-pressed={filters.T}
                     onClick={() => toggleFilter('T')}
                     className={getFilterStyle(
                         'T',
@@ -862,6 +728,7 @@ const Legend = React.memo(() => {
                     <span className={filters['T'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>עשרות</span>
                  </button>
                  <button
+                    aria-pressed={filters.H}
                     onClick={() => toggleFilter('H')}
                     className={getFilterStyle(
                         'H',
@@ -967,15 +834,19 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
 
 const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => {
     const { copiedId } = useAppClipboard();
+    const { mode, filters, corpusSelection, isAnalysisStale } = useAppState();
+    const metadata = { mode, filters, corpusSelection };
     const dispatch = useAppDispatch();
     const [isCopying, setIsCopying] = useState(false);
 
     const handleCopy = async () => {
+        if (isAnalysisStale) return;
         setIsCopying(true);
         await new Promise(resolve => setTimeout(resolve, 10)); 
 
         try {
-            const text = formatTextForClipboard(getText());
+            const activeLayers = ['U', 'T', 'H'].filter((layer) => filters[layer]).join('/');
+            const text = formatTextForClipboard(`מצב: ${mode === 'aleph-zero' ? 'א=0' : 'א=1'} · שכבות: ${activeLayers || 'ללא'} · ראשוניים בלבד: ${filters.Prime ? 'כן' : 'לא'}\n${getText()}`);
             if (!text || text.trim().length === 0) throw new Error("No visible text generated based on current filters");
             
             let success = false;
@@ -995,8 +866,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
                 try {
                     ta.focus({ preventScroll: true });
                     ta.select();
-                    document.execCommand("copy");
-                    success = true;
+                    success = document.execCommand("copy");
                 } finally { ta.remove(); }
             }
 
@@ -1004,6 +874,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
                 dispatch({ type: 'SET_COPIED_ID', payload: id });
                 setTimeout(() => dispatch({ type: 'SET_COPIED_ID', payload: null }), 2000);
             }
+            else throw new Error('Clipboard unavailable');
         } catch (e) {
             console.error("Copy failed", e);
             alert("שגיאה בהעתקה (או שלא נבחרו נתונים להצגה)");
@@ -1012,9 +883,11 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
 
 
     const handleJSON = () => {
+        if (isAnalysisStale) return;
         try {
-            const content = getJSON ? getJSON() : '';
-            if (!content) return;
+            const raw = getJSON ? getJSON() : '';
+            if (!raw) return;
+            const content = JSON.stringify({ ...JSON.parse(raw), metadata }, null, 2);
             const blob = new Blob([content], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -1023,12 +896,14 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch(e) { console.error("JSON Export failed", e); }
     };
 
     const handleCSV = () => {
+        if (isAnalysisStale) return;
         try {
-            const content = stripTrailingSpacesPerLine(getCSV());
+            const content = withCSVMetadata(stripTrailingSpacesPerLine(getCSV()), metadata);
             if (!content) return;
             // Add BOM for Excel Hebrew support
             const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
@@ -1039,6 +914,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch(e) { console.error("CSV Export failed", e); }
     };
 
@@ -1046,7 +922,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
         <div className="app-export-toolbar flex gap-2">
             <button 
                 onClick={handleCopy} 
-                disabled={isCopying}
+                disabled={isCopying || isAnalysisStale}
                 className={`bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 noselect ${isCopying ? 'opacity-50 cursor-wait' : ''}`}
             >
                 {copiedId === id ? <Icon name="check" className="w-4 h-4" /> : <Icon name="copy" className="w-4 h-4" />}
@@ -1054,6 +930,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
             </button>
             <button 
                 onClick={handleCSV}
+                disabled={isAnalysisStale}
                 className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 noselect"
             >
                 <Icon name="download" className="w-4 h-4" />
@@ -1061,6 +938,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
             </button>
             <button 
                 onClick={handleJSON}
+                disabled={isAnalysisStale}
                 className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 noselect"
             >
                 <Icon name="download" className="w-4 h-4" />
@@ -1090,7 +968,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`app-stats-panel p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <button onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
+            <button aria-expanded={!isStatsCollapsed} onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">תקציר הטקסט</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -1110,7 +988,7 @@ const StatsPanel = memo(() => {
     );
 });
 
-const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues = EMPTY_SET, dispatch, filters }) => {
+const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActive, isDarkMode, primeColor, connectionValues = EMPTY_SET, dispatch, filters, pinnedWord, isAnalysisStale }) => {
     const isSelf = activeWord && activeWord.word === wordData.word;
     
     // Background color determination (for connected words)
@@ -1186,8 +1064,12 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     const handleMouseLeave = () => dispatch({ type: 'SET_HOVERED_WORD', payload: null });
 
     return (
-        <div
-            className="p-2 rounded-lg text-center transition-all duration-200 noselect"
+        <button
+            type="button"
+            disabled={isAnalysisStale}
+            aria-pressed={Boolean(isSelf && pinnedWord)}
+            aria-label={`נעץ מילה ${wordData.word}`}
+            className="app-word-card p-2 rounded-lg text-center transition-all duration-200 noselect"
             style={cardStyle}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -1195,10 +1077,12 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
         >
             <div className={`font-bold text-xl break-all ${isDarkMode ? 'text-gray-100' : 'text-slate-900'}`}>{wordData.word}</div>
             <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor} filters={filters}/>
-        </div>
+        </button>
     );
 }, (prev, next) => {
     if (prev.wordData !== next.wordData) return false;
+    if (prev.isAnalysisStale !== next.isAnalysisStale) return false;
+    if (prev.pinnedWord !== next.pinnedWord) return false;
     if (prev.isDarkMode !== next.isDarkMode) return false;
     if (prev.primeColor !== next.primeColor) return false;
     if (prev.filters !== next.filters) return false;
@@ -1233,7 +1117,7 @@ const computeConnectedWordsSet = (activeWord, wordsByVisibleValue = new Map(), v
     return connected;
 };
 
-const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, dispatch, copySummaryToClipboard, prepareSummaryCSV, prepareSummaryJSON, copiedId, searchTerm }) => {
+const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsInView, pinnedWord, hoveredWord, isDarkMode, primeColor, dispatch, copySummaryToClipboard, prepareSummaryCSV, prepareSummaryJSON, copiedId, searchTerm, isAnalysisStale }) => {
     const { filters } = useAppFilters();
     const searchInputRef = useRef(null);
     const deferredHoveredWord = useDeferredValue(hoveredWord);
@@ -1329,6 +1213,8 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                                 <WordCard 
                                     key={wordData.word}
                                     wordData={wordData}
+                                    isAnalysisStale={isAnalysisStale}
+                                    pinnedWord={pinnedWord}
                                     activeWord={activeWord}
                                     activeWordKey={activeWordKey}
                                     isConnectedToActive={connectedWordsSet.has(wordData.word)}
@@ -2062,64 +1948,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     const [hoverInfo, setHoverInfo] = useState(null);
     const [selectedValue, setSelectedValue] = useState(null);
 
-    const valueInsights = useMemo(() => {
-        if (!coreResults) return [];
-
-        const statsByValue = new Map();
-        const allWords = Array.isArray(coreResults.allWords) ? coreResults.allWords : [];
-
-        allWords.forEach((wordData) => {
-            if (!isWordVisible(wordData, filters)) return;
-            if (selectedDR !== null && wordData.dr !== selectedDR) return;
-
-            const occurrences = coreResults.wordCounts?.get(wordData.word) || 1;
-            const visibleValues = getWordValues(wordData).filter((v) => isValueVisible(v.layer, v.isPrime, filters));
-
-            visibleValues.forEach((v) => {
-                if (!statsByValue.has(v.value)) {
-                    statsByValue.set(v.value, {
-                        value: v.value,
-                        isPrime: v.isPrime,
-                        layers: new Set(),
-                        uniqueWords: new Set(),
-                        words: [],
-                        totalOccurrences: 0,
-                    });
-                }
-
-                const stat = statsByValue.get(v.value);
-                stat.isPrime = stat.isPrime || v.isPrime;
-                stat.layers.add(v.layer);
-                stat.uniqueWords.add(wordData.word);
-                stat.totalOccurrences += occurrences;
-                stat.words.push({ word: wordData.word, layer: v.layer, occurrences });
-            });
-        });
-
-        return Array.from(statsByValue.values())
-            .map((stat) => {
-                const layers = ['H', 'T', 'U'].filter((layer) => stat.layers.has(layer));
-                const uniqueWordCount = stat.uniqueWords.size;
-                const avgOccurrences = uniqueWordCount > 0 ? stat.totalOccurrences / uniqueWordCount : 0;
-                const bridgeScore = uniqueWordCount * layers.length;
-                const topWords = [...stat.words]
-                    .sort((a, b) => b.occurrences - a.occurrences || a.word.localeCompare(b.word, 'he'))
-                    .slice(0, 8);
-
-                return {
-                    value: stat.value,
-                    isPrime: stat.isPrime,
-                    layers,
-                    layerCount: layers.length,
-                    uniqueWordCount,
-                    totalOccurrences: stat.totalOccurrences,
-                    avgOccurrences,
-                    bridgeScore,
-                    topWords,
-                };
-            })
-            .sort((a, b) => b.bridgeScore - a.bridgeScore || b.totalOccurrences - a.totalOccurrences || a.value - b.value);
-    }, [coreResults, filters, selectedDR]);
+    const valueInsights = useMemo(() => buildValueInsights(coreResults, filters, selectedDR), [coreResults, filters, selectedDR]);
 
     const selectedInsight = useMemo(
         () => valueInsights.find((insight) => insight.value === selectedValue) || null,
@@ -2156,7 +1985,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             lines.push('');
             lines.push(`פירוט ערך נבחר: ${selectedInsight.value}${selectedInsight.isPrime ? '♢' : ''}`);
             selectedInsight.topWords.forEach((entry) => {
-                lines.push(`- ${entry.word} (${entry.layer}) ×${entry.occurrences}`);
+                lines.push(`- ${entry.word} (${entry.layers.join('/')}) ×${entry.occurrences}`);
             });
         }
 
@@ -2185,7 +2014,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             rows.push('');
             rows.push('selected_value,word,layer,occurrences');
             selectedInsight.topWords.forEach((entry) => {
-                rows.push([selectedInsight.value, `"${entry.word}"`, entry.layer, entry.occurrences].join(','));
+                rows.push([selectedInsight.value, `"${entry.word}"`, entry.layers.join('/'), entry.occurrences].join(','));
             });
         }
 
@@ -2426,7 +2255,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                                         }}
                                     >
                                         <td className="py-1 font-semibold text-blue-700 dark:text-blue-300">{entry.word}</td>
-                                        <td className="py-1">{entry.layer}</td>
+                                        <td className="py-1">{entry.layers.join('/')}</td>
                                         <td className="py-1 font-mono">{entry.occurrences}</td>
                                     </tr>
                                 ))}
@@ -2439,7 +2268,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 });
 
-const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
+const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange, onDraftChange }) => {
     const textareaRef = useRef(null);
     const draftRef = useRef(text);
     const commitTimerRef = useRef(null);
@@ -2551,6 +2380,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
     }, [clearCommitTimer, clearSelectionUpdate]);
 
     const scheduleCommit = useCallback((nextValue) => {
+        onDraftChange(nextValue);
         clearCommitTimer();
         let debounceMs = 180;
         if (nextValue.length === 0) debounceMs = 0;
@@ -2563,12 +2393,13 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
             draftRef.current = committedValue;
             onTextChange(committedValue);
         }, debounceMs);
-    }, [clearCommitTimer, onTextChange, sanitizeHebrewInput]);
+    }, [clearCommitTimer, onTextChange, onDraftChange, sanitizeHebrewInput]);
 
     const handleChange = useCallback((e) => {
         const rawValue = e.target.value;
 
         if (isComposingRef.current) {
+            onDraftChange(rawValue);
             draftRef.current = rawValue;
             adjustTextareaHeight(e.target);
             return;
@@ -2599,7 +2430,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
         draftRef.current = nextValue;
         adjustTextareaHeight(e.target);
         scheduleCommit(nextValue);
-    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizeHebrewInput, scheduleCommit]);
+    }, [adjustTextareaHeight, queueSelectionUpdate, sanitizeHebrewInput, scheduleCommit, onDraftChange]);
 
     const handleKeyDown = useCallback((e) => {
         if (isComposingRef.current || e.nativeEvent?.isComposing) return;
@@ -2805,6 +2636,7 @@ const MainTextInput = memo(({ text, isDarkMode, textSize, onTextChange }) => {
                 ref={textareaRef}
                 dir="rtl"
                 id="text-input"
+                aria-label="טקסט לניתוח"
                 className={`app-textarea w-full resize-none p-4 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-150 text-right ${TEXT_SIZE_CLASSNAMES[textSize] || TEXT_SIZE_CLASSNAMES.md} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-300'} ${isDragActive ? 'ring-2 ring-blue-400 border-blue-400' : ''}`}
                 style={manualHeight !== null ? { height: `${manualHeight}px` } : undefined}
                 rows={MIN_INPUT_ROWS}
@@ -2847,7 +2679,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending, corpusSelection
+        hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
     } = state;
     const [isTanakhOpen, setIsTanakhOpen] = useState(false);
 
@@ -2891,16 +2723,6 @@ const App = () => {
     }, [showScrollTop, dispatch]);
 
     useEffect(() => {
-        let savedText = null;
-        try {
-            savedText = localStorage.getItem('alephCodeText');
-        } catch (_err) {
-            savedText = null;
-        }
-        if (savedText) dispatch({ type: 'SET_TEXT', payload: savedText });
-    }, [dispatch]);
-
-    useEffect(() => {
         let savedTheme = null;
         try {
             savedTheme = localStorage.getItem('alephThemeMode');
@@ -2928,25 +2750,6 @@ const App = () => {
         }
     }, [hasExplicitThemeChoice, isDarkMode]);
 
-    useEffect(() => {
-        const requestIdle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 1));
-        const cancelIdle = window.cancelIdleCallback ?? clearTimeout;
-        let idleId = null;
-        const timerId = setTimeout(() => {
-            idleId = requestIdle(() => {
-                try {
-                    localStorage.setItem('alephCodeText', text);
-                } catch (_err) {
-                    // Ignore storage write failures (private mode / blocked storage)
-                }
-            });
-        }, 450);
-
-        return () => {
-            clearTimeout(timerId);
-            if (idleId) cancelIdle(idleId);
-        };
-    }, [text]);
     useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
     useEffect(() => {
         if (hasExplicitThemeChoice) return;
@@ -2983,7 +2786,7 @@ const App = () => {
     }, [coreResults, mode, view]);
 
     const deferredHoveredWord = useDeferredValue(hoveredWord);
-    const deferredFilters = useDeferredValue(filters);
+    const deferredFilters = filters;
     const activeWord = pinnedWord || deferredHoveredWord;
     const activeWordKey = activeWord?.word || null;
 
@@ -3099,23 +2902,12 @@ const App = () => {
             .filter(({ words }) => words.length > 0);
     }, [drClusters, mode, view, selectedDR, searchTerm, isVisibleWord, deferredFilters]);
 
-    const getPinnedRelevantWords = useCallback(() => {
-        if (!pinnedWord || view !== 'clusters' || !drClusters) return null;
+    const summaryClusters = useMemo(
+        () => getPinnedClusters(filteredWordsInView, pinnedWord, deferredFilters),
+        [filteredWordsInView, pinnedWord, deferredFilters],
+    );
+    const getPinnedRelevantWords = useCallback(() => summaryClusters.flatMap(({ words }) => words), [summaryClusters]);
 
-        const relevantWords = [pinnedWord];
-        const clusterWords = Object.values(drClusters).flat();
-
-        for (const wordData of clusterWords) {
-            const isDifferentWord = wordData.word !== pinnedWord.word;
-            const isConnected = topConnectionLayer(pinnedWord, wordData);
-            if (isDifferentWord && isConnected && isVisibleWord(wordData)) {
-                relevantWords.push(wordData);
-            }
-        }
-
-        return relevantWords;
-    }, [pinnedWord, view, drClusters, isVisibleWord]);
-    
     // --- Data Preparation for Export ---
     const csvEscape = useCallback((value) => {
         const str = String(value ?? '');
@@ -3332,7 +3124,7 @@ const App = () => {
 
         return JSON.stringify({ mode, detailsView, selectedDR, lines }, null, 2);
     }, [mode, detailsView, selectedDR, visibleAllWords, coreResults, visibleWordsByLine]);
-    const prepareSummaryJSON = useCallback(() => JSON.stringify({ mode, view, selectedDR, searchTerm, pinnedWord: pinnedWord?.word ?? null, clusters: filteredWordsInView }, null, 2), [mode, view, selectedDR, searchTerm, pinnedWord, filteredWordsInView]);
+    const prepareSummaryJSON = useCallback(() => JSON.stringify({ mode, view, selectedDR, searchTerm, pinnedWord: pinnedWord?.word ?? null, clusters: summaryClusters }, null, 2), [mode, view, selectedDR, searchTerm, pinnedWord, summaryClusters]);
     const prepareHotWordsJSON = useCallback(() => JSON.stringify({ mode, selectedHotValue, words: visibleHotWords }, null, 2), [mode, selectedHotValue, visibleHotWords]);
     const prepareFrequenciesJSON = useCallback(() => JSON.stringify({ mode, hotView, rows: sortedHotViewList }, null, 2), [mode, hotView, sortedHotViewList]);
 
@@ -3370,9 +3162,9 @@ const App = () => {
         });
     }, [dispatch]);
     const unpinOnBackgroundClick = useCallback((e) => { if (e.target === e.currentTarget) { e.stopPropagation(); dispatch({ type: 'UNPIN_WORD' }); } }, [dispatch]);
+    const handleDraftChange = useCallback((draft) => dispatch({ type: 'SET_INPUT_DIRTY', payload: draft !== text }), [dispatch, text]);
     const handleTextChange = useCallback((nextText) => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
-        dispatch({ type: 'CLEAR_CORPUS_SELECTION' });
     }, [dispatch]);
     const handleCorpusSelection = useCallback((selectedText, selection, book) => {
         dispatch({
@@ -3420,7 +3212,7 @@ const App = () => {
                     <div className="app-header-actions flex items-center gap-4">
                         <Legend />
                         <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
-                            <button ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
+                            <button aria-expanded={isValueTableOpen} ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label="הצג טבלת ערכי אותיות">
                                 <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                             </button>
                         </div>
@@ -3485,8 +3277,8 @@ const App = () => {
                     <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
                         <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
                             <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                <button onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=0</button>
-                                <button onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=1</button>
+                                <button aria-pressed={mode === 'aleph-zero'} onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=0</button>
+                                <button aria-pressed={mode === 'aleph-one'} onClick={() => handleModeChange('aleph-one')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-one' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=1</button>
                             </div>
                             <div className="app-clear-control flex justify-center">
                                 <button
@@ -3517,34 +3309,42 @@ const App = () => {
                             isDarkMode={isDarkMode}
                             textSize={textSize}
                             onTextChange={handleTextChange}
+                            onDraftChange={handleDraftChange}
                         />
-                        <div className="mt-4 flex justify-center items-center gap-4 h-5">
-                            {isPending && <span className="text-sm text-gray-500 dark:text-gray-400 noselect">מחשב...</span>}
+                        <div className="mt-4 flex flex-wrap justify-center items-center gap-2 min-h-5 text-center">
+                            {isPending && <span role="status" className="text-sm text-gray-600 dark:text-gray-300 noselect">מחשב... התוצאות הקודמות אינן זמינות לייצוא עד לסיום.</span>}
                         </div>
                     </div>
 
+                    {analysisError && !isPending && (
+                        <div role="alert" className="mb-6 rounded-lg border border-red-400 bg-red-50 text-red-900 p-4 dark:bg-gray-800 dark:text-red-300">
+                            <p>לא ניתן להשלים את החישוב. הטקסט נשמר ואפשר לנסות שוב.</p>
+                            <button type="button" onClick={retryAnalysis} className="mt-2 rounded-lg border px-4 py-2 font-semibold">נסה שוב</button>
+                        </div>
+                    )}
                     <StatsPanel />
 
                     {hasInput && (
                         <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
                             <div className={`app-view-tabs ${showScrollTop ? 'app-view-tabs-has-top' : ''} flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
-                                <button aria-label="שכיחות" onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
-                                <button aria-label="פירוט" onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
-                                <button aria-label="קבוצות" onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
-                                <button aria-label="מפת ערכים" onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
-                                <button aria-label="רשת קשרים" onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
+                                <button aria-label="שכיחות" aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
+                                <button aria-label="פירוט" aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
+                                <button aria-label="קבוצות" aria-pressed={view === 'clusters'} onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
+                                <button aria-label="מפת ערכים" aria-pressed={view === 'graph'} onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
+                                <button aria-label="רשת קשרים" aria-pressed={view === 'network'} onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
                                 {showScrollTop && <button type="button" className="app-mobile-scroll-top rounded-full" aria-label="גלול לראש העמוד" onClick={scrollToTop}><Icon name="arrow-up" className="w-5 h-5" /></button>}
                             </div>
                         </div>
                     )}
 
                     <div ref={viewContentTopRef} />
+                    <div className="app-analysis-results" aria-busy={isPending} inert={isAnalysisStale ? '' : undefined} style={isAnalysisStale ? { opacity: 0.6 } : undefined}>
 
                     {stats && (
                         <div className={`app-distribution-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                             <div className="app-results-header flex justify-between items-center mb-4 noselect">
                                 <div className="flex-1"></div>
-                                <h3 className="app-results-title text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים</h3>
+                                <h3 className="app-results-title text-2xl font-bold text-center flex-grow">התפלגות שורשים דיגיטליים · צורות מילים שונות</h3>
                                 <div className="flex-1 flex justify-end"></div>
                             </div>
                             <div className={`app-dr-row flex justify-around items-center p-2 rounded-lg h-28 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
@@ -3563,6 +3363,7 @@ const App = () => {
                                                 disabled={!hasWords}
                                                 className={`flex flex-col items-center w-full h-full justify-center group rounded-md p-1 transition-all ${hasWords ? 'cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-600/40' : 'cursor-not-allowed'} ${selectedDR === dr ? 'border-2 border-purple-500 dark:border-purple-400' : 'border-2 border-transparent'}`}
                                                 onClick={() => handleDrillDown(dr)}
+                                                aria-pressed={selectedDR === dr}
                                                 aria-label={`ש"ד ${dr}${hasWords ? '' : ' (ללא תוצאות)'}`}
                                                 title={hasWords ? `סינון לפי ש"ד ${dr}` : `ש"ד ${dr} - ללא מילים`}
                                             >
@@ -3589,8 +3390,8 @@ const App = () => {
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
                                                 <div className="flex-1 flex justify-end">
                                                     <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                                        <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
-                                                        <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
+                                                        <button aria-pressed={detailsView === 'lines'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
+                                                        <button aria-pressed={detailsView === 'words'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -3605,6 +3406,7 @@ const App = () => {
                                     {coreResults.primeSummary.length > 0 && (
                                         <div
                                             className={`relative p-4 sm:p-6 rounded-xl border mb-8 cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}
+                                            aria-expanded={!isPrimesCollapsed}
                                             onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
                                             aria-label="הצג או הסתר פירוט ערכים ראשוניים"
                                             role="button"
@@ -3713,8 +3515,8 @@ const App = () => {
                                         <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום מילים ייחודיות ({coreResults.allWords.length} מילים)</h2></div>
                                         <div className="flex-1 flex justify-end">
                                             <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                                <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
-                                                <button onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
+                                                <button aria-pressed={detailsView === 'lines'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>שורות</button>
+                                                <button aria-pressed={detailsView === 'words'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                             </div>
                                         </div>
                                     </div>
@@ -3750,6 +3552,7 @@ const App = () => {
                     {view === 'clusters' && coreResults && (
                         <ClusterView 
                             clusterRefs={clusterRefs}
+                            isAnalysisStale={isAnalysisStale}
                             unpinOnBackgroundClick={unpinOnBackgroundClick}
                             filteredWordsInView={filteredWordsInView}
                             pinnedWord={pinnedWord}
@@ -3772,8 +3575,8 @@ const App = () => {
                                 <div className="app-results-heading flex-none px-4"><h2 className="app-results-title text-2xl font-bold text-center noselect">ניתוח שכיחויות</h2></div>
                                 <div className="flex-1 flex justify-end">
                                     <div className={`app-segmented-control flex items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                        <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'values' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'values' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>ערכים</button>
-                                        <button onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
+                                        <button aria-pressed={hotView === 'values'} onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'values' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'values' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>ערכים</button>
+                                        <button aria-pressed={hotView === 'words'} onClick={() => dispatch({ type: 'SET_HOT_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${hotView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>מילים</button>
                                     </div>
                                 </div>
                             </div>
@@ -3792,11 +3595,11 @@ const App = () => {
                                                 listHeight={384} 
                                                 getKey={(item) => item.value}
                                                 renderItem={({ value, count }) => (
-                                                    <div className="app-frequency-table-row flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
+                                                    <button type="button" disabled={isAnalysisStale} aria-label={`הצג מילים עם הערך ${value}`} className="app-frequency-table-row w-full flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 cursor-pointer border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }} onClick={() => dispatch({ type: 'SET_SELECTED_HOT_VALUE', payload: { value, list: visibleValueToWordsMap.get(value) || [] } })}>
                                                         <div className="w-1/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{value}</div>
                                                         <div className="w-1/4 p-2 text-center text-gray-900 dark:text-gray-100">{count}</div>
                                                         <div className="w-1/2 p-2 text-sm text-gray-700 dark:text-gray-300 truncate">{[...new Set((visibleValueToWordsMap.get(value) || []).map(w => w.word))].join(', ')}</div>
-                                                    </div>
+                                                    </button>
                                                 )}
                                             />
                                         </div>
@@ -3823,6 +3626,8 @@ const App = () => {
                                                     <WordCard 
                                                         key={wordData.word}
                                                         wordData={wordData}
+                                                        isAnalysisStale={isAnalysisStale}
+                                                        pinnedWord={pinnedWord}
                                                         activeWord={activeWord}
                                                         activeWordKey={activeWordKey}
                                                         isConnectedToActive={hotConnectedWordsSet.has(wordData.word)}
@@ -3843,7 +3648,7 @@ const App = () => {
                                 <div>
                                     <div className={`flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                         <div className="w-3/4">מילה</div>
-                                        <div className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</div>
+                                        <button type="button" className="w-1/4 text-center cursor-pointer" aria-label="מיין לפי כמות מופעים" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
                                     </div>
                                     <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
                                         <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
@@ -3877,6 +3682,7 @@ const App = () => {
                             selectedDR={selectedDR}
                         />
                     )}
+                    </div>
                 </>
                 )}
                 {showScrollTop && (
@@ -3896,66 +3702,6 @@ const App = () => {
 // -----------------------------------------------------------------------------
 // 9. App Provider & Wrapper
 // -----------------------------------------------------------------------------
-function AppProvider({ children }) {
-    const [state, dispatch] = useReducer(appReducer, initialState);
-    const deferredText = useDeferredValue(state.text);
-    const commitCoreResults = useCallback((results) => {
-        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-    }, []);
-    const { isPending, engineStats } = useCoreResultsEngine({
-        deferredText,
-        mode: state.mode,
-        onResults: commitCoreResults,
-    });
-
-    const stats = useMemo(() => {
-        if (!state.coreResults) return null;
-        const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
-        return {
-            totalLines: state.coreResults.lines.length,
-            totalWords: state.coreResults.totalWordCount,
-            uniqueWords: state.coreResults.allWords.length,
-            primeLineTotals: primeLineCount,
-            drDistribution: state.coreResults.drDistribution,
-        };
-    }, [state.coreResults]);
-
-    const valueToWordsMap = useMemo(() => {
-        if (!state.coreResults) return new Map();
-        const map = new Map();
-        state.coreResults.allWords.forEach(wd => {
-            const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
-            uniqueValues.forEach(v => {
-                if (!map.has(v)) map.set(v, []);
-                map.get(v).push(wd);
-            });
-        });
-        return map;
-    }, [state.coreResults]);
-
-    const connectionValues = useMemo(() => {
-         if (!state.coreResults) return new Set();
-         return getConnectionValues(state.coreResults.allWords, state.filters);
-    }, [state.coreResults, state.filters]);
-
-    const contextValue = useMemo(() => ({
-        ...state,
-        stats,
-        valueToWordsMap,
-        connectionValues,
-        isPending,
-        engineStats,
-    }), [state, stats, valueToWordsMap, connectionValues, isPending, engineStats]);
-
-    return (
-        <AppContext.Provider value={contextValue}>
-            <AppDispatchContext.Provider value={dispatch}>
-                {children}
-            </AppDispatchContext.Provider>
-        </AppContext.Provider>
-    );
-}
-
 function WrappedApp() {
 	return (
 		<AppProvider>

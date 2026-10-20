@@ -1,106 +1,76 @@
-import React, {
-    createContext,
-    useContext,
-    useDeferredValue,
-    useEffect,
-    useMemo,
-    useReducer,
-    useRef,
-    useTransition,
-} from 'react';
-import { computeCoreResults } from '../core/analysisCore';
-import { getConnectionValues } from '../core/wordConnections';
-import { appReducer, initialState } from './appReducer';
+import React, { createContext, useContext, useDeferredValue, useEffect, useMemo, useReducer, useCallback } from 'react';
+import { appReducer, initialState } from './appReducer.js';
+import { restoreSession, saveSession } from './sessionStorage.js';
+import { getConnectionValues } from '../core/wordConnections.js';
+import { useCoreResultsEngine } from '../hooks/useCoreResultsEngine.js';
 
-const AppCoreContext = createContext(null);
-const AppFiltersContext = createContext(null);
-const AppClipboardContext = createContext(null);
-const AppStatsContext = createContext(null);
+const AppContext = createContext(null);
 const AppDispatchContext = createContext(null);
 
-function assertContext(contextValue, hookName) {
-    if (contextValue !== null) return contextValue;
-    throw new Error(`${hookName} must be used inside AppProvider`);
+// Backward-compatible hook aliases for older/local bundles that referenced previous names.
+function useAppCoreState() {
+    return useContext(AppContext);
 }
 
-const useAppCoreState = () => assertContext(useContext(AppCoreContext), 'useAppCoreState');
-const useAppFilters = () => assertContext(useContext(AppFiltersContext), 'useAppFilters');
-const useAppClipboard = () => assertContext(useContext(AppClipboardContext), 'useAppClipboard');
-const useAppStats = () => assertContext(useContext(AppStatsContext), 'useAppStats');
-const useAppDispatch = () => assertContext(useContext(AppDispatchContext), 'useAppDispatch');
+function useAppCoreDispatch() {
+    return useContext(AppDispatchContext);
+}
 
-const AppProvider = ({ children }) => {
-    const [state, dispatch] = useReducer(appReducer, initialState);
-    const [isPending, startTransition] = useTransition();
+
+function useAppState() {
+    return useContext(AppContext);
+}
+
+function useAppDispatch() {
+    return useContext(AppDispatchContext);
+}
+
+function useAppFilters() {
+    const state = useAppState();
+    return useMemo(() => ({
+        filters: state?.filters,
+        primeColor: state?.primeColor,
+    }), [state?.filters, state?.primeColor]);
+}
+
+function useAppClipboard() {
+    const state = useAppState();
+    return useMemo(() => ({
+        copiedId: state?.copiedId,
+    }), [state?.copiedId]);
+}
+
+function useAppStats() {
+    const state = useAppState();
+    return useMemo(() => ({
+        stats: state?.stats,
+        isStatsCollapsed: state?.isStatsCollapsed,
+        isDarkMode: state?.isDarkMode,
+        connectionValues: state?.connectionValues,
+        corpusSelection: state?.corpusSelection,
+    }), [state?.stats, state?.isStatsCollapsed, state?.isDarkMode, state?.connectionValues, state?.corpusSelection]);
+}
+
+function AppProvider({ children }) {
+    const [state, dispatch] = useReducer(appReducer, initialState, restoreSession);
     const deferredText = useDeferredValue(state.text);
-    const versionRef = useRef(0);
-    const workerRef = useRef(null);
-    const workerCrashedRef = useRef(false);
+    const commitCoreResults = useCallback((results) => {
+        dispatch({ type: 'SET_CORE_RESULTS', payload: results });
+    }, []);
+    const { isPending: enginePending, engineStats, error: analysisError, retry: retryAnalysis } = useCoreResultsEngine({
+        deferredText,
+        mode: state.mode,
+        onResults: commitCoreResults,
+    });
 
-    useEffect(() => {
-        if (typeof Worker === 'undefined') return undefined;
-
-        const worker = new Worker(new URL('../workers/coreResults.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current = worker;
-
-        const handleMessage = (event) => {
-            const { requestId, results, error } = event.data || {};
-            if (requestId !== versionRef.current) return;
-            if (error) {
-                workerCrashedRef.current = true;
-                console.error('coreResults worker failed:', error);
-                return;
-            }
-            startTransition(() => {
-                dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-            });
-        };
-
-        const handleError = (error) => {
-            workerCrashedRef.current = true;
-            console.error('coreResults worker error:', error);
-        };
-
-        worker.addEventListener('message', handleMessage);
-        worker.addEventListener('error', handleError);
-
-        return () => {
-            worker.removeEventListener('message', handleMessage);
-            worker.removeEventListener('error', handleError);
-            worker.terminate();
-            if (workerRef.current === worker) workerRef.current = null;
-        };
-    }, [startTransition]);
-
-    useEffect(() => {
-        if (!deferredText) {
-            dispatch({ type: 'SET_CORE_RESULTS', payload: null });
-            return;
-        }
-
-        versionRef.current += 1;
-        const currentVersion = versionRef.current;
-
-        if (workerRef.current && !workerCrashedRef.current) {
-            workerRef.current.postMessage({
-                requestId: currentVersion,
-                text: deferredText,
-                mode: state.mode,
-            });
-            return;
-        }
-
-        startTransition(() => {
-            const results = computeCoreResults(deferredText, state.mode);
-            if (versionRef.current === currentVersion) {
-                dispatch({ type: 'SET_CORE_RESULTS', payload: results });
-            }
-        });
-    }, [deferredText, state.mode, startTransition, dispatch]);
+    const isPending = state.isInputDirty || state.text !== deferredText || enginePending;
+    const isAnalysisStale = isPending || Boolean(analysisError);
+    const { text, mode, corpusSelection } = state;
+    useEffect(() => saveSession({ text, mode, corpusSelection }), [text, mode, corpusSelection]);
 
     const stats = useMemo(() => {
         if (!state.coreResults) return null;
-        const primeLineCount = new Set(state.coreResults.primeSummary.map((p) => p.line)).size;
+        const primeLineCount = new Set(state.coreResults.primeSummary.map(p => p.line)).size;
         return {
             totalLines: state.coreResults.lines.length,
             totalWords: state.coreResults.totalWordCount,
@@ -113,66 +83,41 @@ const AppProvider = ({ children }) => {
     const valueToWordsMap = useMemo(() => {
         if (!state.coreResults) return new Map();
         const map = new Map();
-        state.coreResults.allWords.forEach((wd) => {
-            const values = [wd.units];
-            if (wd.tens !== wd.units) values.push(wd.tens);
-            if (wd.hundreds !== wd.tens && wd.hundreds !== wd.units) values.push(wd.hundreds);
-
-            values.forEach((value) => {
-                if (!map.has(value)) map.set(value, []);
-                map.get(value).push(wd);
+        state.coreResults.allWords.forEach(wd => {
+            const uniqueValues = new Set([wd.units, wd.tens, wd.hundreds]);
+            uniqueValues.forEach(v => {
+                if (!map.has(v)) map.set(v, []);
+                map.get(v).push(wd);
             });
         });
         return map;
     }, [state.coreResults]);
 
     const connectionValues = useMemo(() => {
-        if (!state.coreResults) return new Set();
-        return getConnectionValues(state.coreResults.allWords, state.filters);
+         if (!state.coreResults) return new Set();
+         return getConnectionValues(state.coreResults.allWords, state.filters);
     }, [state.coreResults, state.filters]);
 
-    const coreValue = useMemo(
-        () => ({
-            ...state,
-            stats,
-            valueToWordsMap,
-            connectionValues,
-            isPending,
-        }),
-        [state, stats, valueToWordsMap, connectionValues, isPending]
-    );
-
-    const filtersValue = useMemo(
-        () => ({
-            filters: state.filters,
-            primeColor: state.primeColor,
-        }),
-        [state.filters, state.primeColor]
-    );
-
-    const clipboardValue = useMemo(() => ({ copiedId: state.copiedId }), [state.copiedId]);
-
-    const statsValue = useMemo(
-        () => ({
-            stats,
-            isStatsCollapsed: state.isStatsCollapsed,
-            isDarkMode: state.isDarkMode,
-            connectionValues,
-        }),
-        [stats, state.isStatsCollapsed, state.isDarkMode, connectionValues]
-    );
+    const contextValue = useMemo(() => ({
+        ...state,
+        stats,
+        valueToWordsMap,
+        connectionValues,
+        isPending,
+        engineStats,
+        isAnalysisStale,
+        analysisError,
+        retryAnalysis,
+    }), [state, stats, valueToWordsMap, connectionValues, isPending, engineStats, isAnalysisStale, analysisError, retryAnalysis]);
 
     return (
-        <AppDispatchContext.Provider value={dispatch}>
-            <AppCoreContext.Provider value={coreValue}>
-                <AppFiltersContext.Provider value={filtersValue}>
-                    <AppClipboardContext.Provider value={clipboardValue}>
-                        <AppStatsContext.Provider value={statsValue}>{children}</AppStatsContext.Provider>
-                    </AppClipboardContext.Provider>
-                </AppFiltersContext.Provider>
-            </AppCoreContext.Provider>
-        </AppDispatchContext.Provider>
+        <AppContext.Provider value={contextValue}>
+            <AppDispatchContext.Provider value={dispatch}>
+                {children}
+            </AppDispatchContext.Provider>
+        </AppContext.Provider>
     );
-};
+}
 
-export { AppProvider, useAppClipboard, useAppCoreState, useAppDispatch, useAppFilters, useAppStats };
+
+export { AppProvider, useAppState, useAppCoreState, useAppCoreDispatch, useAppDispatch, useAppFilters, useAppClipboard, useAppStats };

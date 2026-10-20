@@ -42,3 +42,18 @@ jobs:
         env:
           MAM_PARSED_PATH: ${{ github.workspace }}/upstream/MAM-parsed
           MAM_BASICS_PATH: ${{ github.workspace }}/upstream/MAM-basics
+
+      - name: Install Chromium for browser regression tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify the production app in Chromium
+        run: npm run test:browser
+
+      - name: Upload browser screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-verification
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -84,9 +84,14 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
             })
             .then((data) => {
                 setBookData(data);
-                setSelectionScope('book');
-                setRangeStart(1);
-                setRangeEnd(1);
+                const saved = initialSelectionRef.current;
+                const restored = saved?.bookSlug === selectedBook.slug
+                    ? createTanakhSelection(data.sections, saved.scope, saved.startSectionOrdinal, saved.endSectionOrdinal)
+                    : null;
+                setSelectionScope(restored?.scope || 'book');
+                setRangeStart(restored?.startOrdinal || 1);
+                setRangeEnd(restored?.endOrdinal || 1);
+                initialSelectionRef.current = null;
                 setStatus(null);
             })
             .catch((fetchError) => {

@@ -1,9 +1,11 @@
 import { execSync } from 'node:child_process';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { transformWithEsbuild } from 'vite';
 
 const ROOTS = ['src', 'tests', 'scripts'];
-const ALLOWED_EXT = new Set(['.js', '.mjs']);
+const ALLOWED_EXT = new Set(['.js', '.jsx', '.mjs']);
 
 function collectFiles(dir, out) {
   const entries = readdirSync(dir);
@@ -24,7 +26,11 @@ const files = [];
 for (const root of ROOTS) collectFiles(root, files);
 
 for (const file of files) {
-  execSync(`node --check ${JSON.stringify(file)}`, { stdio: 'inherit' });
+  if (file.endsWith('.jsx')) {
+    await transformWithEsbuild(readFileSync(file, 'utf8'), file, { loader: 'jsx', logLevel: 'error' });
+  } else {
+    execSync(`node --check ${JSON.stringify(file)}`, { stdio: 'inherit' });
+  }
 }
 
-console.log(`typecheck passed for ${files.length} files (syntax + module checks)`);
+console.log(`Syntax checks passed for ${files.length} JS/JSX files. This command does not perform static type analysis.`);
