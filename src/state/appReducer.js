@@ -50,6 +50,7 @@ const initialState = {
     isValueTablePinned: false,
     mode: 'aleph-zero',
     textSize: 'md',
+    isEditorCollapsed: false,
     copiedId: null,
     view: 'clusters',
     hoveredWord: null,
@@ -186,6 +187,10 @@ function appReducer(state, action) {
             return { ...state, selectedHotValue: action.payload.value, hotWordsList: action.payload.list };
         case 'CLEAR_SELECTED_HOT_VALUE':
             return { ...state, selectedHotValue: null, hotWordsList: [] };
+        case 'TOGGLE_EDITOR':
+            return { ...state, isEditorCollapsed: !state.isEditorCollapsed };
+        case 'RESET_FILTERS':
+            return { ...state, filters: { ...initialState.filters }, selectedDR: null, searchTerm: '', selectedHotValue: null, hotWordsList: [], pinnedWord: null };
         case 'TOGGLE_FILTER':
             return { ...state, filters: { ...state.filters, [action.payload]: !state.filters[action.payload] } };
         default:

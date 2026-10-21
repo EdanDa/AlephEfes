@@ -1,6 +1,11 @@
 import React, { Suspense, lazy, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, memo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
+import VirtualizedGroups from './components/VirtualizedGroups';
+import ExportMenu from './components/ExportMenu';
+import WorkspaceContext from './components/WorkspaceContext';
+import NetworkView from './components/NetworkView';
+import './workspace.css';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { withCSVMetadata } from './utils/exportMetadata';
 import { buildValueInsights } from './core/valueInsights';
@@ -919,7 +924,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
     };
 
     return (
-        <div className="app-export-toolbar flex gap-2">
+        <ExportMenu disabled={isAnalysisStale}>
             <button 
                 onClick={handleCopy} 
                 disabled={isCopying || isAnalysisStale}
@@ -944,7 +949,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
                 <Icon name="download" className="w-4 h-4" />
                 ייצא JSON
             </button>
-        </div>
+        </ExportMenu>
     );
 };
 
@@ -1198,227 +1203,13 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה, מספר או צירוף כמו 20+11..." value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
             </div>
-            <div className="space-y-6">
-                {filteredWordsInView.map(({ dr, words }) => (
-                    <div
-                        key={dr}
-                        ref={el => (clusterRefs.current[dr] = el)}
-                        className={`p-4 rounded-lg border transition-shadow ${isDarkMode ? 'bg-gray-800/50 border-purple-800' : 'bg-white'}`}
-                        style={{ contentVisibility: 'auto', containIntrinsicSize: '460px' }}
-                        onClick={unpinOnBackgroundClick}
-                    >
-                        <h3 className="text-xl font-bold text-violet-900 dark:text-purple-300 mb-3 text-center noselect">ש"ד {dr} ({words.length} מילים)</h3>
-                        <div className="app-cluster-grid flex flex-wrap justify-start gap-2" onClick={unpinOnBackgroundClick}>
-                            {words.map((wordData, index) => (
-                                <WordCard 
-                                    key={wordData.word}
-                                    wordData={wordData}
-                                    isAnalysisStale={isAnalysisStale}
-                                    pinnedWord={pinnedWord}
-                                    activeWord={activeWord}
-                                    activeWordKey={activeWordKey}
-                                    isConnectedToActive={connectedWordsSet.has(wordData.word)}
-                                    isDarkMode={isDarkMode}
-                                    primeColor={primeColor}
-                                    connectionValues={scopedConnectionValues}
-                                    dispatch={dispatch}
-                                    filters={filters}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <details className="workspace-help"><summary>איך קוראים את הקבוצות?</summary><p>כל קבוצה מכילה צורות מילים בעלות אותו שורש דיגיטלי. הקשה על מילה נועצת אותה ומדגישה קשרים בשכבות המוצגות. החיפוש פועל על כל המילים, גם אלו שמחוץ למסך.</p></details>
+            <VirtualizedGroups groups={filteredWordsInView} clusterRefs={clusterRefs} renderWord={(wordData) => (
+                <WordCard key={wordData.word} wordData={wordData} isAnalysisStale={isAnalysisStale} pinnedWord={pinnedWord} activeWord={activeWord} activeWordKey={activeWordKey} isConnectedToActive={connectedWordsSet.has(wordData.word)} isDarkMode={isDarkMode} primeColor={primeColor} connectionValues={scopedConnectionValues} dispatch={dispatch} filters={filters} />
+            )} />
         </div>
     );
 });
-
-const BARNES_HUT_MAX_DEPTH = 12;
-const BARNES_HUT_MIN_SIZE = 1e-3;
-
-const createQuadNode = (x, y, size, depth) => ({
-    x,
-    y,
-    size,
-    depth,
-    node: null,
-    bucket: null,
-    children: null,
-    mass: 0,
-    centerX: 0,
-    centerY: 0,
-});
-
-const addMassToQuad = (quad, point) => {
-    const nextMass = quad.mass + 1;
-    quad.centerX = (quad.centerX * quad.mass + point.x) / nextMass;
-    quad.centerY = (quad.centerY * quad.mass + point.y) / nextMass;
-    quad.mass = nextMass;
-};
-
-const getQuadChildIndex = (quad, point) => {
-    const midX = quad.x + quad.size / 2;
-    const midY = quad.y + quad.size / 2;
-    const isRight = point.x >= midX ? 1 : 0;
-    const isBottom = point.y >= midY ? 1 : 0;
-    return isRight + isBottom * 2;
-};
-
-const ensureQuadChildren = (quad) => {
-    if (quad.children) return;
-    const half = quad.size / 2;
-    quad.children = [
-        createQuadNode(quad.x, quad.y, half, quad.depth + 1),
-        createQuadNode(quad.x + half, quad.y, half, quad.depth + 1),
-        createQuadNode(quad.x, quad.y + half, half, quad.depth + 1),
-        createQuadNode(quad.x + half, quad.y + half, half, quad.depth + 1),
-    ];
-};
-
-const insertPointToQuad = (quad, point) => {
-    addMassToQuad(quad, point);
-
-    if (quad.children) {
-        const idx = getQuadChildIndex(quad, point);
-        insertPointToQuad(quad.children[idx], point);
-        return;
-    }
-
-    if (!quad.node && !quad.bucket) {
-        quad.node = point;
-        return;
-    }
-
-    if (quad.depth >= BARNES_HUT_MAX_DEPTH || quad.size <= BARNES_HUT_MIN_SIZE) {
-        if (!quad.bucket) {
-            quad.bucket = [];
-            if (quad.node) {
-                quad.bucket.push(quad.node);
-                quad.node = null;
-            }
-        }
-        quad.bucket.push(point);
-        return;
-    }
-
-    const existing = quad.node;
-    quad.node = null;
-    ensureQuadChildren(quad);
-    if (existing) {
-        const existingIdx = getQuadChildIndex(quad, existing);
-        insertPointToQuad(quad.children[existingIdx], existing);
-    }
-    const idx = getQuadChildIndex(quad, point);
-    insertPointToQuad(quad.children[idx], point);
-};
-
-const buildQuadTree = (points) => {
-    if (!points.length) return null;
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const point of points) {
-        if (point.x < minX) minX = point.x;
-        if (point.y < minY) minY = point.y;
-        if (point.x > maxX) maxX = point.x;
-        if (point.y > maxY) maxY = point.y;
-    }
-
-    const span = Math.max(maxX - minX, maxY - minY) || 1;
-    const padding = span * 0.05 + 1;
-    const root = createQuadNode(minX - padding, minY - padding, span + padding * 2, 0);
-
-    for (const point of points) insertPointToQuad(root, point);
-    return root;
-};
-
-const applyBarnesHutRepulsion = (point, quad, repulsion, alpha, thetaSq) => {
-    if (!quad || quad.mass === 0) return;
-
-    if (!quad.children) {
-        if (quad.bucket) {
-            for (const other of quad.bucket) {
-                if (other !== point) {
-                    const dx = point.x - other.x;
-                    const dy = point.y - other.y;
-                    const distSq = dx * dx + dy * dy + 1e-6;
-                    const invDist = 1 / Math.sqrt(distSq);
-                    const force = (repulsion * alpha) / distSq;
-                    point.vx += dx * invDist * force;
-                    point.vy += dy * invDist * force;
-                }
-            }
-            return;
-        }
-
-        if (!quad.node || quad.node === point) return;
-        const dx = point.x - quad.node.x;
-        const dy = point.y - quad.node.y;
-        const distSq = dx * dx + dy * dy + 1e-6;
-        const invDist = 1 / Math.sqrt(distSq);
-        const force = (repulsion * alpha) / distSq;
-        point.vx += dx * invDist * force;
-        point.vy += dy * invDist * force;
-        return;
-    }
-
-    const dx = point.x - quad.centerX;
-    const dy = point.y - quad.centerY;
-    const distSq = dx * dx + dy * dy + 1e-6;
-    const sizeSq = quad.size * quad.size;
-
-    if (sizeSq / distSq < thetaSq) {
-        const invDist = 1 / Math.sqrt(distSq);
-        const force = (repulsion * quad.mass * alpha) / distSq;
-        point.vx += dx * invDist * force;
-        point.vy += dy * invDist * force;
-        return;
-    }
-
-    for (const child of quad.children) {
-        applyBarnesHutRepulsion(point, child, repulsion, alpha, thetaSq);
-    }
-};
-
-const buildWordConnectionIndex = (coreResults, filters, selectedDR) => {
-    if (!coreResults) return { nodes: [], links: [] };
-
-    const nodes = [];
-    const links = [];
-    const wordNodesMap = new Map();
-    const valueNodesMap = new Map();
-
-    const allWords = Array.isArray(coreResults.allWords) ? coreResults.allWords : [];
-
-    allWords.forEach(wordData => {
-        if (!isWordVisible(wordData, filters)) return;
-        if (selectedDR !== null && wordData.dr !== selectedDR) return;
-
-        if (!wordNodesMap.has(wordData.word)) {
-            const node = { id: wordData.word, type: 'word', data: wordData, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-            wordNodesMap.set(wordData.word, node);
-            nodes.push(node);
-        }
-
-        const values = getWordValues(wordData);
-        values.forEach(v => {
-            if (!isValueVisible(v.layer, v.isPrime, filters)) return;
-
-            const valKey = `val-${v.value}`;
-            if (!valueNodesMap.has(valKey)) {
-                const node = { id: valKey, type: 'value', value: v.value, isPrime: v.isPrime, x: Math.random() * 800, y: Math.random() * 600, vx: 0, vy: 0 };
-                valueNodesMap.set(valKey, node);
-                nodes.push(node);
-            }
-
-            links.push({ source: wordData.word, target: valKey, layer: v.layer });
-        });
-    });
-
-    return { nodes, links };
-};
 
 const canvasTooltipStyle = (point, container) => {
     const width = Math.min(260, (container?.clientWidth || 276) - 16);
@@ -1428,518 +1219,6 @@ const canvasTooltipStyle = (point, container) => {
         top: Math.max(8, Math.min(point.py + 12, (container?.clientHeight || 320) - 160)),
     };
 };
-
-const NetworkView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
-    const canvasRef = useRef(null);
-    const containerRef = useRef(null);
-    const transformRef = useRef({ x: 0, y: 0, k: 1 });
-    const draggingRef = useRef(null);
-    const animationRef = useRef(null);
-    const hoverIdRef = useRef(null);
-    const selectedIdRef = useRef(null);
-    const runningRef = useRef(false);
-    const hoverInfoRef = useRef(null);
-    const viewportControlRef = useRef(null);
-    const [hoverInfo, setHoverInfo] = useState(null);
-
-    const setHoverInfoSafe = (info) => {
-        hoverInfoRef.current = info;
-        setHoverInfo(info);
-    };
-
-    const graphData = useMemo(() => buildWordConnectionIndex(coreResults, filters, selectedDR), [coreResults, filters, selectedDR]);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
-
-        const ctx = canvas.getContext('2d');
-        const nodes = graphData.nodes;
-        const nodeById = new Map(nodes.map(n => [n.id, n]));
-        
-        const links = graphData.links
-          .map(l => ({
-            ...l,
-            sourceNode: nodeById.get(l.source),
-            targetNode: nodeById.get(l.target),
-          }))
-          .filter(l => l.sourceNode && l.targetNode);
-
-        const nodeCount = nodes.length;
-        const isLargeGraph = nodeCount > 500;
-        
-        let alpha = 1;
-        const alphaDecay = isLargeGraph ? 0.002 : 0.005; 
-        const alphaMin = 0.001;
-        
-        let settleFrames = 0;
-        const SETTLE_AFTER_DRAG = 60;
-        const REHEAT_ON_RELEASE = 0.3;
-        const LINK_DIST = isLargeGraph ? 90 : 120;
-        const CENTER_PULL = 0.004;
-
-        // Reset refs on regeneration
-        hoverIdRef.current = null;
-        selectedIdRef.current = null;
-        setHoverInfoSafe(null);
-        if (selectedIdRef.current && !nodeById.has(selectedIdRef.current)) {
-            selectedIdRef.current = null;
-        }
-
-        const sizeRef = { width: container.clientWidth, height: container.clientHeight, dpr: window.devicePixelRatio || 1 };
-
-        const setCanvasSize = () => {
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            const dpr = window.devicePixelRatio || 1;
-            sizeRef.width = width;
-            sizeRef.height = height;
-            sizeRef.dpr = dpr;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            canvas.style.width = `${width}px`;
-            canvas.style.height = `${height}px`;
-        };
-
-        const ro = new ResizeObserver(() => {
-            setCanvasSize();
-            if (alpha <= alphaMin) requestAnimationFrame(render);
-        });
-        ro.observe(container);
-        setCanvasSize();
-
-        const findNearestNode = (worldX, worldY, r) => {
-            const r2 = r * r;
-            let best = null;
-            let bestD2 = r2;
-
-            for (const n of nodes) {
-                const dx = n.x - worldX;
-                const dy = n.y - worldY;
-                const d2 = dx*dx + dy*dy;
-                if (d2 < bestD2) {
-                    bestD2 = d2;
-                    best = n;
-                }
-            }
-            return best;
-        };
-        
-        const render = () => {
-            const { width, height, dpr } = sizeRef;
-            ctx.setTransform(1,0,0,1,0,0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.setTransform(dpr,0,0,dpr,0,0);
-            ctx.save();
-            
-            const { x, y, k } = transformRef.current;
-            ctx.translate(x, y);
-            ctx.scale(k, k);
-
-            const activeId = selectedIdRef.current || hoverIdRef.current;
-            
-            let highlightedNodes = new Set();
-            let highlightedLinks = new Set();
-            
-            // Build highlighted set from Selection OR Hover
-            const targets = [];
-            if (selectedIdRef.current) targets.push(selectedIdRef.current);
-            if (hoverIdRef.current && hoverIdRef.current !== selectedIdRef.current) targets.push(hoverIdRef.current);
-
-            targets.forEach(tId => {
-                highlightedNodes.add(tId);
-                links.forEach(l => {
-                    if (l.source === tId) {
-                        highlightedNodes.add(l.target);
-                        highlightedLinks.add(l);
-                    } else if (l.target === tId) {
-                        highlightedNodes.add(l.source);
-                        highlightedLinks.add(l);
-                    }
-                });
-            });
-
-            const somethingHighlighted = highlightedNodes.size > 0;
-
-            // Draw Links
-            links.forEach(link => {
-                const isHighlighted = highlightedLinks.has(link);
-                const isFaint = somethingHighlighted && !isHighlighted;
-                
-                if (isFaint) {
-                    ctx.globalAlpha = 0.05; 
-                } else {
-                    ctx.globalAlpha = 0.4;
-                }
-                
-                if (!isFaint || k > 0.5) { 
-                    // Use stroke colors from LAYER_COLORS
-                    const stroke = isDarkMode ? LAYER_COLORS[link.layer].strokeDark : LAYER_COLORS[link.layer].strokeLight;
-                    ctx.strokeStyle = stroke;
-                    ctx.lineWidth = isHighlighted ? 2 / k : 1 / k; 
-                    ctx.beginPath();
-                    ctx.moveTo(link.sourceNode.x, link.sourceNode.y);
-                    ctx.lineTo(link.targetNode.x, link.targetNode.y);
-                    ctx.stroke();
-                }
-            });
-            ctx.globalAlpha = 1;
-
-            // Draw Nodes
-            nodes.forEach(node => {
-                const isHighlighted = highlightedNodes.has(node.id);
-                const isFaint = somethingHighlighted && !isHighlighted;
-                const isSelected = selectedIdRef.current === node.id;
-
-                if (isFaint) {
-                    ctx.globalAlpha = 0.1;
-                } else {
-                    ctx.globalAlpha = 1;
-                }
-
-                ctx.beginPath();
-                if (node.type === 'word') {
-                    ctx.arc(node.x, node.y, isSelected ? 8 : 6, 0, 2 * Math.PI);
-                    ctx.fillStyle = isDarkMode ? '#A78BFA' : '#7C3AED';
-                    ctx.fill();
-                    if (isSelected) {
-                        ctx.strokeStyle = isDarkMode ? '#fff' : '#000';
-                        ctx.lineWidth = 2 / k;
-                        ctx.stroke();
-                    }
-
-                    if (k > 0.6 || isHighlighted || isSelected) {
-                        ctx.font = '10px sans-serif';
-                        if (!isDarkMode) {
-                            ctx.lineWidth = 3 / k;
-                            ctx.strokeStyle = 'rgba(248,250,252,0.95)';
-                            ctx.strokeText(node.id, node.x + 8, node.y + 3);
-                        }
-                        ctx.fillStyle = isDarkMode ? 'white' : '#0f172a';
-                        ctx.fillText(node.id, node.x + 8, node.y + 3);
-                    }
-                } else {
-                    ctx.arc(node.x, node.y, isSelected ? 6 : 4, 0, 2 * Math.PI);
-                    const primeFill = PRIME_COLOR_HEX[primeColor] || '#EAB308';
-                    ctx.fillStyle = node.isPrime ? primeFill : (isDarkMode ? '#9CA3AF' : '#4B5563');
-                    ctx.fill();
-                    if (isSelected) {
-                        ctx.strokeStyle = isDarkMode ? '#fff' : '#000';
-                        ctx.lineWidth = 2 / k;
-                        ctx.stroke();
-                    }
-                    if (k > 0.8 || isHighlighted || isSelected) {
-                        ctx.font = 'bold 9px monospace';
-                        if (!isDarkMode) {
-                            ctx.lineWidth = 2.5 / k;
-                            ctx.strokeStyle = 'rgba(248,250,252,0.95)';
-                            ctx.strokeText(node.value, node.x - 6, node.y - 6);
-                        }
-                        ctx.fillStyle = isDarkMode ? '#D1D5DB' : '#111827';
-                        ctx.fillText(node.value, node.x - 6, node.y - 6);
-                    }
-                }
-            });
-            ctx.restore();
-        };
-
-        const tick = () => {
-            const { width, height } = sizeRef;
-            if (alpha > alphaMin) {
-                const useBarnesHut = nodes.length > 250;
-                if (useBarnesHut) {
-                    const repulsion = isLargeGraph ? 1000 : 2000;
-                    const thetaSq = isLargeGraph ? 0.8 * 0.8 : 0.65 * 0.65;
-                    const tree = buildQuadTree(nodes);
-                    if (tree) {
-                        for (const node of nodes) {
-                            applyBarnesHutRepulsion(node, tree, repulsion, alpha, thetaSq);
-                        }
-                    }
-                } else {
-                    for (let i = 0; i < nodes.length; i += 1) {
-                        const a = nodes[i];
-                        for (let j = i + 1; j < nodes.length; j += 1) {
-                            const b = nodes[j];
-                            const dx = a.x - b.x;
-                            const dy = a.y - b.y;
-                            const distSq = dx * dx + dy * dy || 1;
-                            if (distSq <= 250000) {
-                                const invDist = 1 / Math.sqrt(distSq);
-                                const force = ((isLargeGraph ? 1000 : 2000) * alpha) / distSq;
-                                const fx = dx * invDist * force;
-                                const fy = dy * invDist * force;
-                                a.vx += fx;
-                                a.vy += fy;
-                                b.vx -= fx;
-                                b.vy -= fy;
-                            }
-                        }
-                    }
-                }
-
-                links.forEach(link => {
-                    const a = link.sourceNode;
-                    const b = link.targetNode;
-                    const dx = b.x - a.x;
-                    const dy = b.y - a.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const force = (dist - LINK_DIST) * (isLargeGraph ? 0.08 : 0.05) * alpha;
-                    const fx = (dx / dist) * force;
-                    const fy = (dy / dist) * force;
-                    a.vx += fx; a.vy += fy;
-                    b.vx -= fx; b.vy -= fy;
-                });
-
-                nodes.forEach(node => {
-                    if (node === draggingRef.current?.node) return;
-                    node.vx += (width / 2 - node.x) * CENTER_PULL * alpha;
-                    node.vy += (height / 2 - node.y) * CENTER_PULL * alpha;
-                    const vLimit = 10;
-                    node.vx = Math.max(-vLimit, Math.min(vLimit, node.vx));
-                    node.vy = Math.max(-vLimit, Math.min(vLimit, node.vy));
-                    node.vx *= 0.9; 
-                    node.vy *= 0.9;
-                    node.x += node.vx;
-                    node.y += node.vy;
-                });
-
-                // Keep simulation "heated" if dragging a node
-                if (draggingRef.current && draggingRef.current.type !== 'pan') {
-                    alpha = Math.max(alpha, 0.3); 
-                } else {
-                    alpha -= alphaDecay; 
-                }
-            }
-            render();
-
-            if (settleFrames > 0) settleFrames--;
-            const shouldContinue = alpha > alphaMin || draggingRef.current || settleFrames > 0;
-
-            if (shouldContinue) {
-                animationRef.current = requestAnimationFrame(tick);
-                runningRef.current = true;
-            } else {
-                runningRef.current = false;
-            }
-        };
-
-        tick();
-
-        const handleWheel = (e) => {
-            e.preventDefault();
-            const { x, y, k } = transformRef.current;
-            const zoomSensitivity = 0.001;
-            const newK = Math.max(0.1, Math.min(5, k - e.deltaY * zoomSensitivity));
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = (e.clientX - rect.left);
-            const mouseY = (e.clientY - rect.top);
-            const newX = mouseX - (mouseX - x) * (newK / k);
-            const newY = mouseY - (mouseY - y) * (newK / k);
-            transformRef.current = { x: newX, y: newY, k: newK };
-            if (alpha <= alphaMin) requestAnimationFrame(render);
-        };
-
-        const handlePointerDown = (e) => {
-            if (!e.isPrimary || e.button !== 0) return;
-            canvas.setPointerCapture(e.pointerId);
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            const { x, y, k } = transformRef.current;
-            const worldX = (mouseX - x) / k;
-            const worldY = (mouseY - y) / k;
-            
-            // Increased hit radius for easier selection (20 -> 40)
-            const hitRadius = 40 / k; 
-            const clickedNode = findNearestNode(worldX, worldY, hitRadius);
-
-            if (clickedNode) {
-                draggingRef.current = { node: clickedNode, startSX: mouseX, startSY: mouseY, isClick: true, type: 'node' };
-                alpha = Math.max(alpha, 0.3);
-                if (!runningRef.current) {
-                    animationRef.current = requestAnimationFrame(tick);
-                    runningRef.current = true;
-                }
-            } else {
-                draggingRef.current = { type: 'pan', lastX: mouseX, lastY: mouseY, startSX: mouseX, startSY: mouseY, isClick: true };
-                if (alpha <= alphaMin) requestAnimationFrame(render);
-            }
-        };
-
-        const handlePointerMove = (e) => {
-            if (!e.isPrimary) return;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
-            // Skip expensive hover/update logic during node drag
-            if (draggingRef.current && draggingRef.current.type !== 'pan') {
-                if (draggingRef.current.isClick) {
-                    if (Math.hypot(mouseX - draggingRef.current.startSX, mouseY - draggingRef.current.startSY) > 3) {
-                        draggingRef.current.isClick = false;
-                    }
-                }
-                if (!draggingRef.current.isClick) {
-                    const { x, y, k } = transformRef.current;
-                    const worldXDrag = (mouseX - x) / k;
-                    const worldYDrag = (mouseY - y) / k;
-                    draggingRef.current.node.x = worldXDrag;
-                    draggingRef.current.node.y = worldYDrag;
-                    draggingRef.current.node.vx = 0; 
-                    draggingRef.current.node.vy = 0;
-                    
-                    // Keep heating simulation during drag so neighbors react
-                    alpha = Math.max(alpha, 0.1); 
-                    if (!runningRef.current) {
-                        animationRef.current = requestAnimationFrame(tick);
-                        runningRef.current = true;
-                    }
-                }
-                return; // Stop here
-            }
-            
-            // Hover logic
-            const { x, y, k } = transformRef.current;
-            const worldX = (mouseX - x) / k;
-            const worldY = (mouseY - y) / k;
-            
-            const hitRadius = 40 / k; // Larger hit area
-            const hoveredNode = findNearestNode(worldX, worldY, hitRadius);
-
-            if (hoveredNode) {
-                const prev = hoverInfoRef.current;
-                hoverIdRef.current = hoveredNode.id;
-
-                if (!prev || prev.id !== hoveredNode.id || Math.hypot(prev.px - mouseX, prev.py - mouseY) > 2) {
-                    setHoverInfoSafe({ ...hoveredNode, px: mouseX, py: mouseY });
-                } else {
-                    setHoverInfoSafe({ ...prev, px: mouseX, py: mouseY });
-                }
-                if (alpha <= alphaMin) requestAnimationFrame(render); 
-            } else {
-                hoverIdRef.current = null;
-                if (hoverInfoRef.current) setHoverInfoSafe(null);
-                if (alpha <= alphaMin) requestAnimationFrame(render);
-            }
-
-            if (!draggingRef.current) return;
-            
-            // Pan logic
-            if (draggingRef.current.type === 'pan') {
-                if (draggingRef.current.isClick) {
-                    if (Math.hypot(mouseX - draggingRef.current.startSX, mouseY - draggingRef.current.startSY) > 3) {
-                        draggingRef.current.isClick = false;
-                    }
-                }
-
-                if (!draggingRef.current.isClick) {
-                    const dx = mouseX - draggingRef.current.lastX;
-                    const dy = mouseY - draggingRef.current.lastY;
-                    transformRef.current.x += dx;
-                    transformRef.current.y += dy;
-                    draggingRef.current.lastX = mouseX;
-                    draggingRef.current.lastY = mouseY;
-                    if (alpha <= alphaMin) requestAnimationFrame(render);
-                }
-            } 
-        };
-
-        const handlePointerUp = (e) => {
-            if (!e.isPrimary) return;
-            if (draggingRef.current) {
-                if (draggingRef.current.isClick) {
-                    if (draggingRef.current.type === 'node') {
-                        const clickedNode = draggingRef.current.node;
-                        const next = (selectedIdRef.current === clickedNode.id) ? null : clickedNode.id;
-                        selectedIdRef.current = next;
-                        if (clickedNode.type === 'word' && onWordClick) {
-                            onWordClick(clickedNode.data);
-                        }
-                    } else if (draggingRef.current.type === 'pan') {
-                         // Clicked background -> clear selection
-                         selectedIdRef.current = null;
-                    }
-                    if (alpha <= alphaMin) requestAnimationFrame(render);
-                }
-
-                if (draggingRef.current.type !== 'pan') {
-                    // Reheat + settle
-                    alpha = Math.max(alpha, REHEAT_ON_RELEASE);
-                    settleFrames = SETTLE_AFTER_DRAG;
-                    
-                    if (!runningRef.current) {
-                        animationRef.current = requestAnimationFrame(tick);
-                        runningRef.current = true;
-                    }
-                }
-            }
-            draggingRef.current = null;
-            if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-        };
-
-        const handlePointerCancel = (e) => { if (e.isPrimary) draggingRef.current = null; };
-        viewportControlRef.current = (action) => {
-            const { x, y, k } = transformRef.current;
-            const nextK = Math.max(0.1, Math.min(5, k * (action === 'in' ? 1.25 : 0.8)));
-            const centerX = sizeRef.width / 2;
-            const centerY = sizeRef.height / 2;
-            transformRef.current = action === 'reset'
-                ? { x: 0, y: 0, k: 1 }
-                : { x: centerX - (centerX - x) * nextK / k, y: centerY - (centerY - y) * nextK / k, k: nextK };
-            requestAnimationFrame(render);
-        };
-
-        canvas.addEventListener('wheel', handleWheel, { passive: false });
-        canvas.addEventListener('pointerdown', handlePointerDown);
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-        window.addEventListener('pointercancel', handlePointerCancel);
-
-        return () => {
-            cancelAnimationFrame(animationRef.current);
-            runningRef.current = false;
-            ro.disconnect();
-            canvas.removeEventListener('wheel', handleWheel);
-            canvas.removeEventListener('pointerdown', handlePointerDown);
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            window.removeEventListener('pointercancel', handlePointerCancel);
-            viewportControlRef.current = null;
-        };
-    }, [graphData, isDarkMode, primeColor]);
-
-    return (
-        <div className={`app-results-card app-network-card p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <h2 className="app-results-title text-2xl font-bold mb-4 text-center">מפת קשרים (רשת)</h2>
-            <div className="app-canvas-toolbar flex flex-wrap items-center justify-center gap-2 mb-3">
-                <button type="button" aria-label="הגדל את רשת הקשרים" onClick={() => viewportControlRef.current?.('in')} className="rounded-lg border px-3 py-2">+</button>
-                <button type="button" aria-label="הקטן את רשת הקשרים" onClick={() => viewportControlRef.current?.('out')} className="rounded-lg border px-3 py-2">−</button>
-                <button type="button" aria-label="אפס את תצוגת הרשת" onClick={() => viewportControlRef.current?.('reset')} className="rounded-lg border px-3 py-2">איפוס תצוגה</button>
-            </div>
-            <p className="mb-3 text-center text-sm text-gray-500 dark:text-gray-400">גררו להזזה · הקישו על מילה לבחירה</p>
-            <div ref={containerRef} className="app-network-canvas relative w-full h-[600px] cursor-move overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border border-slate-200 dark:border-gray-700">
-                <canvas ref={canvasRef} className="w-full h-full block" />
-                 {hoverInfo && (
-                    <div 
-                        className="app-canvas-tooltip absolute pointer-events-none p-2 rounded bg-black/80 text-white text-xs z-10"
-                        style={canvasTooltipStyle(hoverInfo, containerRef.current)}
-                    >
-                        {hoverInfo.type === 'word' ? (
-                            <div className="font-bold text-base">{hoverInfo.id}</div>
-                        ) : (
-                            <div>
-                                <div className="font-mono font-bold flex items-center gap-1">{hoverInfo.value} {hoverInfo.isPrime && <span className="text-yellow-400 text-lg">♢</span>}</div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-});
 
 const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) => {
     const canvasRef = useRef(null);
@@ -2679,7 +1958,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
+        hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis, isEditorCollapsed
     } = state;
     const [isTanakhOpen, setIsTanakhOpen] = useState(false);
 
@@ -3275,6 +2554,8 @@ const App = () => {
                     )}
 
                     <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
+                        <div className="workspace-editor-heading"><strong>טקסט לניתוח</strong><button type="button" aria-expanded={!hasInput || !isEditorCollapsed} onClick={() => dispatch({ type: 'TOGGLE_EDITOR' })}>{hasInput && isEditorCollapsed ? 'ערוך טקסט' : 'קפל עורך'}</button></div>
+                        <div hidden={hasInput && isEditorCollapsed}>
                         <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
                             <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button aria-pressed={mode === 'aleph-zero'} onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=0</button>
@@ -3314,6 +2595,7 @@ const App = () => {
                         <div className="mt-4 flex flex-wrap justify-center items-center gap-2 min-h-5 text-center">
                             {isPending && <span role="status" className="text-sm text-gray-600 dark:text-gray-300 noselect">מחשב... התוצאות הקודמות אינן זמינות לייצוא עד לסיום.</span>}
                         </div>
+                        </div>
                     </div>
 
                     {analysisError && !isPending && (
@@ -3322,6 +2604,7 @@ const App = () => {
                             <button type="button" onClick={retryAnalysis} className="mt-2 rounded-lg border px-4 py-2 font-semibold">נסה שוב</button>
                         </div>
                     )}
+                    {hasInput && <WorkspaceContext />}
                     <StatsPanel />
 
                     {hasInput && (

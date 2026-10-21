@@ -34,6 +34,8 @@ async function view(page, label) {
 }
 
 async function download(page, format) {
+    const menu = page.locator('.workspace-export-menu').first();
+    if (!await menu.getAttribute('open').then((value) => value !== null)) await menu.locator('summary button').click();
     const pending = page.waitForEvent('download');
     await page.getByRole('button', { name: `ייצא ${format}`, exact: true }).first().click();
     const file = await pending;
@@ -115,6 +117,7 @@ for (const mode of ['aleph-zero', 'aleph-one']) {
         expect(csv.every((row) => row.analysis_mode === mode)).toBe(true);
         if (mode === 'aleph-zero') {
             await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+            await page.locator('.workspace-export-menu').first().locator('summary button').click();
             await page.locator('.app-export-toolbar').getByRole('button', { name: 'העתק', exact: true }).click();
             await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('- אב');
             const copied = await page.evaluate(() => navigator.clipboard.readText());
@@ -131,9 +134,9 @@ test('pinned exports respect hidden layers, search scope, and prime filtering', 
     await page.getByRole('button', { name: 'נעץ מילה ברא', exact: true }).click();
     expect((await json(page)).clusters.flatMap((group) => group.words.map((word) => word.word))).toEqual(['ברא']);
     expect(csvRows(await download(page, 'CSV')).map((row) => row.word)).toEqual(['ברא']);
-    await page.getByRole('button', { name: /ראשוני/, exact: false }).click();
+    await page.getByRole('button', { name: '♢ ראשוני', exact: true }).click();
     expect((await json(page)).clusters.flatMap((group) => group.words.map((word) => word.word))).toEqual([]);
-    await page.getByRole('button', { name: /ראשוני/, exact: false }).click();
+    await page.getByRole('button', { name: '♢ ראשוני', exact: true }).click();
     await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('ברא');
     await page.getByRole('button', { name: 'נעץ מילה ברא', exact: true }).click();
     expect((await json(page)).clusters.flatMap((group) => group.words.map((word) => word.word))).toEqual(['ברא']);
@@ -324,6 +327,7 @@ for (const theme of ['light', 'dark']) {
                     await heading.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY - 12, behavior: 'instant' }));
                     await page.screenshot({ path: testInfo.outputPath(`${mode}-${key}.png`) });
                     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+                    expect((await page.locator('.app-view-nav').boundingBox()).height).toBeLessThan(110);
                     const overlaps = await page.locator('.app-results-header').evaluateAll((headers) => headers.flatMap((header) => {
                         const boxes = [...header.children].map((element) => element.getBoundingClientRect()).filter((box) => box.width && box.height);
                         return boxes.flatMap((box, index) => boxes.slice(index + 1).filter((other) => Math.min(box.right, other.right) - Math.max(box.left, other.left) > 2 && Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top) > 2));

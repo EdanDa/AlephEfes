@@ -91,7 +91,11 @@ On Windows, an installed Chrome can be used with `$env:PLAYWRIGHT_CHROMIUM_CHANN
 
 `lint` is a lightweight log-policy check. The historical `typecheck` command validates JavaScript and JSX syntax; it does not perform static type analysis. Production compilation, unit/corpus tests, and browser tests provide separate checks.
 
-Saved working sessions use the versioned `alephEfes:session` local-storage record containing the text, calculation mode, and MAM selection. Existing `alephCodeText` is migrated automatically; theme settings retain their existing key. Manual text changes clear the MAM association. Exported analyses record the selected mode and filters in JSON metadata and CSV columns; pinned exports use the same filtered set in every format. Value-map `topWords` groups each word once with its matching `layers` array, and occurrence totals count each text occurrence once per value.
+Saved working sessions use version 2 of the `alephEfes:session` local-storage record containing the text, calculation mode, MAM selection, and workspace preferences (view, layers/prime filter, text size, and editor collapse). Version 1 sessions and existing `alephCodeText` migrate automatically; theme settings retain their existing key. Manual text changes clear the MAM association. Exported analyses record the selected mode and filters in JSON metadata and CSV columns; pinned exports use the same filtered set in every format. Value-map `topWords` groups each word once with its matching `layers` array, and occurrence totals count each text occurrence once per value.
+
+The groups view mounts only nearby rows, while searches and exports use every analyzed word. The network computes its layout in a separate worker, pauses offscreen, and offers Pause/Resume; a failed worker leaves an interactive static layout. Copy, CSV, and JSON are available from each panel's export menu.
+
+For repeatable production-build profiling, start Vite preview on port 4188, set `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome` if using installed Chrome, and run `node scripts/browser-benchmark.mjs`. It records five Genesis runs and their medians under `.cache/verification/`. Run it without other browser suites competing for CPU; `BENCHMARK_URL` can select a different preview URL.
 
 ### Installing on Android
 

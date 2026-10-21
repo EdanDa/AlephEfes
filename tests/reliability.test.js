@@ -78,7 +78,7 @@ test('session restoration preserves text, mode and source atomically and migrate
     assert.equal(restored.text, 'אב');
     assert.equal(restored.mode, 'aleph-one');
     assert.deepEqual(restored.corpusSelection, selection);
-    assert.equal(JSON.parse(local.getItem(SESSION_KEY)).version, 1);
+    assert.equal(JSON.parse(local.getItem(SESSION_KEY)).version, 2);
 });
 
 test('malformed, unavailable, and full storage cannot crash session handling', () => {
