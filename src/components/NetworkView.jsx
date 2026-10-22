@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { buildWordConnectionIndex } from '../core/networkLayout.js';
 import { LAYER_COLORS, PRIME_COLOR_HEX } from '../core/analysisCore.js';
+import { InspectWord } from './ResearchWorkspace';
 
 export default memo(function NetworkView({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) {
     const canvasRef = useRef(null), hostRef = useRef(null), control = useRef(null);
@@ -71,8 +72,10 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
             worker.onerror = (event) => { event.preventDefault(); fail(); };
             worker.onmessageerror = fail;
             worker.onmessage = ({ data }) => {
-                if (!alive || data.generation !== generation) return;
-                if (data.error || !(data.positions instanceof Float32Array) || data.positions.length !== nodes.length * 2) { fail(); return; }
+                if (!alive) return;
+                if (!data || typeof data !== 'object') { fail(); return; }
+                if (data.generation !== generation) return;
+                if (data.error || !(data.positions instanceof Float32Array) || data.positions.length !== nodes.length * 2 || !data.positions.every(Number.isFinite)) { fail(); return; }
                 nodes.forEach((node, index) => { if (drag?.node !== node) { node.x = data.positions[index * 2]; node.y = data.positions[index * 2 + 1]; } });
                 settled = data.settled;
                 setStatus(settled ? 'settled' : 'running'); requestDraw();
@@ -117,7 +120,7 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
         return () => { alive = false; worker?.terminate(); cancelAnimationFrame(frame); io.disconnect(); ro.disconnect(); document.removeEventListener('visibilitychange', syncPause); control.current = null; canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel); };
     }, [graph, isDarkMode, primeColor]);
     return <section className={`app-results-card app-network-card p-4 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50 border-slate-300'}`}>
-        <h2 className="app-results-title text-center font-bold mb-4">מפת קשרים (רשת)</h2>
+        <h2 className="app-results-title text-center font-bold mb-4">רשת</h2>
         <div className="app-canvas-toolbar flex flex-wrap justify-center gap-2 mb-3">
             <button aria-label="הגדל את רשת הקשרים" onClick={() => control.current?.('in')}>+</button><button aria-label="הקטן את רשת הקשרים" onClick={() => control.current?.('out')}>−</button>
             <button onClick={() => control.current?.('reset')}>איפוס תצוגה</button>
@@ -127,6 +130,6 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
         <details className="workspace-help"><summary>איך חוקרים את הרשת?</summary><p>המילים מחוברות לערכיהן בשכבות המוצגות. גררו להזזה והקישו לבחירה. ברשת גדולה תוויות מופיעות בבחירה או בהגדלה.</p></details>
         <form className="workspace-network-search" onSubmit={(event) => { event.preventDefault(); control.current?.('select', query.trim()); }}><label>בחירת מילה ברשת <input value={query} onChange={(event) => setQuery(event.target.value)} /></label><button>בחר</button></form>
         <div ref={hostRef} className="app-network-canvas relative w-full h-[600px] overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border"><canvas ref={canvasRef} className="w-full h-full block" style={{ touchAction: 'none' }} aria-label="רשת קשרים; ניתן לבחור מילה גם בשדה החיפוש" /></div>
-        {selected && <div className="workspace-network-selection"><strong>{selected.type === 'word' ? selected.id : `ערך ${selected.value}`}</strong>{selected.type === 'word' && <button onClick={() => callback.current?.(selected.data)}>הצג קשרי מילה</button>}</div>}
+        {selected && <div className="workspace-network-selection"><strong>{selected.type === 'word' ? selected.id : `ערך ${selected.value}`}</strong>{selected.type === 'word' && <><button onClick={() => callback.current?.(selected.data)}>הצג קשרי מילה</button><InspectWord word={selected.id} /></>}</div>}
     </section>;
 });

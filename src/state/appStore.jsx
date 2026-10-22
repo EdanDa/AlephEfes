@@ -65,8 +65,8 @@ function AppProvider({ children }) {
 
     const isPending = state.isInputDirty || state.text !== deferredText || enginePending;
     const isAnalysisStale = isPending || Boolean(analysisError);
-    const { text, mode, corpusSelection, view, filters, textSize, isEditorCollapsed } = state;
-    useEffect(() => saveSession({ text, mode, corpusSelection, view, filters, textSize, isEditorCollapsed }), [text, mode, corpusSelection, view, filters, textSize, isEditorCollapsed]);
+    const { text, mode, corpusSelection, view, filters, textSize } = state;
+    useEffect(() => saveSession({ text, mode, corpusSelection, view, filters, textSize }), [text, mode, corpusSelection, view, filters, textSize]);
 
     const stats = useMemo(() => {
         if (!state.coreResults) return null;

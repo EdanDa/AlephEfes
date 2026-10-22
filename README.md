@@ -50,10 +50,10 @@ AlephEfes provides five main analysis workspaces:
 * **Hot Words (שכיחות)**
   Frequency analysis by values or exact word forms, with sortable tables and value → word drill-down.
 
-* **Value Map (מפת ערכים)**
+* **Graph (גרף)**
   Quantitative visualization of value frequency, unique-word coverage, and cross-layer bridges.
 
-* **Connection Network (רשת קשרים)**
+* **Network (רשת)**
   Interactive force-directed graph connecting words to their visible U/T/H values.
 
 Additional capabilities include:
@@ -91,11 +91,15 @@ On Windows, an installed Chrome can be used with `$env:PLAYWRIGHT_CHROMIUM_CHANN
 
 `lint` is a lightweight log-policy check. The historical `typecheck` command validates JavaScript and JSX syntax; it does not perform static type analysis. Production compilation, unit/corpus tests, and browser tests provide separate checks.
 
-Saved working sessions use version 2 of the `alephEfes:session` local-storage record containing the text, calculation mode, MAM selection, and workspace preferences (view, layers/prime filter, text size, and editor collapse). Version 1 sessions and existing `alephCodeText` migrate automatically; theme settings retain their existing key. Manual text changes clear the MAM association. Exported analyses record the selected mode and filters in JSON metadata and CSV columns; pinned exports use the same filtered set in every format. Value-map `topWords` groups each word once with its matching `layers` array, and occurrence totals count each text occurrence once per value.
+Saved working sessions use version 2 of the `alephEfes:session` local-storage record containing the text, calculation mode, MAM selection, and workspace preferences (view, layers/prime filter, and text size). Version 1 sessions and existing `alephCodeText` migrate automatically; theme settings retain their existing key. Manual text changes clear the MAM association. Exported analyses record the selected mode and filters in JSON metadata and CSV columns; pinned exports use the same filtered set in every format. Value-map `topWords` groups each word once with its matching `layers` array, and occurrence totals count each text occurrence once per value.
 
 The groups view mounts only nearby rows, while searches and exports use every analyzed word. The network computes its layout in a separate worker, pauses offscreen, and offers Pause/Resume; a failed worker leaves an interactive static layout. Copy, CSV, and JSON are available from each panel's export menu.
 
 For repeatable production-build profiling, start Vite preview on port 4188, set `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome` if using installed Chrome, and run `node scripts/browser-benchmark.mjs`. It records five Genesis runs and their medians under `.cache/verification/`. Run it without other browser suites competing for CPU; `BENCHMARK_URL` can select a different preview URL.
+
+The **בדוק מילה** action opens a word inspector from groups, details, frequency results, and graph selections. Counts use exact normalized spelling across the complete current passage, independently of display filters. Final-letter spellings stay distinct. Optional positions start at one; letter positions count only canonical calculation letters. An even-length unit has its center between two elements. Manually entered text has original line-relative positions and no inferred MAM attribution.
+
+Corpus search is explicit and lazily fetches the existing occurrence index. Results are grouped by book and MAM section; inspecting a result does not replace the main analysis. Loading its section requires the separate **טען פרשיה זו לניתוח הראשי** action. Book text, provenance, manifest, and occurrence index are checked against build-pinned SHA-256 hashes before use; failed loads have retry controls. `npm run corpus:generate` regenerates the research integrity file, and `npm run corpus:check` verifies it. Existing corpus downloads retain their formats and numerical definitions.
 
 ### Installing on Android
 
@@ -1229,3 +1233,5 @@ Developed by **Edan-David Eyon**
 Independent researcher, Israel
 
 I have pursued independent study across philosophy, linguistics, history, mathematics, cognition, and related fields since 2011.
+
+The editor and both numerical mode buttons remain available at all times; older saved editor-collapse preferences are ignored. The views are labelled גרף and רשת. The graph compares occurrence totals with distinct word-form counts for each numerical value, provides selection of every value, and lists all matching word forms with pagination. Layer coverage is descriptive; it is not a statistical significance test.

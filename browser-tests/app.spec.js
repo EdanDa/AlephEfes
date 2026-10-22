@@ -92,7 +92,7 @@ for (const mode of ['aleph-zero', 'aleph-one']) {
 
     test(`the value map counts text occurrences once across equivalent layers (${mode})`, async ({ page }) => {
         await open(page, 'אב אב', mode);
-        await view(page, 'מפת ערכים');
+        await view(page, 'גרף');
         const result = await json(page);
         expect(result.rows).toHaveLength(1);
         expect(result.rows[0]).toMatchObject({ totalOccurrences: 2, uniqueWordCount: 1, avgOccurrences: 2, layerCount: 3 });
@@ -317,12 +317,12 @@ for (const theme of ['light', 'dark']) {
             for (const mode of ['aleph-zero', 'aleph-one']) {
                 await page.getByRole('button', { name: mode === 'aleph-zero' ? 'א=0' : 'א=1', exact: true }).click();
                 await ready(page);
-                for (const [key, label] of [['frequency', 'שכיחות'], ['lines', 'פירוט'], ['clusters', 'קבוצות'], ['map', 'מפת ערכים'], ['network', 'רשת קשרים']]) {
+                for (const [key, label] of [['frequency', 'שכיחות'], ['lines', 'פירוט'], ['clusters', 'קבוצות'], ['map', 'גרף'], ['network', 'רשת']]) {
                     await view(page, label);
                     // Let the view-change scroll finish scheduling, then frame the actual controls.
                     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
                     const heading = key === 'network'
-                        ? page.getByRole('heading', { name: 'מפת קשרים (רשת)', exact: true })
+                        ? page.getByRole('heading', { name: 'רשת', exact: true })
                         : page.locator('.app-results-header').last();
                     await heading.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY - 12, behavior: 'instant' }));
                     await page.screenshot({ path: testInfo.outputPath(`${mode}-${key}.png`) });

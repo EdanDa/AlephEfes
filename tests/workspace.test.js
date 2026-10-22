@@ -13,7 +13,8 @@ test('version one sessions migrate and workspace preferences are validated witho
     const state = { ...initialState, text: 'אב', view: 'network', isEditorCollapsed: true, textSize: 'lg', filters: { U: true, T: false, H: false, Prime: true }, pinnedWord: { word: 'אב' } };
     saveSession(state, storage);
     const restored = restoreSession(initialState, storage);
-    for (const key of ['text', 'view', 'isEditorCollapsed', 'textSize', 'filters']) assert.deepEqual(restored[key], state[key]);
+    for (const key of ['text', 'view', 'textSize', 'filters']) assert.deepEqual(restored[key], state[key]);
+    assert.equal(restored.isEditorCollapsed, undefined);
     assert.equal(restored.pinnedWord, null);
     storage.setItem(SESSION_KEY, JSON.stringify({ version: 2, text: 'אב', mode: 'aleph-zero', preferences: { view: 'invalid', textSize: 'giant', filters: { U: 'true' } } }));
     assert.equal(restoreSession(initialState, storage).view, 'clusters');

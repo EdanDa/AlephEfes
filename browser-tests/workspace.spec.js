@@ -25,25 +25,29 @@ test('large groups remain bounded while exports include every word', async ({ pa
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'נעץ מילה בראשית', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
-test('workspace preferences survive reload and an empty editor stays available', async ({ page }) => {
+test('workspace preferences survive reload and editor/modes stay available', async ({ page }) => {
+    await page.addInitScript(() => {
+        if (!localStorage.getItem('alephEfes:session')) localStorage.setItem('alephEfes:session', JSON.stringify({ version: 2, text: 'אב אב', mode: 'aleph-zero', preferences: { isEditorCollapsed: true } }));
+    });
     await open(page);
     await page.getByRole('button', { name: 'עשרות', exact: true }).click();
     await page.getByRole('button', { name: 'שכיחות', exact: true }).click();
-    await page.getByRole('button', { name: 'קפל עורך', exact: true }).click();
     await page.reload();
-    await expect(page.getByRole('button', { name: 'ערוך טקסט', exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'טקסט לניתוח', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'א=1', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'קפל עורך', exact: true })).toHaveCount(0);
+    await expect(page.locator('.workspace-context')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'שכיחות', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'עשרות', exact: true })).toHaveAttribute('aria-pressed', 'false');
-    await page.getByRole('button', { name: 'איפוס מסננים', exact: true }).click();
+    await page.getByRole('button', { name: 'עשרות', exact: true }).click();
     await expect(page.getByRole('button', { name: 'עשרות', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('button', { name: 'ערוך טקסט', exact: true }).click();
     await page.locator('textarea').fill('');
     await expect(page.locator('textarea')).toBeVisible();
 });
 test('network pause and static worker failure preserve interactive selection', async ({ page }) => {
     await page.route('**/*networkLayout.worker*', (route) => route.abort());
     await open(page);
-    await page.getByRole('button', { name: 'רשת קשרים', exact: true }).click();
+    await page.getByRole('button', { name: 'רשת', exact: true }).click();
     await expect(page.getByRole('status')).toContainText('פריסה סטטית');
     await page.getByLabel('בחירת מילה ברשת').fill('אב');
     await page.getByRole('button', { name: 'בחר', exact: true }).click();
@@ -52,9 +56,29 @@ test('network pause and static worker failure preserve interactive selection', a
 });
 test('network animation can be paused and resumed', async ({ page }) => {
     await open(page);
-    await page.getByRole('button', { name: 'רשת קשרים', exact: true }).click();
+    await page.getByRole('button', { name: 'רשת', exact: true }).click();
     await page.getByRole('button', { name: 'השהה תנועה', exact: true }).click();
     await expect(page.getByRole('status')).toContainText('מושהית');
     await page.getByRole('button', { name: 'המשך תנועה', exact: true }).click();
     await expect(page.getByRole('button', { name: 'השהה תנועה', exact: true })).toBeVisible();
+});
+
+for (const failure of ['post', 'error', 'malformed', 'obsolete']) test(`network worker ${failure} recovery`, async ({ page }) => {
+    await page.addInitScript((failure) => {
+        const NativeWorker = window.Worker;
+        window.Worker = class extends NativeWorker {
+            constructor(url, options) { super(url, options); this.network = String(url).includes('networkLayout.worker'); }
+            postMessage(message, ...rest) {
+                if (!this.network || message.type !== 'init') return super.postMessage(message, ...rest);
+                if (failure === 'post') throw new Error('post failed');
+                if (failure === 'obsolete') super.postMessage(message, ...rest);
+                setTimeout(() => this.dispatchEvent(failure === 'error' ? new ErrorEvent('error', { cancelable: true }) : new MessageEvent('message', { data: failure === 'malformed' ? null : { generation: 'obsolete', positions: new Float32Array(0) } })), 10);
+            }
+        };
+    }, failure);
+    await open(page); await page.getByRole('button', { name: 'רשת', exact: true }).click();
+    if (failure === 'obsolete') await expect(page.getByRole('status')).not.toContainText('פריסה סטטית');
+    else await expect(page.getByRole('status')).toContainText('פריסה סטטית');
+    await page.getByLabel('בחירת מילה ברשת').fill('אב'); await page.getByRole('button', { name: 'בחר', exact: true }).click();
+    await expect(page.locator('.workspace-network-selection')).toContainText('אב');
 });

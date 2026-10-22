@@ -3,8 +3,8 @@ import { Analytics } from '@vercel/analytics/react';
 import VirtualizedList from './components/VirtualizedList';
 import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
-import WorkspaceContext from './components/WorkspaceContext';
 import NetworkView from './components/NetworkView';
+import ResearchWorkspace, { InspectWord } from './components/ResearchWorkspace';
 import './workspace.css';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { withCSVMetadata } from './utils/exportMetadata';
@@ -1069,6 +1069,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     const handleMouseLeave = () => dispatch({ type: 'SET_HOVERED_WORD', payload: null });
 
     return (
+        <div className="research-word-card">
         <button
             type="button"
             disabled={isAnalysisStale}
@@ -1083,6 +1084,8 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
             <div className={`font-bold text-xl break-all ${isDarkMode ? 'text-gray-100' : 'text-slate-900'}`}>{wordData.word}</div>
             <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor} filters={filters}/>
         </button>
+        <InspectWord word={wordData.word} compact />
+        </div>
     );
 }, (prev, next) => {
     if (prev.wordData !== next.wordData) return false;
@@ -1203,7 +1206,6 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
             <div className="mb-4">
                 <input dir="rtl" type="text" placeholder="חפש מילה, מספר או צירוף כמו 20+11..." value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
             </div>
-            <details className="workspace-help"><summary>איך קוראים את הקבוצות?</summary><p>כל קבוצה מכילה צורות מילים בעלות אותו שורש דיגיטלי. הקשה על מילה נועצת אותה ומדגישה קשרים בשכבות המוצגות. החיפוש פועל על כל המילים, גם אלו שמחוץ למסך.</p></details>
             <VirtualizedGroups groups={filteredWordsInView} clusterRefs={clusterRefs} renderWord={(wordData) => (
                 <WordCard key={wordData.word} wordData={wordData} isAnalysisStale={isAnalysisStale} pinnedWord={pinnedWord} activeWord={activeWord} activeWordKey={activeWordKey} isConnectedToActive={connectedWordsSet.has(wordData.word)} isDarkMode={isDarkMode} primeColor={primeColor} connectionValues={scopedConnectionValues} dispatch={dispatch} filters={filters} />
             )} />
@@ -1226,6 +1228,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     const spatialRef = useRef({ cellSize: 24, grid: new Map() });
     const [hoverInfo, setHoverInfo] = useState(null);
     const [selectedValue, setSelectedValue] = useState(null);
+    const [wordPage, setWordPage] = useState(0);
 
     const valueInsights = useMemo(() => buildValueInsights(coreResults, filters, selectedDR), [coreResults, filters, selectedDR]);
 
@@ -1235,6 +1238,12 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     );
 
     const preparedRows = useMemo(() => valueInsights.map((item, idx) => ({ ...item, rank: idx + 1 })), [valueInsights]);
+    const selectedWords = useMemo(() => selectedValue === null ? [] : coreResults.allWords.flatMap((word) => {
+        if (selectedDR !== null && word.dr !== selectedDR) return [];
+        const layers = getWordValues(word).filter((entry) => entry.value === selectedValue && isValueVisible(entry.layer, entry.isPrime, filters)).map((entry) => entry.layer);
+        return layers.length ? [{ word: word.word, layers, occurrences: coreResults.wordCounts.get(word.word) || 0 }] : [];
+    }).sort((a, b) => b.occurrences - a.occurrences || a.word.localeCompare(b.word, 'he')), [coreResults, filters, selectedDR, selectedValue]);
+    useEffect(() => setWordPage(0), [selectedValue, filters, selectedDR]);
     const graphSummary = useMemo(() => {
         if (!valueInsights.length) {
             return { valueCount: 0, primeValues: 0, totalBridgeScore: 0, highlights: [] };
@@ -1252,7 +1261,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         if (!preparedRows.length) return 'אין נתונים להצגה.';
 
         const lines = [
-            'מפת ערכים מרוכזת – ערכי מפתח לפי גישור בין שכבות',
+            'גרף מרוכזת – ערכי מפתח לפי גישור בין שכבות',
             'דרוג | ערך | שכבות | מילים ייחודיות | מופעים בטקסט | מופעים/מילה | ציון גישור',
         ];
 
@@ -1356,6 +1365,10 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.lineTo(width - padding.right, y);
                 ctx.stroke();
                 ctx.fillText(String(yValue), 8, y + 3);
+                const xValue = Math.round((maxX / 5) * i);
+                const x = scaleX(xValue);
+                ctx.beginPath(); ctx.moveTo(x, padding.top); ctx.lineTo(x, height - padding.bottom); ctx.stroke();
+                ctx.fillText(String(xValue), x - 6, height - padding.bottom + 16);
             }
 
             ctx.save();
@@ -1375,7 +1388,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 const gridKey = `${gx}:${gy}`;
                 if (!grid.has(gridKey)) grid.set(gridKey, []);
 
-                const radius = 4 + item.layerCount * 2 + Math.min(10, Math.sqrt(item.bridgeScore));
+                const radius = 4 + item.layerCount * 2;
                 const color = item.layerCount === 3
                     ? (isDarkMode ? '#c084fc' : '#7c3aed')
                     : item.layerCount === 2
@@ -1451,17 +1464,19 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     return (
         <div className={`app-results-card app-value-map p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <div className="app-results-header flex items-center justify-between gap-4 mb-4">
-                <h2 className="app-results-title text-2xl font-bold text-center flex-1">גרף ערכים בטקסט</h2>
+                <h2 className="app-results-title text-2xl font-bold text-center flex-1">גרף · תפוצת ערכים בקטע</h2>
                 <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} getJSON={prepareInsightJSON} id='graph-insights' label='העתק' />
             </div>
             <p className={`text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
-                הגרף מציג אילו ערכים בולטים בטקסט לפי שכיחות, ייחודיות ועוצמת קשר בין שכבות.
+                כל נקודה היא ערך מספרי: ימינה — יותר מופעים; למעלה — יותר צורות מילים שונות הנושאות אותו.
             </p>
             <div className="app-value-summary grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-sm">
                 <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים מוצגים: <b>{graphSummary.valueCount}</b></div>
                 <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ערכים ראשוניים: <b>{graphSummary.primeValues}</b></div>
-                <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>ציון גישור מצטבר: <b>{graphSummary.totalBridgeScore}</b></div>
+                <div className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'bg-white border-slate-200'}`}>היקף: <b>הקטע הנוכחי והמסננים הפעילים</b></div>
             </div>
+            <details className="workspace-help"><summary>מה אפשר לבדוק בגרף?</summary><p>ערך עם מופעים רבים ומעט צורות מילים נובע מחזרות על אותן מילים. ערך עם צורות רבות משותף לכתיבים שונים. בחרו ערך כדי לבדוק אילו מילים ושכבות יוצרות את התוצאה. זהו תיאור של הקטע, ללא מסקנה על מובהקות סטטיסטית.</p><p>כחול: שכבה אחת; ירוק: שתיים; סגול: שלוש. הגודל מציין את מספר השכבות, והמסגרת מציינת ערך ראשוני. מופע של מילה נספר פעם אחת לכל ערך גם כשכמה שכבות שלה שוות.</p></details>
+            <label className="research-graph-select">בחר ערך לבדיקה <select aria-label="בחר ערך לבדיקה" value={selectedValue ?? ''} onChange={(event) => setSelectedValue(event.target.value === '' ? null : Number(event.target.value))}><option value="">בחרו ערך</option>{[...valueInsights].sort((a, b) => a.value - b.value).map((item) => <option key={item.value} value={item.value}>{item.value} · {item.totalOccurrences} מופעים · {item.uniqueWordCount} צורות</option>)}</select></label>
             <div ref={containerRef} className="app-value-canvas relative w-full h-[430px] cursor-crosshair">
                 <canvas
                     ref={canvasRef}
@@ -1479,13 +1494,13 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                         <div>שכבות: {hoverInfo.layers.join('/')}</div>
                         <div>מילים ייחודיות: {hoverInfo.uniqueWordCount}</div>
                         <div>מופעים בטקסט: {hoverInfo.totalOccurrences}</div>
-                        <div>ציון גישור: {hoverInfo.bridgeScore}</div>
+                        <div>מופעים לצורת מילה: {hoverInfo.avgOccurrences.toFixed(2)}</div>
                     </div>
                 )}
             </div>
 
             <div className="mt-3 text-sm text-center text-gray-500 dark:text-gray-300">
-                ציר X: סך מופעים בטקסט | ציר Y: כמות מילים ייחודיות לערך | גודל נקודה: עוצמת גישור בין שכבות (H/T/U)
+                ציר X: מופעים בטקסט · ציר Y: צורות מילים שונות · גודל וצבע: מספר שכבות U/T/H
             </div>
             {graphSummary.highlights.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2 justify-center">
@@ -1512,7 +1527,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                         <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">שכבות: <b>{selectedInsight.layers.join('/')}</b></div>
                         <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">מילים ייחודיות: <b>{selectedInsight.uniqueWordCount}</b></div>
                         <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">מופעים: <b>{selectedInsight.totalOccurrences}</b></div>
-                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">ציון גישור: <b>{selectedInsight.bridgeScore}</b></div>
+                        <div className="p-2 rounded bg-slate-200 dark:bg-gray-800">ממוצע מופעים לצורה: <b>{selectedInsight.avgOccurrences.toFixed(2)}</b></div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -1524,7 +1539,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                                 </tr>
                             </thead>
                             <tbody>
-                                {selectedInsight.topWords.map((entry, idx) => (
+                                {selectedWords.slice(wordPage * 50, (wordPage + 1) * 50).map((entry, idx) => (
                                     <tr
                                         key={`${entry.word}-${idx}`}
                                         className="border-b border-gray-200 dark:border-gray-800 hover:bg-slate-100 dark:hover:bg-gray-800/60 cursor-pointer"
@@ -1533,7 +1548,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                                             if (wordData) onWordClick(wordData);
                                         }}
                                     >
-                                        <td className="py-1 font-semibold text-blue-700 dark:text-blue-300">{entry.word}</td>
+                                        <td className="py-1 font-semibold text-blue-700 dark:text-blue-300"><button onClick={(event) => { event.stopPropagation(); const data = coreResults.wordDataMap.get(entry.word); if (data) onWordClick(data); }} aria-label={`הדגש קשרי ${entry.word}`}>{entry.word}</button><InspectWord word={entry.word} /></td>
                                         <td className="py-1">{entry.layers.join('/')}</td>
                                         <td className="py-1 font-mono">{entry.occurrences}</td>
                                     </tr>
@@ -1541,6 +1556,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                             </tbody>
                         </table>
                     </div>
+                    <div className="research-actions"><span>{selectedWords.length} צורות מילים · הרשימה כוללת את כל ההתאמות לסינון</span>{selectedWords.length > 50 && <><button disabled={wordPage === 0} onClick={() => setWordPage(wordPage - 1)}>עמוד קודם</button><span>{wordPage + 1} מתוך {Math.ceil(selectedWords.length / 50)}</span><button disabled={(wordPage + 1) * 50 >= selectedWords.length} onClick={() => setWordPage(wordPage + 1)}>עמוד הבא</button></>}</div>
                 </div>
             )}
         </div>
@@ -1958,7 +1974,7 @@ const App = () => {
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
         expandedRows, primeColor,
         stats, connectionValues, valueToWordsMap, filters,
-        hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis, isEditorCollapsed
+        hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
     } = state;
     const [isTanakhOpen, setIsTanakhOpen] = useState(false);
 
@@ -2085,6 +2101,8 @@ const App = () => {
         if (view !== 'lines') return [];
         return coreResults.lines.map((line) => line.words.filter(isVisibleWord));
     }, [coreResults, isVisibleWord, view]);
+    const visibleWordPositionsByLine = useMemo(() => view === 'lines' && coreResults
+        ? coreResults.lines.map((line) => line.words.flatMap((word, index) => isVisibleWord(word) ? [index + 1] : [])) : [], [coreResults, isVisibleWord, view]);
 
     const visibleValueToWordsMap = useMemo(() => {
         if (!valueToWordsMap) return new Map();
@@ -2554,8 +2572,6 @@ const App = () => {
                     )}
 
                     <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
-                        <div className="workspace-editor-heading"><strong>טקסט לניתוח</strong><button type="button" aria-expanded={!hasInput || !isEditorCollapsed} onClick={() => dispatch({ type: 'TOGGLE_EDITOR' })}>{hasInput && isEditorCollapsed ? 'ערוך טקסט' : 'קפל עורך'}</button></div>
-                        <div hidden={hasInput && isEditorCollapsed}>
                         <div className="app-input-toolbar grid grid-cols-[1fr_auto_1fr] items-center mb-2 gap-4">
                             <div className={`app-mode-toggle flex items-center p-1 rounded-full justify-self-start w-fit ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                 <button aria-pressed={mode === 'aleph-zero'} onClick={() => handleModeChange('aleph-zero')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors noselect ${mode === 'aleph-zero' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}>א=0</button>
@@ -2595,7 +2611,6 @@ const App = () => {
                         <div className="mt-4 flex flex-wrap justify-center items-center gap-2 min-h-5 text-center">
                             {isPending && <span role="status" className="text-sm text-gray-600 dark:text-gray-300 noselect">מחשב... התוצאות הקודמות אינן זמינות לייצוא עד לסיום.</span>}
                         </div>
-                        </div>
                     </div>
 
                     {analysisError && !isPending && (
@@ -2604,7 +2619,6 @@ const App = () => {
                             <button type="button" onClick={retryAnalysis} className="mt-2 rounded-lg border px-4 py-2 font-semibold">נסה שוב</button>
                         </div>
                     )}
-                    {hasInput && <WorkspaceContext />}
                     <StatsPanel />
 
                     {hasInput && (
@@ -2613,8 +2627,8 @@ const App = () => {
                                 <button aria-label="שכיחות" aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">שכיחות</span></button>
                                 <button aria-label="פירוט" aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">פירוט</span></button>
                                 <button aria-label="קבוצות" aria-pressed={view === 'clusters'} onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="network" className="w-4 h-4" /><span className="app-view-tab-label">קבוצות</span></button>
-                                <button aria-label="מפת ערכים" aria-pressed={view === 'graph'} onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">מפת ערכים</span></button>
-                                <button aria-label="רשת קשרים" aria-pressed={view === 'network'} onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת קשרים</span></button>
+                                <button aria-label="גרף" aria-pressed={view === 'graph'} onClick={() => handleViewChange('graph')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'graph' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="activity" className="w-4 h-4" /><span className="app-view-tab-label">גרף</span></button>
+                                <button aria-label="רשת" aria-pressed={view === 'network'} onClick={() => handleViewChange('network')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'network' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="share-2" className="w-4 h-4" /><span className="app-view-tab-label">רשת</span></button>
                                 {showScrollTop && <button type="button" className="app-mobile-scroll-top rounded-full" aria-label="גלול לראש העמוד" onClick={scrollToTop}><Icon name="arrow-up" className="w-5 h-5" /></button>}
                             </div>
                         </div>
@@ -2776,7 +2790,7 @@ const App = () => {
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
                                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
-                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
+                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}<InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} /></td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
@@ -2817,7 +2831,7 @@ const App = () => {
                                             </thead>
                                             <tbody>{visibleAllWords.map((res, index) => (
                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
-                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}</td>
+                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}<InspectWord word={res.word} /></td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
@@ -2933,10 +2947,11 @@ const App = () => {
                                         <div className="w-3/4">מילה</div>
                                         <button type="button" className="w-1/4 text-center cursor-pointer" aria-label="מיין לפי כמות מופעים" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>כמות {hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
                                     </div>
-                                    <VirtualizedList items={sortedHotViewList} itemHeight={40} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
-                                        <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 40 }}>
+                                    <VirtualizedList items={sortedHotViewList} itemHeight={60} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
+                                        <div className="flex items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 60 }}>
                                             <div className="w-3/4 p-2 font-bold text-lg text-blue-700 dark:text-blue-300">{word}</div>
                                             <div className="w-1/4 p-2 text-center font-mono text-gray-900 dark:text-gray-100">{count}</div>
+                                            <InspectWord word={word} />
                                         </div>
                                     )} />
                                 </div>
@@ -2988,7 +3003,7 @@ const App = () => {
 function WrappedApp() {
 	return (
 		<AppProvider>
-			<App />
+			<ResearchWorkspace><App /></ResearchWorkspace>
 		</AppProvider>
 	);
 }

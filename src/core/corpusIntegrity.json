@@ -1,0 +1,32 @@
+{
+  "contentHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
+  "files": {
+    "manifest.json": "ea76fff6743133d0c318bed5d6946ccf40fddb354baf1e837e5497c6c0415e11",
+    "provenance.json": "c3d4fd47c56bbd338b2b39038e756401779f2d6ffca06c608766ec6cc5849c6b",
+    "aleph-efes-tanakh-word-occurrences.json": "86592dd74735e18ee855df63a3a2600a8cb97bff781ceb7bc2ed4375c5698e71",
+    "books/genesis.json": "5c9bcba830cef735478f8f0ed58a8431c9079f167495a9582234a1554ec45acf",
+    "books/exodus.json": "40d58caa426a0c74d62f24bf1cc2ce3400e26186a454edab5d5f5066ed2876b3",
+    "books/leviticus.json": "b4126781283e4b1ec1b08e032d36cdb6a3e6003e98f911d3fc322f2c90c5a70f",
+    "books/numbers.json": "abb0f71546938dd89a853a6c60d8d89b0240db2bc6af99e1bc4e84ada2cad551",
+    "books/deuteronomy.json": "eb4ef2fd1b5ad08e9f7d3a29d70f7cf8296981ca50786497506041a6ce7abfab",
+    "books/joshua.json": "629178ea872db4bb9025b8b97efa3764eb478d74895d021ab5deca56ed7cb1c7",
+    "books/judges.json": "17a2a7e2d408e2b534f67fdf1d1a49b7df436d9d864b871d0d29bf323dc81dc7",
+    "books/samuel.json": "0cb3c3067121106ea99dcc059e9f199f11b8160d784c5e6d2ec2f45b2b8b309f",
+    "books/kings.json": "58bfd237b6479c1747acaada463f500bcdbf4190633cd57eed4b988dfedf279d",
+    "books/isaiah.json": "747d2271bbb971ec36cf45b7f156f35641fbea27511d1f0876269a4a1a46b932",
+    "books/jeremiah.json": "b3569fc4426e34b978abbe05f8d0822d196d0cc413046ed83759bf5a7e27c27c",
+    "books/ezekiel.json": "8c9aef7c72bd5bd64f0f7a2be9de6c9d55b700374b25f68252a4fa4923eb23cf",
+    "books/twelve.json": "51a438ebb92bc615d9fbf2f71b17bd45d001beb0d33d1dd41eb233653111bb2b",
+    "books/psalms.json": "341fa19674e6b7c2fff28029e812b1efbc8c31f9b0570d5c6ab24f52302711ec",
+    "books/proverbs.json": "6ffb302ec76b96bec99c79bf6b3502251dcaf05d980b51d2f1733dbbf55cbeb7",
+    "books/job.json": "354c1587712c8229e52eca5517933b97e5606d6c17d555bc34f2ab84ff428421",
+    "books/song-of-songs.json": "2d5ed56ae9a29109285006bff93fef67deb85e41f25515f9656109f25908763c",
+    "books/ruth.json": "25fa8ef6445d3c0caedcae510f1f778193e61b12ed31178fde352754ae582d5f",
+    "books/lamentations.json": "8e9ccc6a425bbbda6b0ac43b5e72f2caa98d5e15a517cd4464ce705eb2b52334",
+    "books/ecclesiastes.json": "5bffd6e74cffc0796876e53375e9549cb92c464035176b1b9be30e3cd3ca0335",
+    "books/esther.json": "7f0ce470c58a071b8315f04c6289bbe6c0eb797d55c8536d4b6e5ee0ca723e7f",
+    "books/daniel.json": "f5f5cfe9ee63cfc084ddcf7fa46961a58094ec8e5b801a2914765641940cc860",
+    "books/ezra-nehemiah.json": "a6a678a7ee02e6a36cae4409bd2fccba5b06ff7c86b252070ec6c6113282a2eb",
+    "books/chronicles.json": "148b19cb613ade5e0e8c5805e74aca071e2d36ade3c993c8efc007a0c77cbb5c"
+  }
+}

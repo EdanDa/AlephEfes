@@ -24,7 +24,7 @@ try {
         await page.getByRole('heading', { name: 'קבוצות לפי שורש דיגיטלי', exact: true }).evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY, behavior: 'instant' }));
         await page.waitForTimeout(250);
         const elements = await page.locator('*').count();
-        await page.getByRole('button', { name: 'רשת קשרים', exact: true }).click();
+        await page.getByRole('button', { name: 'רשת', exact: true }).click();
         await page.locator('.app-network-canvas').evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY, behavior: 'instant' }));
         await page.evaluate(() => { window.benchmarkTasks = []; window.benchmarkStart = performance.now(); });
         await page.waitForTimeout(5000);

@@ -50,7 +50,6 @@ function restorePreferences(record) {
     const result = {};
     if (['clusters', 'lines', 'hot-words', 'graph', 'network'].includes(p.view)) result.view = p.view;
     if (['sm', 'md', 'lg'].includes(p.textSize)) result.textSize = p.textSize;
-    if (typeof p.isEditorCollapsed === 'boolean') result.isEditorCollapsed = p.isEditorCollapsed;
     if (p.filters && ['U', 'T', 'H', 'Prime'].every((key) => typeof p.filters[key] === 'boolean')) result.filters = Object.fromEntries(['U', 'T', 'H', 'Prime'].map((key) => [key, p.filters[key]]));
     return result;
 }
