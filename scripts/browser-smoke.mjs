@@ -25,6 +25,8 @@ try {
         await page.locator('.workspace-export-menu summary button').click();
         await page.getByRole('button', { name: 'הערת מחקר', exact: true }).click();
         await expect(page.getByRole('dialog').locator('.research-note-preview')).toContainText('אב אב ה');
+        await expect(page.getByRole('dialog').getByRole('heading', { name: 'הערת מחקר — שורה 1', exact: true })).toBeVisible();
+        await expect(page.getByRole('dialog').getByRole('table')).toBeVisible();
         const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'הורד .md', exact: true }).click(); await pending;
     }
     expect(errors).toEqual([]);

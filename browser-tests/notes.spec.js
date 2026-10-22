@@ -19,10 +19,12 @@ for (const mode of ['aleph-zero', 'aleph-one']) test(`note preview, clipboard an
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await open(page, { mode }); await page.getByRole('button', { name: 'נעץ מילה אב', exact: true }).click();
     const dialog = await menuNote(page), preview = dialog.locator('.research-note-preview');
-    await expect(preview).toBeVisible(); const text = await preview.textContent();
+    await expect(preview.getByRole('heading', { name: 'הערת מחקר — שורה 1', exact: true })).toBeVisible();
+    const text = await downloaded(page, dialog.getByRole('button', { name: 'הורד .md', exact: true }));
     expect(text).toContain('2 מופעים, 1 צורות מילים שונות'); expect(text).toContain('אב אב ה');
     expect(text).toContain(mode === 'aleph-zero' ? 'א=0' : 'א=1');
-    expect(await downloaded(page, dialog.getByRole('button', { name: 'הורד .md', exact: true }))).toBe(text);
+    await expect(preview.getByRole('cell', { name: 'אב', exact: true })).toHaveCount(2);
+    await expect(preview).not.toContainText('|---');
     await dialog.getByRole('button', { name: 'העתק', exact: true }).click();
     // Windows clipboard text uses CRLF even when writeText receives LF.
     await expect.poll(() => page.evaluate(async () => (await navigator.clipboard.readText()).replace(/\r\n/g, '\n'))).toBe(text);
@@ -55,7 +57,7 @@ test('a corpus inspector note contains the complete unit list and an explicitly 
     await inspector.getByRole('button', { name: 'הערת מחקר', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'הערת מחקר', exact: true });
     await expect(dialog.getByLabel('יחידה להערת המחקר')).toHaveValue('genesis-0001');
-    const text = await dialog.locator('.research-note-preview').textContent();
+    const text = await downloaded(page, dialog.getByRole('button', { name: 'הורד .md', exact: true }));
     expect(text).toContain('זו אינה רשימת כל המופעים במקרא'); expect(text).toContain('הרשימה מלאה עבור היחידה שנבחרה: 6 מופעים');
     expect(text.split('\n').filter((line) => line.startsWith('| אלהים |'))).toHaveLength(6);
     await page.keyboard.press('Escape'); await expect(inspector.getByRole('button', { name: 'הערת מחקר', exact: true })).toBeFocused();
@@ -75,7 +77,7 @@ test('clipboard rejection falls back inside the note dialog and leaves download 
         document.execCommand = () => { window.fallbackNote = document.activeElement.value; return window.canCopyNote !== false; };
     });
     await open(page); const dialog = await menuNote(page); await expect(dialog.locator('.research-note-preview')).toBeVisible();
-    const text = await dialog.locator('.research-note-preview').textContent();
+    const text = await downloaded(page, dialog.getByRole('button', { name: 'הורד .md', exact: true }));
     await dialog.getByRole('button', { name: 'העתק', exact: true }).click();
     await expect(dialog.getByRole('status')).toHaveText('ההערה הועתקה'); expect(await page.evaluate(() => window.fallbackNote)).toBe(text);
     await page.evaluate(() => window.canCopyNote = false); await dialog.getByRole('button', { name: 'העתק', exact: true }).click();

@@ -388,6 +388,8 @@ const GlobalStyles = () => (
             .app-view-tab-label {
                 line-height: 1.2;
                 white-space: normal;
+                max-width: 100%;
+                overflow-wrap: anywhere;
             }
             .app-results-title {
                 font-size: clamp(1.35rem, 6vw, 1.75rem);
@@ -1058,8 +1060,6 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
         opacity: (isSelf || isConnectedToActive) ? 1 : 0.75,
         border: `2px solid ${borderColor}`,
         cursor: 'pointer',
-        contentVisibility: 'auto',
-        containIntrinsicSize: '84px',
     };
 
     const handleClick = (e) => {
@@ -1083,7 +1083,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
             onMouseLeave={handleMouseLeave}
             onClick={handleClick}
         >
-            <div className={`font-bold text-xl break-all ${isDarkMode ? 'text-gray-100' : 'text-slate-900'}`}>{wordData.word}</div>
+            <div className={`research-word-title font-bold text-xl ${isDarkMode ? 'text-gray-100' : 'text-slate-900'}`}>{wordData.word}</div>
             <WordValuesDisplay wordData={wordData} isDarkMode={isDarkMode} matches={matches} connectionValues={connectionValues} hoveredWord={activeWord} primeColor={primeColor} filters={filters}/>
         </button>
         <InspectWord word={wordData.word} compact />
@@ -2782,7 +2782,7 @@ const App = () => {
                                                 </button>
                                                 {isExpanded && (
                                                     <div className="overflow-x-auto mt-4">
-                                                        <table className="min-w-full border-separate" style={{borderSpacing: "0 0.5rem"}}>
+                                                        <table className="research-detail-table min-w-full">
                                                             <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                                                 <tr>
                                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider rounded-r-lg">מילה</th>
@@ -2794,8 +2794,8 @@ const App = () => {
                                                                 </tr>
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
-                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
-                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}<InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} /></td>
+                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
+                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word"><span>{res.word}</span><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
@@ -2823,7 +2823,7 @@ const App = () => {
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <table className="app-word-table min-w-full border-separate" style={{borderSpacing: "0 0.5rem"}}>
+                                        <table className="app-word-table research-detail-table min-w-full">
                                             <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                                 <tr>
                                                     <th className="px-4 py-3 text-right font-semibold uppercase tracking-wider rounded-r-lg">מילה</th>
@@ -2835,8 +2835,8 @@ const App = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>{visibleAllWords.map((res, index) => (
-                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`} style={{ contentVisibility: 'auto', containIntrinsicSize: '56px' }}>
-                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right">{res.word}<InspectWord word={res.word} /></td>
+                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
+                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word"><span>{res.word}</span><InspectWord word={res.word} compact /></span></td>
                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}

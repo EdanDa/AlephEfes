@@ -11,12 +11,12 @@ export function UnitPassage({ unit, position, word, showWords, showLetters, show
     useEffect(() => { if (previous.current) selected.current?.scrollIntoView({ block: 'nearest' }); previous.current = { id: unit.id, position }; }, [unit.id, position]);
     return <div className="research-passage" aria-label="טקסט היחידה ומיקומים">
         {unit.tokens.map((token) => <React.Fragment key={token.position}>
-            <span ref={token.position === position ? selected : undefined} className={`research-token ${token.word === word ? 'research-match' : ''} ${token.position === position ? 'research-current' : ''} ${showCenters && unit.wordCenter.length === 1 && unit.wordCenter[0] === token.position ? 'research-center' : ''}`}>
-                {showWords && <small className="research-word-number">{token.position}</small>}
-                {showLetters || showCenters ? [...token.word].map((letter, index) => {
+            <span ref={token.position === position ? selected : undefined} data-word-position={token.position} className={`research-token ${token.word === word ? 'research-match' : ''} ${token.position === position ? 'research-current' : ''} ${showCenters && unit.wordCenter.length === 1 && unit.wordCenter[0] === token.position ? 'research-center' : ''}`}>
+                {showWords && <small className="research-word-number" dir="ltr">{token.position}</small>}
+                {showLetters || showCenters ? <span className="research-letters">{[...token.word].map((letter, index) => {
                     const number = token.letterStart + index;
-                    return <React.Fragment key={number}><span className={`research-letter ${showCenters && unit.letterCenter.includes(number) ? 'research-center' : ''}`}>{showLetters && <small>{number}</small>}{letter}</span>{showCenters && unit.letterCenter.length === 2 && number === unit.letterCenter[0] && <span className="research-center-divider" aria-label="מרכז בין אותיות">│</span>}</React.Fragment>;
-                }) : token.word}
+                    return <React.Fragment key={number}><span data-letter-position={number} className={`research-letter ${showCenters && unit.letterCenter.includes(number) ? 'research-center' : ''}`}>{showLetters && <small dir="ltr">{number}</small>}{letter}</span>{showCenters && unit.letterCenter.length === 2 && number === unit.letterCenter[0] && <span className="research-center-divider" aria-label="מרכז בין אותיות">│</span>}</React.Fragment>;
+                })}</span> : token.word}
             </span>{showCenters && unit.wordCenter.length === 2 && token.position === unit.wordCenter[0] && <span className="research-center-divider" aria-label="מרכז בין מילים">│</span>}{' '}
         </React.Fragment>)}
     </div>;

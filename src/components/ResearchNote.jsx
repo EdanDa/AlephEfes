@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ResearchDialog from './ResearchDialog';
+import ResearchNotePreview from './ResearchNotePreview';
 import { loadPassageUnits } from '../core/corpusResearch.js';
 import { buildResearchNote } from '../core/researchNote.js';
 
@@ -49,6 +50,6 @@ export default function ResearchNote({ request, state, onClose }) {
         {units && !unit && <p role="status">יש לבחור פרשיה או שורה לפני יצירת ההערה.</p>}
         <div className="research-actions"><button disabled={!content} onClick={async () => { try { await copyNote(content); setStatus('ההערה הועתקה'); } catch (failure) { setStatus(failure.message); } }}>העתק</button><button disabled={!content} onClick={download}>הורד .md</button></div>
         {status && <p role="status">{status}</p>}
-        {content && <pre className="research-note-preview" dir="rtl" tabIndex={0} aria-label="תצוגה מקדימה של הערת המחקר">{content}</pre>}
+        {content && <ResearchNotePreview content={content} />}
     </ResearchDialog>;
 }
