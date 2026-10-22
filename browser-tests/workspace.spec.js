@@ -82,3 +82,25 @@ for (const failure of ['post', 'error', 'malformed', 'obsolete']) test(`network 
     await page.getByLabel('בחירת מילה ברשת').fill('אב'); await page.getByRole('button', { name: 'בחר', exact: true }).click();
     await expect(page.locator('.workspace-network-selection')).toContainText('אב');
 });
+
+for (const theme of ['light', 'dark']) test(`desktop views, export menus and enlarged type: ${theme}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 1000 }); await page.emulateMedia({ colorScheme: theme });
+    await page.addInitScript((theme) => localStorage.setItem('alephThemeMode', theme), theme);
+    await open(page, genesis.sections.slice(0, 3).map((section) => section.calculationText).join('\n'));
+    await page.evaluate(() => document.documentElement.style.fontSize = '20px');
+    for (const [key, name] of [['clusters', 'קבוצות'], ['lines', 'פירוט'], ['frequency', 'שכיחות'], ['graph', 'גרף'], ['network', 'רשת']]) {
+        await page.getByRole('button', { name, exact: true }).click();
+        const heading = key === 'network' ? page.getByRole('heading', { name: 'רשת', exact: true }) : page.locator('.app-results-header').last();
+        await heading.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY - 90, behavior: 'instant' }));
+        await page.screenshot({ path: testInfo.outputPath(`${key}.png`) });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        if (['graph', 'network'].includes(key)) {
+            const host = page.locator(key === 'graph' ? '.app-value-canvas' : '.app-network-canvas');
+            const outer = await host.boundingBox(), inner = await host.locator('canvas').boundingBox();
+            expect(Math.abs(outer.height - inner.height)).toBeLessThanOrEqual(2);
+        }
+        const menu = page.locator('.workspace-export-menu').first(); await menu.locator('summary button').click();
+        const box = await menu.locator('.workspace-export-options').boundingBox(); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(1441);
+        await page.screenshot({ path: testInfo.outputPath(`${key}-export.png`) }); await page.keyboard.press('Escape');
+    }
+});

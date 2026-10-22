@@ -51,7 +51,7 @@ AlephEfes provides five main analysis workspaces:
   Frequency analysis by values or exact word forms, with sortable tables and value → word drill-down.
 
 * **Graph (גרף)**
-  Quantitative visualization of value frequency, unique-word coverage, and cross-layer bridges.
+  Compares occurrence counts with distinct word-form counts for each value, with explicit layer coverage and complete word drilldowns.
 
 * **Network (רשת)**
   Interactive force-directed graph connecting words to their visible U/T/H values.
@@ -98,6 +98,8 @@ The groups view mounts only nearby rows, while searches and exports use every an
 For repeatable production-build profiling, start Vite preview on port 4188, set `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome` if using installed Chrome, and run `node scripts/browser-benchmark.mjs`. It records five Genesis runs and their medians under `.cache/verification/`. Run it without other browser suites competing for CPU; `BENCHMARK_URL` can select a different preview URL.
 
 The **בדוק מילה** action opens a word inspector from groups, details, frequency results, and graph selections. Counts use exact normalized spelling across the complete current passage, independently of display filters. Final-letter spellings stay distinct. Optional positions start at one; letter positions count only canonical calculation letters. An even-length unit has its center between two elements. Manually entered text has original line-relative positions and no inferred MAM attribution.
+
+**הערת מחקר** is available in each result panel's export menu and inside the word inspector. Preview, Copy, and Download `.md` use a single Markdown generator. A note covers one MAM unit or one selected manual-input line. Book/range analyses require an explicit unit choice when none has been inspected. Notes include exact calculation text, mode and display filters, occurrence/form counts, one-based positions, selected word/value, verified source identifiers and hashes, and corpus attribution. Word lists are complete inside the chosen unit; a corpus-wide search includes its total and selected occurrence and explicitly labels the unit as an excerpt. Existing quick Copy, CSV, JSON, corpus files, and their schemas are unchanged.
 
 Corpus search is explicit and lazily fetches the existing occurrence index. Results are grouped by book and MAM section; inspecting a result does not replace the main analysis. Loading its section requires the separate **טען פרשיה זו לניתוח הראשי** action. Book text, provenance, manifest, and occurrence index are checked against build-pinned SHA-256 hashes before use; failed loads have retry controls. `npm run corpus:generate` regenerates the research integrity file, and `npm run corpus:check` verifies it. Existing corpus downloads retain their formats and numerical definitions.
 

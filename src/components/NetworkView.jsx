@@ -1,9 +1,11 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { buildWordConnectionIndex } from '../core/networkLayout.js';
 import { LAYER_COLORS, PRIME_COLOR_HEX } from '../core/analysisCore.js';
-import { InspectWord } from './ResearchWorkspace';
+import { InspectWord, useResearch } from './ResearchWorkspace';
+import ExportMenu from './ExportMenu';
 
 export default memo(function NetworkView({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) {
+    const { openNote } = useResearch();
     const canvasRef = useRef(null), hostRef = useRef(null), control = useRef(null);
     const [paused, setPaused] = useState(false);
     const [status, setStatus] = useState('running');
@@ -121,6 +123,7 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
     }, [graph, isDarkMode, primeColor]);
     return <section className={`app-results-card app-network-card p-4 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50 border-slate-300'}`}>
         <h2 className="app-results-title text-center font-bold mb-4">רשת</h2>
+        <ExportMenu><button onClick={() => openNote(selected?.type === 'word' ? { word: selected.id } : { value: selected?.value ?? null })}>הערת מחקר</button></ExportMenu>
         <div className="app-canvas-toolbar flex flex-wrap justify-center gap-2 mb-3">
             <button aria-label="הגדל את רשת הקשרים" onClick={() => control.current?.('in')}>+</button><button aria-label="הקטן את רשת הקשרים" onClick={() => control.current?.('out')}>−</button>
             <button onClick={() => control.current?.('reset')}>איפוס תצוגה</button>

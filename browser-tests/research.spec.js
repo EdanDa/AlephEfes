@@ -93,6 +93,17 @@ test('graph exposes all value matches and distinguishes occurrences from forms',
     await expect(page.locator('.app-value-map')).not.toContainText('ציון גישור');
     await page.getByRole('button', { name: 'עשרות', exact: true }).click(); await page.getByRole('button', { name: 'מאות', exact: true }).click();
     await expect(page.locator('.app-value-map')).toContainText('מופעים: 3');
+    await page.getByRole('button', { name: 'יחידות', exact: true }).click();
+    await expect(page.locator('.app-value-map').getByRole('status')).toContainText('אין ערכים');
+    await expect.poll(() => page.locator('.app-value-canvas canvas').evaluate((canvas) => canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.every((value) => value === 0))).toBe(true);
+});
+test('even word and letter centers remain visible without enabling numbering', async ({ page }) => {
+    await open(page, { text: 'אב גד' }); const dialog = await inspect(page, 'אב');
+    await dialog.getByLabel('סמני מרכז', { exact: true }).check();
+    await expect(dialog.locator('[aria-label="מרכז בין אותיות"]')).toHaveCount(1);
+    await expect(dialog.locator('[aria-label="מרכז בין מילים"]')).toHaveCount(1);
+    await expect(dialog).toContainText('מרכז המילים: בין 1 ל־2');
+    await expect(dialog).toContainText('מרכז האותיות: בין 2 ל־3');
 });
 
 for (const theme of ['light', 'dark']) for (const size of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 1000 }]) {

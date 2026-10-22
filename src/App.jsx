@@ -4,7 +4,7 @@ import VirtualizedList from './components/VirtualizedList';
 import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
 import NetworkView from './components/NetworkView';
-import ResearchWorkspace, { InspectWord } from './components/ResearchWorkspace';
+import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { withCSVMetadata } from './utils/exportMetadata';
@@ -837,7 +837,8 @@ const WordValuesDisplay = memo(({ wordData, isDarkMode, matches, connectionValue
     );
 });
 
-const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => {
+const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק", researchSelection }) => {
+    const { openNote } = useResearch();
     const { copiedId } = useAppClipboard();
     const { mode, filters, corpusSelection, isAnalysisStale } = useAppState();
     const metadata = { mode, filters, corpusSelection };
@@ -925,6 +926,7 @@ const ExportToolbar = ({ getText, getCSV, getJSON, id, label = "העתק" }) => 
 
     return (
         <ExportMenu disabled={isAnalysisStale}>
+            <button disabled={isAnalysisStale} onClick={() => openNote(researchSelection)}>הערת מחקר</button>
             <button 
                 onClick={handleCopy} 
                 disabled={isCopying || isAnalysisStale}
@@ -1324,7 +1326,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
     useEffect(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
-        if (!canvas || !container || valueInsights.length === 0) return;
+        if (!canvas || !container) return;
 
         const ctx = canvas.getContext('2d');
         const padding = { top: 20, right: 24, bottom: 40, left: 52 };
@@ -1343,6 +1345,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             ctx.scale(dpr, dpr);
 
             ctx.clearRect(0, 0, width, height);
+            if (!valueInsights.length) { spatialRef.current = { cellSize, grid: new Map() }; return; }
 
             const graphWidth = width - padding.left - padding.right;
             const graphHeight = height - padding.top - padding.bottom;
@@ -1421,8 +1424,9 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         };
 
         render();
+        const observer = new ResizeObserver(render); observer.observe(container);
         window.addEventListener('resize', render);
-        return () => window.removeEventListener('resize', render);
+        return () => { observer.disconnect(); window.removeEventListener('resize', render); };
     }, [isDarkMode, primeColor, selectedValue, valueInsights]);
 
     const handleInteraction = useCallback((e) => {
@@ -1465,7 +1469,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
         <div className={`app-results-card app-value-map p-4 rounded-xl border noselect ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
             <div className="app-results-header flex items-center justify-between gap-4 mb-4">
                 <h2 className="app-results-title text-2xl font-bold text-center flex-1">גרף · תפוצת ערכים בקטע</h2>
-                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} getJSON={prepareInsightJSON} id='graph-insights' label='העתק' />
+                <ExportToolbar getText={prepareInsightText} getCSV={prepareInsightCSV} getJSON={prepareInsightJSON} id='graph-insights' label='העתק' researchSelection={{ value: selectedValue }} />
             </div>
             <p className={`text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
                 כל נקודה היא ערך מספרי: ימינה — יותר מופעים; למעלה — יותר צורות מילים שונות הנושאות אותו.
@@ -1477,6 +1481,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
             </div>
             <details className="workspace-help"><summary>מה אפשר לבדוק בגרף?</summary><p>ערך עם מופעים רבים ומעט צורות מילים נובע מחזרות על אותן מילים. ערך עם צורות רבות משותף לכתיבים שונים. בחרו ערך כדי לבדוק אילו מילים ושכבות יוצרות את התוצאה. זהו תיאור של הקטע, ללא מסקנה על מובהקות סטטיסטית.</p><p>כחול: שכבה אחת; ירוק: שתיים; סגול: שלוש. הגודל מציין את מספר השכבות, והמסגרת מציינת ערך ראשוני. מופע של מילה נספר פעם אחת לכל ערך גם כשכמה שכבות שלה שוות.</p></details>
             <label className="research-graph-select">בחר ערך לבדיקה <select aria-label="בחר ערך לבדיקה" value={selectedValue ?? ''} onChange={(event) => setSelectedValue(event.target.value === '' ? null : Number(event.target.value))}><option value="">בחרו ערך</option>{[...valueInsights].sort((a, b) => a.value - b.value).map((item) => <option key={item.value} value={item.value}>{item.value} · {item.totalOccurrences} מופעים · {item.uniqueWordCount} צורות</option>)}</select></label>
+            {!valueInsights.length && <p role="status">אין ערכים להצגה במסננים הנוכחיים.</p>}
             <div ref={containerRef} className="app-value-canvas relative w-full h-[430px] cursor-crosshair">
                 <canvas
                     ref={canvasRef}

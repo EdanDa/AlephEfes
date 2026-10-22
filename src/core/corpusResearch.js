@@ -28,13 +28,13 @@ export async function loadResearchBook(slug) {
     const book = manifest.divisions.flatMap((division) => division.books).find((entry) => entry.slug === slug);
     if (!book) throw new Error('ספר לא מוכר');
     const [data, provenance] = await Promise.all([load(book.file), load('provenance.json')]);
-    return { book, data, corpus: { corpusId: manifest.corpusId, contentHash: manifest.contentHash, schemaVersion: manifest.schemaVersion, converterVersion: provenance.converterVersion, sourceRevision: provenance.source.revision } };
+    return { book, data, corpus: { corpusId: manifest.corpusId, contentHash: manifest.contentHash, schemaVersion: manifest.schemaVersion, converterVersion: provenance.converterVersion, sourceRevision: provenance.source.revision, license: provenance.license } };
 }
 export function sectionResearchUnit(loaded, ordinal, mode) {
     const section = loaded.data.sections[ordinal - 1];
     if (!section || section.ordinal !== ordinal) throw new Error('פרשיה לא מוכרת');
     return makeResearchUnit(section.calculationText, mode, { id: section.id, label: `${loaded.book.name} · פרשיה ${ordinal}`,
-        source: { ...section, bookSlug: loaded.book.slug, bookName: loaded.book.name, boundaryBefore: loaded.data.sections[ordinal - 2]?.boundaryAfter || null, corpus: loaded.corpus } });
+        source: { ...section, sourceFile: loaded.data.sourceFile, bookSlug: loaded.book.slug, bookName: loaded.book.name, boundaryBefore: loaded.data.sections[ordinal - 2]?.boundaryAfter || null, corpus: loaded.corpus } });
 }
 export async function loadPassageUnits(text, mode, selection) {
     if (!selection) return manualResearchUnits(text, mode);

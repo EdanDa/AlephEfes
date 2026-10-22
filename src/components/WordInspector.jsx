@@ -13,9 +13,9 @@ export function UnitPassage({ unit, position, word, showWords, showLetters, show
         {unit.tokens.map((token) => <React.Fragment key={token.position}>
             <span ref={token.position === position ? selected : undefined} className={`research-token ${token.word === word ? 'research-match' : ''} ${token.position === position ? 'research-current' : ''} ${showCenters && unit.wordCenter.length === 1 && unit.wordCenter[0] === token.position ? 'research-center' : ''}`}>
                 {showWords && <small className="research-word-number">{token.position}</small>}
-                {showLetters ? [...token.word].map((letter, index) => {
+                {showLetters || showCenters ? [...token.word].map((letter, index) => {
                     const number = token.letterStart + index;
-                    return <React.Fragment key={number}><span className={`research-letter ${showCenters && unit.letterCenter.includes(number) ? 'research-center' : ''}`}><small>{number}</small>{letter}</span>{showCenters && unit.letterCenter.length === 2 && number === unit.letterCenter[0] && <span className="research-center-divider" aria-label="מרכז בין אותיות">│</span>}</React.Fragment>;
+                    return <React.Fragment key={number}><span className={`research-letter ${showCenters && unit.letterCenter.includes(number) ? 'research-center' : ''}`}>{showLetters && <small>{number}</small>}{letter}</span>{showCenters && unit.letterCenter.length === 2 && number === unit.letterCenter[0] && <span className="research-center-divider" aria-label="מרכז בין אותיות">│</span>}</React.Fragment>;
                 }) : token.word}
             </span>{showCenters && unit.wordCenter.length === 2 && token.position === unit.wordCenter[0] && <span className="research-center-divider" aria-label="מרכז בין מילים">│</span>}{' '}
         </React.Fragment>)}
@@ -34,7 +34,7 @@ export function UnitSource({ unit }) {
     </div>;
 }
 
-export default function WordInspector({ request, state, dispatch, onClose, onFocus }) {
+export default function WordInspector({ request, state, dispatch, onClose, onFocus, onNote }) {
     const word = exactResearchWord(request.word);
     const [units, setUnits] = useState(null), [scope, setScope] = useState('passage');
     const [index, setIndex] = useState(0), [corpus, setCorpus] = useState(null), [unit, setUnit] = useState(null);
@@ -73,7 +73,7 @@ export default function WordInspector({ request, state, dispatch, onClose, onFoc
     useEffect(() => { if (unit && occurrence) onFocus({ unit, word, occurrence, scope, totalOccurrences: occurrences.length, passageOccurrences: passage.length, corpusHash: corpus?.corpus.contentHash }); }, [unit, word, occurrence, scope, occurrences.length, passage.length, corpus, onFocus]);
     const search = async () => {
         const id = ++searchId.current;
-        setSearching(true); setError(null);
+        setSearching(true); setError(null); onFocus(null);
         try {
             const result = await findCorpusOccurrences(word);
             if (alive.current && id === searchId.current) { setCorpus(result); setScope('corpus'); setIndex(0); }
@@ -119,6 +119,7 @@ export default function WordInspector({ request, state, dispatch, onClose, onFoc
             {showCenters && <p>מרכז המילים: {centerLabel(unit.wordCenter)} · מרכז האותיות: {centerLabel(unit.letterCenter)}</p>}
             <p className="research-definition">המיקומים מתחילים ב־1. נספרות רק אותיות החישוב העבריות; ניקוד, טעמים, רווחים ומקף אינם אותיות. ביחידה זוגית המרכז נמצא בין שני האיברים המרכזיים.</p>
             <UnitPassage unit={unit} word={word} position={token.position} showWords={showWords} showLetters={showLetters} showCenters={showCenters} />
+            <button className="research-load" onClick={() => onNote({ word, focus: { unit, word, occurrence, scope, totalOccurrences: occurrences.length, corpusHash: corpus?.corpus.contentHash } })}>הערת מחקר</button>
             {scope === 'corpus' && <button className="research-load" onClick={loadIntoAnalysis}>טען פרשיה זו לניתוח הראשי</button>}
         </>}
     </ResearchDialog>;

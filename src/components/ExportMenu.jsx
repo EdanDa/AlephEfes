@@ -12,6 +12,6 @@ export default function ExportMenu({ children, disabled = false }) {
         if (event.key === 'Escape') { ref.current.removeAttribute('open'); ref.current.querySelector('summary button').focus(); }
     }}>
         <summary><button type="button" disabled={disabled} aria-haspopup="true" aria-expanded={open} onClick={(event) => { event.preventDefault(); ref.current.open = !ref.current.open; }}>העתקה וייצוא ▾</button></summary>
-        <div className="workspace-export-options" onClick={(event) => { if (event.target.closest('button') && !event.target.closest('button').disabled) ref.current.open = false; }}>{children}</div>
+        <div className="workspace-export-options" onClick={(event) => { event.stopPropagation(); if (event.target.closest('button') && !event.target.closest('button').disabled) { ref.current.open = false; ref.current.querySelector('summary button').focus(); } }}>{children}</div>
     </details>;
 }
