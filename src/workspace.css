@@ -91,6 +91,14 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #6366f1; outlin
 .research-detail-table { border-collapse: collapse; border-spacing: 0; }
 .research-detail-table tbody td { padding: .35rem .75rem; vertical-align: middle; border-bottom: 1px solid #94a3b844; }
 .research-detail-word { display: inline-flex; align-items: center; gap: 8px; }
+.research-detail-position { font: 600 .75rem/1.5 monospace; font-variant-numeric: tabular-nums; min-width: 2ch; padding: .1rem .3rem; border: 1px solid #94a3b8; border-radius: 4px; text-align: center; }
+.research-detail-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.research-detail-controls > button { margin-inline-start: auto; min-height: 44px; }
+.research-numbering-control { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .875rem; }
+.research-numbering-control small { flex-basis: 100%; }
+.research-numbering-options { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid #94a3b8; border-radius: 12px; }
+.research-numbering-options button { min-height: 44px; padding: 6px 10px; border-radius: 8px; }
+.research-numbering-options button[aria-pressed="true"] { background: #2563eb; color: white; }
 .research-detail-word .research-inspect-compact { position: static; min-height: 44px; height: 44px; flex: 0 0 32px; }
 @media (max-width: 767px), (max-height: 500px) { .research-dialog-wide { width: 100vw; } }
 @media (max-width: 767px), (max-height: 500px) { .research-dialog { width: 100vw; } }

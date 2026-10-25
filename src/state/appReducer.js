@@ -50,6 +50,7 @@ const initialState = {
     isValueTablePinned: false,
     mode: 'aleph-zero',
     textSize: 'md',
+    wordNumberingStart: 1,
     copiedId: null,
     view: 'clusters',
     hoveredWord: null,
@@ -121,6 +122,8 @@ function appReducer(state, action) {
             return { ...state, mode: action.payload, pinnedWord: null, hoveredWord: null, coreResults: null, selectedDR: null, searchTerm: '', selectedHotValue: null, hotWordsList: [], expandedRows: {}, copiedId: null };
         case 'SET_TEXT_SIZE':
             return { ...state, textSize: action.payload };
+        case 'SET_WORD_NUMBERING_START':
+            return action.payload === 0 || action.payload === 1 ? { ...state, wordNumberingStart: action.payload } : state;
         case 'SET_SEARCH_TERM':
             return { ...state, searchTerm: normalizeSearchInput(action.payload), pinnedWord: null, selectedDR: null };
         case 'SET_HOVERED_WORD':

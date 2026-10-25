@@ -1977,7 +1977,7 @@ const App = () => {
         text, coreResults, selectedDR, isDarkMode, searchTerm, isValueTableOpen, isValueTablePinned,
         mode, textSize, copiedId, view, hoveredWord, isPrimesCollapsed, pinnedWord, selectedHotValue,
         hotWordsList, isStatsCollapsed, showScrollTop, hotView, detailsView, hotSort,
-        expandedRows, primeColor,
+        expandedRows, primeColor, wordNumberingStart,
         stats, connectionValues, valueToWordsMap, filters,
         hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
     } = state;
@@ -2751,7 +2751,16 @@ const App = () => {
                                             )}
                                         </div>
                                     )}
-                                    <div className="flex justify-end mb-4"><button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors noselect">{coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? 'קפל הכל' : 'פתח הכל'}</button></div>
+                                    <div className="research-detail-controls">
+                                        {coreResults.lines.some((line) => line.words.length > 1) && <div className="research-numbering-control">
+                                            <span>מספור מילים בשורה</span>
+                                            <div role="group" aria-label="תחילת מספור המילים" className="research-numbering-options">
+                                                {[1, 0].map((start) => <button key={start} type="button" aria-pressed={wordNumberingStart === start} onClick={() => dispatch({ type: 'SET_WORD_NUMBERING_START', payload: start })}>ספירה מ־{start}</button>)}
+                                            </div>
+                                            <small>לפי המיקום בשורת המקור, לפני סינון.</small>
+                                        </div>}
+                                        <button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors noselect">{coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? 'קפל הכל' : 'פתח הכל'}</button>
+                                    </div>
                                     {coreResults.lines.map((lineResult, lineIndex) => {
                                         const isExpanded = !!expandedRows[lineIndex];
                                         const visibleWords = visibleWordsByLine[lineIndex] || [];
@@ -2795,7 +2804,7 @@ const App = () => {
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
                                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
-                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word"><span>{res.word}</span><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
+                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word">{lineResult.words.length > 1 && <span className="research-detail-position" dir="ltr" aria-label={`מיקום מילה בשורה: ${visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}`}>{visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}</span>}<span>{res.word}</span><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
                                                                     <td className="px-4 py-3 text-sm text-right font-mono" style={{ direction: 'ltr', textAlign: 'right' }}>{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}

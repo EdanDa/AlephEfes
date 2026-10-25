@@ -95,6 +95,8 @@ Saved working sessions use version 2 of the `alephEfes:session` local-storage re
 
 The groups view mounts only nearby rows, while searches and exports use every analyzed word. The network computes its layout in a separate worker, pauses offscreen, and offers Pause/Resume; a failed worker leaves an interactive static layout. Copy, CSV, and JSON are available from each panel's export menu.
 
+In **פירוט → שורות**, expanded lines with multiple words show each occurrence's original position beside the word. **ספירה מ־1 / ספירה מ־0** changes the display origin and is saved as a preference; filtering never renumbers the remaining words. This is independent of the א=0/א=1 calculation mode. Single-word lines and the distinct-word summary omit these badges. Inspector and research-note positions remain one-based.
+
 For repeatable production-build profiling, start Vite preview on port 4188, set `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome` if using installed Chrome, and run `node scripts/browser-benchmark.mjs`. It records five Genesis runs and their medians under `.cache/verification/`. Run it without other browser suites competing for CPU; `BENCHMARK_URL` can select a different preview URL.
 
 The **בדוק מילה** action opens a word inspector from groups, details, frequency results, and graph selections. Counts use exact normalized spelling across the complete current passage, independently of display filters. Final-letter spellings stay distinct. Optional positions start at one; letter positions count only canonical calculation letters. An even-length unit has its center between two elements. Manually entered text has original line-relative positions and no inferred MAM attribution.

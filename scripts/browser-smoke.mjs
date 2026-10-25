@@ -28,6 +28,13 @@ try {
         await expect(page.getByRole('dialog').getByRole('heading', { name: 'הערת מחקר — שורה 1', exact: true })).toBeVisible();
         await expect(page.getByRole('dialog').getByRole('table')).toBeVisible();
         const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'הורד .md', exact: true }).click(); await pending;
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: 'פירוט', exact: true }).click();
+        await page.getByRole('button', { name: 'פתח הכל', exact: true }).click();
+        await expect(page.locator('.research-detail-position')).toHaveText(['1', '2', '3']);
+        await page.getByRole('button', { name: 'ספירה מ־0', exact: true }).click();
+        await expect(page.locator('.research-detail-position')).toHaveText(['0', '1', '2']);
+        await expect(page.getByRole('button', { name: 'א=1', exact: true })).toHaveAttribute('aria-pressed', 'true');
     }
     expect(errors).toEqual([]);
     console.log(`Stage ${stage} production smoke passed: ${url}`);
