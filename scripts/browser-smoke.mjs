@@ -36,6 +36,30 @@ try {
         await expect(page.locator('.research-detail-position')).toHaveText(['0', '1', '2']);
         await expect(page.getByRole('button', { name: 'א=1', exact: true })).toHaveAttribute('aria-pressed', 'true');
     }
+    if (stage >= 4) {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.getByRole('textbox', { name: 'טקסט לניתוח', exact: true }).fill(Array(12).fill('אב ה אב\nגד גד ה\nמם ם').join('\n'));
+        await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
+        await page.getByRole('button', { name: 'פתח הכל', exact: true }).click();
+        const clickBesideNavigation = async (target) => {
+            await target.evaluate((element) => {
+                const nav = document.querySelector('.app-view-nav'), rect = element.getBoundingClientRect();
+                scrollTo({ top: scrollY + rect.top + rect.height / 2 - parseFloat(getComputedStyle(nav).top) - nav.getBoundingClientRect().height / 2, behavior: 'instant' });
+            });
+            const box = await target.boundingBox(), nav = await page.locator('.app-view-nav').boundingBox();
+            const pill = await page.locator('.app-view-tabs').boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
+            expect(y).toBeGreaterThanOrEqual(nav.y); expect(y).toBeLessThanOrEqual(nav.y + nav.height);
+            expect(x < pill.x || x > pill.x + pill.width).toBe(true);
+            await page.mouse.click(x, y);
+        };
+        const countFromOne = page.getByRole('button', { name: 'ספירה מ־1', exact: true });
+        await clickBesideNavigation(countFromOne);
+        await expect(countFromOne).toHaveAttribute('aria-pressed', 'true');
+        await clickBesideNavigation(page.getByRole('button', { name: 'קפל הכל', exact: true }));
+        await expect(page.locator('.app-line-card tbody')).toHaveCount(0);
+        await page.getByRole('button', { name: 'קבוצות', exact: true }).click();
+        await expect(page.getByRole('button', { name: 'קבוצות', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    }
     expect(errors).toEqual([]);
     console.log(`Stage ${stage} production smoke passed: ${url}`);
 } finally { await browser.close(); }
