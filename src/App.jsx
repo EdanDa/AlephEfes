@@ -4,8 +4,10 @@ import VirtualizedList from './components/VirtualizedList';
 import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
 import NetworkView from './components/NetworkView';
+import PrimeColorPicker from './components/PrimeColorPicker';
 import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
+import './light-theme.css';
 import { formatTextForClipboard, stripTrailingSpacesPerLine } from './utils/exportFormatting';
 import { withCSVMetadata } from './utils/exportMetadata';
 import { buildValueInsights } from './core/valueInsights';
@@ -651,30 +653,7 @@ const Legend = React.memo(() => {
     const { primeColor, filters } = useAppFilters();
     const dispatch = useAppDispatch();
     const [, startTransition] = useTransition();
-    const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-    const colorPickerTimeoutRef = useRef(null);
-
-    useEffect(() => {
-        return () => {
-            if (colorPickerTimeoutRef.current) clearTimeout(colorPickerTimeoutRef.current);
-        };
-    }, []);
-
-    const handleMouseEnter = () => {
-        if (colorPickerTimeoutRef.current) clearTimeout(colorPickerTimeoutRef.current);
-        setIsColorPickerOpen(true);
-    };
-
-    const handleMouseLeave = () => {
-        colorPickerTimeoutRef.current = setTimeout(() => setIsColorPickerOpen(false), 300);
-    };
-
-    const handleColorSelection = (color) => {
-        dispatch({ type: 'SET_PRIME_COLOR', payload: color });
-        setIsColorPickerOpen(false);
-        if (colorPickerTimeoutRef.current) clearTimeout(colorPickerTimeoutRef.current);
-    };
-
+    const colorPicker = useRef(null);
     const toggleFilter = (filterKey) => {
         startTransition(() => {
             dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
@@ -688,19 +667,21 @@ const Legend = React.memo(() => {
     };
 
     return (
-        <div className="app-legend relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+        <>
+        <PrimeColorPicker ref={colorPicker} color={primeColor} onChange={(color) => dispatch({ type: 'SET_PRIME_COLOR', payload: color })} />
+        <div className="app-legend relative" onMouseEnter={() => { if (matchMedia('(hover: hover)').matches) colorPicker.current?.show(); }} onMouseLeave={() => colorPicker.current?.leave()}>
             <div className="app-legend-items flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button
                     aria-pressed={filters.Prime}
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
                         'Prime',
-                        'bg-violet-500/30 dark:bg-violet-400/25 text-violet-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'bg-violet-100 text-violet-900 dark:bg-violet-400/25 dark:text-violet-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['Prime'] ? 'bg-violet-500/25' : 'bg-slate-700/70'} ${primeColorClasses.light} ${primeColorClasses.dark} text-sm font-bold`}>♢</span>
+                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['Prime'] ? 'bg-violet-100 dark:bg-violet-500/25' : 'bg-white dark:bg-slate-700/70'} ${primeColorClasses.light} ${primeColorClasses.dark} text-sm font-bold`}>♢</span>
                     <span className={filters['Prime'] ? `font-semibold ${primeColorClasses.light} ${primeColorClasses.dark}` : ''}>ראשוני</span>
                  </button>
                  <div className="w-px h-4 bg-gray-400 mx-1"></div>
@@ -709,60 +690,49 @@ const Legend = React.memo(() => {
                     onClick={() => toggleFilter('U')}
                     className={getFilterStyle(
                         'U',
-                        'bg-sky-500/25 dark:bg-sky-500/25 text-sky-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'bg-sky-100 text-sky-900 dark:bg-sky-500/25 dark:text-sky-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'bg-sky-500/20 text-sky-200' : 'bg-slate-700/70 text-sky-400 dark:text-sky-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['U'] ? 'text-sky-800 dark:bg-sky-500/20 dark:text-sky-200' : 'text-slate-500 dark:bg-slate-700/70 dark:text-sky-500'}`}>
                         <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3"><path d="M7 1L1 11H13L7 1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
                     </div>
-                    <span className={filters['U'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>יחידות</span>
+                    <span className={filters['U'] ? "font-semibold text-sky-900 dark:text-white" : "text-slate-600 dark:text-slate-400"}>יחידות</span>
                  </button>
                  <button
                     aria-pressed={filters.T}
                     onClick={() => toggleFilter('T')}
                     className={getFilterStyle(
                         'T',
-                        'bg-emerald-500/25 dark:bg-emerald-500/25 text-emerald-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/25 dark:text-emerald-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['T'] ? 'bg-emerald-500/20 text-emerald-200' : 'bg-slate-700/70 text-emerald-400 dark:text-emerald-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['T'] ? 'text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200' : 'text-slate-500 dark:bg-slate-700/70 dark:text-emerald-500'}`}>
                         <div className="w-3 h-3 border-2 border-current"></div>
                     </div>
-                    <span className={filters['T'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>עשרות</span>
+                    <span className={filters['T'] ? "font-semibold text-emerald-900 dark:text-white" : "text-slate-600 dark:text-slate-400"}>עשרות</span>
                  </button>
                  <button
                     aria-pressed={filters.H}
                     onClick={() => toggleFilter('H')}
                     className={getFilterStyle(
                         'H',
-                        'bg-purple-500/25 dark:bg-purple-500/25 text-purple-50',
-                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400',
+                        'bg-purple-100 text-purple-900 dark:bg-purple-500/25 dark:text-purple-50',
+                        'bg-slate-300/35 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400',
                         'flex items-center gap-2'
                     )}
                  >
-                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['H'] ? 'bg-purple-500/20 text-purple-200' : 'bg-slate-700/70 text-purple-400 dark:text-purple-500'}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${filters['H'] ? 'text-purple-800 dark:bg-purple-500/20 dark:text-purple-200' : 'text-slate-500 dark:bg-slate-700/70 dark:text-purple-500'}`}>
                         <div className="w-3 h-3 rounded-full border-2 border-current"></div>
                     </div>
-                    <span className={filters['H'] ? "font-semibold text-white" : "text-slate-500 dark:text-slate-400"}>מאות</span>
+                    <span className={filters['H'] ? "font-semibold text-purple-900 dark:text-white" : "text-slate-600 dark:text-slate-400"}>מאות</span>
                  </button>
             </div>
-            {isColorPickerOpen && (
-                <div className="absolute top-1/2 left-full -translate-y-1/2 ml-4 z-20 pointer-events-auto">
-                    <div className="relative w-28 h-28">
-                        <button key="yellow" onClick={() => handleColorSelection("yellow")} className={`absolute w-8 h-8 rounded-full bg-yellow-400 transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} aria-label="Select yellow color"/>
-                        {Object.entries(COLOR_PALETTE).filter(([k]) => k !== 'yellow').map(([key, { bg }], index, arr) => {
-                            const angle = (2 * Math.PI / arr.length) * index - (Math.PI / 2);
-                            const x = 36 * Math.cos(angle); const y = 36 * Math.sin(angle);
-                            return <button key={key} onClick={() => handleColorSelection(key)} className={`absolute w-7 h-7 rounded-full ${bg} transition-transform hover:scale-125 focus:outline-none shadow-lg ring-2 ring-white dark:ring-gray-800`} style={{ top: `calc(50% + ${y}px)`, left: `calc(50% + ${x}px)`, transform: 'translate(-50%, -50%)' }} aria-label={`Select ${key} color`}/>;
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
+        </>
     );
 });
 
@@ -977,7 +947,7 @@ const StatsPanel = memo(() => {
 
     return (
         <div className={`app-stats-panel p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
-            <button aria-expanded={!isStatsCollapsed} onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
+            <button aria-expanded={!isStatsCollapsed} onClick={() => dispatch({ type: 'TOGGLE_STATS_COLLAPSED' })} className="app-stats-toggle w-full flex justify-between items-center text-2xl font-bold text-gray-800 dark:text-gray-200 noselect">
                 <div className="flex-1"></div>
                 <span className="text-center flex-grow">תקציר הטקסט</span>
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
@@ -986,9 +956,9 @@ const StatsPanel = memo(() => {
                 <div className="app-stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-center mt-6">
                     {summaryItems.map(item => (
                         <div key={item.label} title={item.title} className="min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center">
-                            <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
-                            <p className="text-3xl font-bold text-slate-900 dark:text-gray-100">{item.value}</p>
-                            {item.secondary && <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{item.secondary}</p>}
+                            <p className="app-stat-label text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
+                            <p className="app-stat-value text-3xl font-bold text-slate-900 dark:text-gray-100">{item.value}</p>
+                            {item.secondary && <p className="app-stat-secondary mt-1 text-xs text-gray-600 dark:text-gray-400">{item.secondary}</p>}
                         </div>
                     ))}
                 </div>
@@ -1036,7 +1006,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
     const matches = (activeWord && (isSelf || isConnectedToActive)) ? layersMatching(activeWord, wordData).filter(L => availableLayers(wordData).includes(L)) : [];
     
     // Reverted to pastel background logic
-    const baseBg = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+    const baseBg = isDarkMode ? 'rgba(255,255,255,0.08)' : '#f4f6f9';
     const tint = !isSelf && topLayer ? (isDarkMode ? LAYER_COLORS[topLayer].dark : LAYER_COLORS[topLayer].light) : baseBg;
     
     // Border color logic (for Self)
@@ -1057,7 +1027,7 @@ const WordCard = memo(({ wordData, activeWord, activeWordKey, isConnectedToActiv
 
     const cardStyle = {
         background: tint,
-        opacity: (isSelf || isConnectedToActive) ? 1 : 0.75,
+        opacity: !isDarkMode && !activeWord || isSelf || isConnectedToActive ? 1 : 0.75,
         border: `2px solid ${borderColor}`,
         cursor: 'pointer',
     };
@@ -1405,7 +1375,7 @@ const GraphView = memo(({ coreResults, filters, isDarkMode, primeColor, onWordCl
                 ctx.fill();
 
                 if (item.isPrime) {
-                    ctx.strokeStyle = PRIME_COLOR_HEX[primeColor] || '#EAB308';
+                    ctx.strokeStyle = isDarkMode ? PRIME_COLOR_HEX[primeColor] : COLOR_PALETTE[primeColor].hexLight;
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }
@@ -2025,7 +1995,8 @@ const App = () => {
     useEffect(() => {
         let savedTheme = null;
         try {
-            savedTheme = localStorage.getItem('alephThemeMode');
+            const current = localStorage.getItem('alephThemeMode');
+            savedTheme = current === 'light' || current === 'dark' ? current : localStorage.getItem('alephTheme');
         } catch (_err) {
             savedTheme = null;
         }
@@ -2050,7 +2021,12 @@ const App = () => {
         }
     }, [hasExplicitThemeChoice, isDarkMode]);
 
-    useEffect(() => { document.body.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDarkMode);
+        document.body.classList.toggle('dark', isDarkMode);
+        document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkMode ? '#111827' : '#f5f6f4');
+    }, [isDarkMode]);
     useEffect(() => {
         if (hasExplicitThemeChoice) return;
 
@@ -2488,7 +2464,7 @@ const App = () => {
     const hasInput = text.trim().length > 0;
 
     return (
-        <div dir="rtl" className={`app-shell ${hasInput ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
+        <div dir="rtl" data-theme={isDarkMode ? 'dark' : 'light'} className={`app-shell ${hasInput ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <div className="mb-5 flex justify-center">
@@ -2496,7 +2472,7 @@ const App = () => {
                         href="https://github.com/EdanDa/AlephEfes"
                         target="_blank"
                         rel="noreferrer"
-                        className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm sm:text-base font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
+                        className={`app-repository-link inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm sm:text-base font-semibold transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-100' : 'bg-slate-100 hover:bg-slate-300 text-slate-800'}`}
                         aria-label="פתח את Aleph Efes ב-GitHub"
                         title="Aleph Efes on GitHub"
                     >
@@ -2686,7 +2662,7 @@ const App = () => {
                             {detailsView === 'lines' ? (
                                 <>
                                     {coreResults.grandTotals && (
-                                        <div className={`p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
+                                        <div className={`app-detail-summary p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                             <div className="app-results-header flex justify-between items-center mb-4">
                                                 <div className="flex-1 flex justify-start"><ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' /></div>
                                                 <div className="flex-none px-4"><h2 className="text-2xl font-bold text-center noselect">סיכום כללי</h2></div>
@@ -2707,7 +2683,7 @@ const App = () => {
                                     )}
                                     {coreResults.primeSummary.length > 0 && (
                                         <div
-                                            className={`relative p-4 sm:p-6 rounded-xl border mb-8 cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}
+                                            className={`app-prime-summary relative p-4 sm:p-6 rounded-xl border mb-8 cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}
                                             aria-expanded={!isPrimesCollapsed}
                                             onClick={() => dispatch({ type: 'TOGGLE_PRIMES_COLLAPSED' })}
                                             aria-label="הצג או הסתר פירוט ערכים ראשוניים"

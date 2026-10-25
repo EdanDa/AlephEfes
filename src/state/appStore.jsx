@@ -52,7 +52,7 @@ function useAppStats() {
 }
 
 function AppProvider({ children }) {
-    const [state, dispatch] = useReducer(appReducer, initialState, restoreSession);
+    const [state, dispatch] = useReducer(appReducer, initialState, (defaults) => restoreSession({ ...defaults, isDarkMode: document.documentElement.classList.contains('dark') }));
     const deferredText = useDeferredValue(state.text);
     const commitCoreResults = useCallback((results) => {
         dispatch({ type: 'SET_CORE_RESULTS', payload: results });

@@ -147,7 +147,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
     };
 
     return (
-        <section className={`rounded-xl border mb-8 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} aria-label="בחירת טקסט מן התנ״ך">
+        <section className={`app-corpus-panel rounded-xl border mb-8 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`} aria-label="בחירת טקסט מן התנ״ך">
             <div className={`tanakh-header p-5 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-slate-200 bg-white/70'}`}>
                 <div className="tanakh-header-row flex flex-wrap items-start justify-between gap-3">
                     <div>

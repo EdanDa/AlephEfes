@@ -44,13 +44,13 @@ const LAYER_COLORS = Object.freeze({
 
 const LAYER_PRIORITY = Object.freeze(['H', 'T', 'U']);
 const COLOR_PALETTE = Object.freeze({
-    red: { light: 'text-red-600', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
-    yellow: { light: 'text-yellow-600', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
-    emerald: { light: 'text-emerald-600', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
-    sky: { light: 'text-sky-600', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
-    pink: { light: 'text-pink-600', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
-    purple: { light: 'text-purple-600', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
-    orange: { light: 'text-orange-600', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
+    red: { light: 'text-red-700', hexLight: '#b91c1c', dark: 'dark:text-red-400', name: 'אדום', bg: 'bg-red-500' },
+    yellow: { light: 'text-yellow-800', hexLight: '#854d0e', dark: 'dark:text-yellow-300', name: 'צהוב', bg: 'bg-yellow-400' },
+    emerald: { light: 'text-emerald-700', hexLight: '#047857', dark: 'dark:text-emerald-400', name: 'אזמרגד', bg: 'bg-emerald-500' },
+    sky: { light: 'text-sky-700', hexLight: '#0369a1', dark: 'dark:text-sky-400', name: 'שמיים', bg: 'bg-sky-500' },
+    pink: { light: 'text-pink-700', hexLight: '#be185d', dark: 'dark:text-pink-400', name: 'ורוד', bg: 'bg-pink-500' },
+    purple: { light: 'text-purple-700', hexLight: '#7e22ce', dark: 'dark:text-purple-400', name: 'סגול', bg: 'bg-purple-500' },
+    orange: { light: 'text-orange-700', hexLight: '#c2410c', dark: 'dark:text-orange-400', name: 'כתום', bg: 'bg-orange-500' },
 });
 const PRIME_COLOR_HEX = Object.freeze({
     yellow: '#EAB308',

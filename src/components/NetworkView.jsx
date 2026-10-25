@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { buildWordConnectionIndex } from '../core/networkLayout.js';
-import { LAYER_COLORS, PRIME_COLOR_HEX } from '../core/analysisCore.js';
+import { COLOR_PALETTE, LAYER_COLORS, PRIME_COLOR_HEX } from '../core/analysisCore.js';
 import { InspectWord, useResearch } from './ResearchWorkspace';
 import ExportMenu from './ExportMenu';
 
@@ -53,7 +53,7 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
                 if (sx < -100 || sy < -40 || sx > size.width + 100 || sy > size.height + 40) continue;
                 const highlighted = connected.has(node.id);
                 ctx.globalAlpha = active && !highlighted ? 0.16 : 1;
-                ctx.fillStyle = node.type === 'word' ? (isDarkMode ? '#a78bfa' : '#7c3aed') : node.isPrime ? PRIME_COLOR_HEX[primeColor] : '#64748b';
+                ctx.fillStyle = node.type === 'word' ? (isDarkMode ? '#a78bfa' : '#7c3aed') : node.isPrime ? (isDarkMode ? PRIME_COLOR_HEX[primeColor] : COLOR_PALETTE[primeColor].hexLight) : '#64748b';
                 ctx.beginPath(); ctx.arc(node.x, node.y, node.id === active ? 7 : node.type === 'word' ? 4 : 3, 0, Math.PI * 2); ctx.fill();
                 if (highlighted || nodes.length < 250 || transform.k >= 2.5) {
                     ctx.font = `${11 / Math.max(1, transform.k / 2)}px sans-serif`;
