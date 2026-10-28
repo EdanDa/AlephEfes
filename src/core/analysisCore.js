@@ -215,6 +215,10 @@ function cleanHebrewToken(raw) {
     return letters ? letters.join('') : '';
 }
 
+function countCalculationLetters(text) {
+    return cleanHebrewToken(text).length;
+}
+
 function forceHebrewInput(raw) {
     const withoutMarks = (raw.normalize ? raw.normalize('NFKD') : raw).replace(HEB_MARKS_RE, '');
     const mapped = Array.from(withoutMarks)
@@ -317,6 +321,7 @@ function computeCoreResults(text, mode) {
     let grandT = 0;
     let grandH = 0;
     let totalWordCount = 0;
+    let totalLetterCount = 0;
 
     for (let li = 0; li < lines.length; li += 1) {
         const lineWithSpacesForHyphens = lines[li].replace(HYPHEN_RE, ' ');
@@ -324,6 +329,7 @@ function computeCoreResults(text, mode) {
         let lineU = 0;
         let lineT = 0;
         let lineH = 0;
+        let letterCount = 0;
         const calcWords = [];
         let lineMaxLayer = 'U';
 
@@ -333,6 +339,7 @@ function computeCoreResults(text, mode) {
 
             totalWordCount += 1;
             calcWords.push(wd);
+            letterCount += wd.word.length;
             lineU += wd.units;
             lineT += wd.tens;
             lineH += wd.hundreds;
@@ -345,6 +352,7 @@ function computeCoreResults(text, mode) {
         }
 
         grandU += lineU;
+        totalLetterCount += letterCount;
         grandT += lineT;
         grandH += lineH;
         growSieveTo(Math.max(lineU, lineT, lineH));
@@ -374,6 +382,7 @@ function computeCoreResults(text, mode) {
         calculatedLines.push({
             lineText: lines[li],
             words: calcWords,
+            letterCount,
             totals: { units: lineU, tens: lineT, hundreds: lineH },
             totalsDR: getDigitalRoot(lineU),
             isPrimeTotals: { U: isPrimeLineU, T: isPrimeLineT, H: isPrimeLineH },
@@ -406,6 +415,7 @@ function computeCoreResults(text, mode) {
         wordDataMap: allWordsMap,
         drDistribution,
         totalWordCount,
+        totalLetterCount,
         wordCounts,
     };
 }
@@ -461,6 +471,7 @@ export {
     availableLayers,
     buildLetterTable,
     computeCoreResults,
+    countCalculationLetters,
     forceHebrewInput,
     getLetterDetails,
     getWordValues,

@@ -74,6 +74,7 @@ function AppProvider({ children }) {
         return {
             totalLines: state.coreResults.lines.length,
             totalWords: state.coreResults.totalWordCount,
+            totalLetters: state.coreResults.totalLetterCount,
             uniqueWords: state.coreResults.allWords.length,
             primeLineTotals: primeLineCount,
             drDistribution: state.coreResults.drDistribution,

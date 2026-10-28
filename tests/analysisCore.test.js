@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
     buildLetterTable,
     computeCoreResults,
+    countCalculationLetters,
     forceHebrewInput,
     getGroupedWordValues,
     getWordValues,
@@ -52,6 +53,19 @@ test('computeCoreResults returns stable totals and distributions', () => {
 
     assert.ok(results.grandTotals.units > 0);
     assert.ok(results.wordCounts.get('אבג') >= 2);
+});
+
+test('letter totals count canonical occurrences independently of numerical mode', () => {
+    const passage = 'אָב ה אב־מם ם ך\nא\n\nבית שן';
+    assert.equal(countCalculationLetters(passage), 15);
+    assert.equal(countCalculationLetters('שׁ ךםןףץ \u034F 123,.'), 6);
+    assert.equal(countCalculationLetters(''), 0);
+    for (const mode of ['aleph-zero', 'aleph-one']) {
+        const result = computeCoreResults(passage, mode);
+        assert.deepEqual(result.lines.map((line) => line.letterCount), [9, 1, 5]);
+        assert.equal(result.totalLetterCount, 15);
+        assert.equal(computeCoreResults('', mode).totalLetterCount, 0);
+    }
 });
 
 test('visibility helpers respect layer and prime toggles', () => {

@@ -13,6 +13,53 @@ async function open(page, mode = 'aleph-zero', extra = {}) {
 }
 const numbers = (line) => line.locator('.research-detail-position');
 const choice = (page, start) => page.getByRole('group', { name: 'תחילת מספור המילים' }).getByRole('button', { name: `ספירה מ־${start}`, exact: true });
+const summaryLetters = (page) => page.locator('.app-stats-grid > div').filter({ has: page.getByText('אותיות', { exact: true }) }).locator('.app-stat-value');
+
+for (const mode of ['aleph-zero', 'aleph-one']) test(`line letter counts use every canonical occurrence before filtering (${mode})`, async ({ page }) => {
+    const passage = 'אָב ה אב־מם ם ך\nא\n\nבית שן';
+    await open(page, mode, { text: passage });
+    const counts = page.locator('.app-line-letter-count');
+    await page.getByRole('button', { name: 'תקציר הטקסט', exact: true }).click();
+    await expect(summaryLetters(page)).toHaveText('15');
+    await expect(counts).toHaveText(['סה״כ אותיות: 9', 'סה״כ אותיות: 1', 'סה״כ אותיות: 5']);
+    // A standalone א is one letter even when its numerical value is zero.
+    await expect(counts.nth(1)).toBeVisible();
+    await choice(page, 0).click();
+    await page.getByRole('button', { name: 'קפל הכל', exact: true }).click();
+    await expect(counts).toHaveText(['סה״כ אותיות: 9', 'סה״כ אותיות: 1', 'סה״כ אותיות: 5']);
+    await page.getByRole('button', { name: 'פתח הכל', exact: true }).click();
+    await page.getByRole('button', { name: 'עשרות', exact: true }).click();
+    const dr = computeCoreResults(passage, mode).wordDataMap.get('ה').dr;
+    await page.getByRole('button', { name: `ש"ד ${dr}`, exact: true }).click();
+    await expect(counts.first()).toHaveText('סה״כ אותיות: 9');
+    await expect(summaryLetters(page)).toHaveText('15');
+    await expect(page.locator('.app-line-card').first().locator('tbody tr')).toHaveCount(1);
+    await page.getByRole('textbox', { name: 'טקסט לניתוח', exact: true }).fill('א־ב');
+    await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
+    await expect(counts).toHaveText(['סה״כ אותיות: 2']);
+    await expect(summaryLetters(page)).toHaveText('2');
+});
+
+for (const mode of ['aleph-zero', 'aleph-one']) test(`Tanakh letter counts agree across book, section, range and analysis (${mode})`, async ({ page }) => {
+    await open(page, mode);
+    const sections = JSON.parse(fs.readFileSync('public/corpus/books/genesis.json', 'utf8')).sections;
+    const letters = (items) => items.map((section) => (section.calculationText.match(/[א-ת]/g) || []).length);
+    const sum = (items) => letters(items).reduce((total, count) => total + count, 0);
+    await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
+    const count = page.locator('.tanakh-letter-count dd');
+    await expect(count).toHaveText(sum(sections).toLocaleString('he-IL'));
+    await page.getByRole('button', { name: 'פרשיה אחת', exact: true }).click();
+    await page.locator('#tanakh-section').selectOption('2');
+    await expect(count).toHaveText(sum(sections.slice(1, 2)).toLocaleString('he-IL'));
+    await page.getByRole('button', { name: 'טווח פרשיות', exact: true }).click();
+    await page.locator('#tanakh-range-end').selectOption('3');
+    await expect(count).toHaveText(sum(sections.slice(1, 3)).toLocaleString('he-IL'));
+    await page.locator('.tanakh-actions button').click();
+    await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
+    await page.getByRole('button', { name: 'תקציר הטקסט', exact: true }).click();
+    await expect(summaryLetters(page)).toHaveText(String(sum(sections.slice(1, 3))));
+    await expect(page.locator('.app-line-letter-count')).toHaveText(letters(sections.slice(1, 3)).map((count) => `סה״כ אותיות: ${count}`));
+});
 
 for (const mode of ['aleph-zero', 'aleph-one']) test(`line word numbering preserves original occurrences and mode (${mode})`, async ({ page }) => {
     await open(page, mode);
@@ -70,6 +117,9 @@ for (const theme of ['light', 'dark']) for (const size of [{ width: 320, height:
         await page.setViewportSize(size); await page.emulateMedia({ colorScheme: theme });
         await page.addInitScript((theme) => localStorage.setItem('alephThemeMode', theme), theme);
         await open(page);
+        await page.getByRole('button', { name: 'תקציר הטקסט', exact: true }).click();
+        await expect(summaryLetters(page)).toHaveText('13');
+        await page.locator('.app-stats-panel').screenshot({ path: testInfo.outputPath('letter-summary.png') });
         await choice(page, 0).click();
         await page.locator('.research-detail-controls').evaluate((element) => scrollTo({ top: element.getBoundingClientRect().top + scrollY - 85, behavior: 'instant' }));
         await page.screenshot({ path: testInfo.outputPath('word-numbering.png') });

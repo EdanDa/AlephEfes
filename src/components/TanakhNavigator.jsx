@@ -283,6 +283,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                                 <div className="flex justify-between gap-3"><dt>איתור</dt><dd className="font-semibold text-left">{locatorRangeLabel(activeSelection.locators)}</dd></div>
                                 <div className="flex justify-between"><dt>פרשיות</dt><dd className="font-semibold">{activeSelection.sectionCount.toLocaleString('he-IL')}</dd></div>
                                 <div className="flex justify-between"><dt>מילים</dt><dd className="font-semibold">{activeSelection.wordCount.toLocaleString('he-IL')}</dd></div>
+                                <div className="tanakh-letter-count flex justify-between" title="אותיות החישוב בלבד; ללא ניקוד, טעמים, רווחים וסימני פיסוק."><dt>אותיות</dt><dd className="font-semibold">{activeSelection.letterCount.toLocaleString('he-IL')}</dd></div>
                                 <div className="flex justify-between"><dt>גבול אחרון</dt><dd className="font-semibold">{activeSelection.boundaryAfter?.upstreamMarker || 'סוף הספר'}</dd></div>
                             </dl>
                         </div>

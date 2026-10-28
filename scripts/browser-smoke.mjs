@@ -35,6 +35,9 @@ try {
         await page.keyboard.press('Escape');
         await page.getByRole('button', { name: 'פירוט', exact: true }).click();
         await page.getByRole('button', { name: 'פתח הכל', exact: true }).click();
+        await expect(page.locator('.app-line-letter-count')).toHaveText(['סה״כ אותיות: 5']);
+        await page.getByRole('button', { name: 'תקציר הטקסט', exact: true }).click();
+        await expect(page.locator('.app-stats-grid > div').filter({ has: page.getByText('אותיות', { exact: true }) }).locator('.app-stat-value')).toHaveText('5');
         await expect(page.locator('.research-detail-position')).toHaveText(['1', '2', '3']);
         await page.getByRole('button', { name: 'ספירה מ־0', exact: true }).click();
         await expect(page.locator('.research-detail-position')).toHaveText(['0', '1', '2']);

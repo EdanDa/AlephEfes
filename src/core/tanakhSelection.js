@@ -1,3 +1,5 @@
+import { countCalculationLetters } from './analysisCore.js';
+
 const VALID_SCOPES = new Set(['section', 'range', 'book']);
 
 function clampOrdinal(value, sectionCount) {
@@ -18,6 +20,7 @@ export function createTanakhSelection(sections, requestedScope = 'section', requ
     const selectedSections = sections.slice(startOrdinal - 1, endOrdinal);
     const firstSection = selectedSections[0];
     const lastSection = selectedSections[selectedSections.length - 1];
+    const calculationText = selectedSections.map((section) => section.calculationText).join('\n');
 
     return {
         scope,
@@ -25,9 +28,10 @@ export function createTanakhSelection(sections, requestedScope = 'section', requ
         endOrdinal,
         sectionCount: selectedSections.length,
         sections: selectedSections,
-        calculationText: selectedSections.map((section) => section.calculationText).join('\n'),
+        calculationText,
         sourceText: selectedSections.map((section) => section.sourceText).join('\n\n'),
         wordCount: selectedSections.reduce((sum, section) => sum + section.wordCount, 0),
+        letterCount: countCalculationLetters(calculationText),
         locators: {
             start: firstSection.locators.start,
             end: lastSection.locators.end,

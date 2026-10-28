@@ -941,6 +941,7 @@ const StatsPanel = memo(() => {
     const summaryItems = [
         { label: unitName, value: stats.totalLines, title: `מספר ה${unitName} בטקסט המחושב` },
         { label: 'מילים', value: stats.totalWords, title: 'מספר כל מופעי המילים בטקסט' },
+        { label: 'אותיות', value: stats.totalLetters, title: 'כל מופעי אותיות החישוב בטקסט המקור, לפני סינון; ללא ניקוד, טעמים, רווחים וסימני פיסוק' },
         { label: 'מילים ייחודיות', value: stats.uniqueWords, secondary: `${uniqueShare}% מן המופעים`, title: 'מספר צורות המילה השונות ושיעורן מכלל המופעים' },
         { label: `מילים ל${isSectionSelection ? 'פרשיה' : 'שורה'}`, value: averageWords, title: `הממוצע האריתמטי של מספר המילים בכל ${isSectionSelection ? 'פרשיה' : 'שורה'}` },
         { label: `${unitName} עם סכום ראשוני`, value: stats.primeLineTotals, title: `מספר ה${unitName} שבהן לפחות אחד מסכומי היחידות, העשרות או המאות הוא מספר ראשוני` },
@@ -955,9 +956,9 @@ const StatsPanel = memo(() => {
                 <div className="flex-1 flex justify-end"><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isStatsCollapsed ? '' : 'rotate-180'}`} /></div>
             </button>
             {!isStatsCollapsed && (
-                <div className="app-stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 text-center mt-6">
-                    {summaryItems.map(item => (
-                        <div key={item.label} title={item.title} className="min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center">
+                <div className="app-stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3 text-center mt-6">
+                    {summaryItems.map((item, index) => (
+                        <div key={item.label} title={item.title} className={`min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center ${index === summaryItems.length - 1 ? 'col-span-2 md:col-span-3 xl:col-span-1' : ''}`}>
                             <p className="app-stat-label text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
                             <p className="app-stat-value text-3xl font-bold text-slate-900 dark:text-gray-100">{item.value}</p>
                             {item.secondary && <p className="app-stat-secondary mt-1 text-xs text-gray-600 dark:text-gray-400">{item.secondary}</p>}
@@ -2758,7 +2759,8 @@ const App = () => {
                                             >
                                                 <button type="button" className="w-full text-right cursor-pointer" onClick={() => dispatch({ type: 'TOGGLE_ROW_EXPAND', payload: lineIndex })} aria-expanded={isExpanded} aria-label={`החלף מצב תצוגה עבור שורה ${lineIndex + 1}`}>
                                                     <div className="flex justify-between items-center"><h2 className="app-line-heading text-2xl font-bold mb-1 text-center flex-grow">שורה {lineIndex + 1}</h2><Icon name="chevron-down" className={`w-6 h-6 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} /></div>
-                                                    <p className={`app-line-text text-center mb-6 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    <p className={`app-line-text text-center mb-3 italic text-lg break-all ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>"{lineResult.lineText}"</p>
+                                                    <p className={`app-line-letter-count text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} title="כל מופעי אותיות החישוב בשורת המקור, לפני סינון; ללא ניקוד, טעמים, רווחים וסימני פיסוק.">סה״כ אותיות: {lineResult.letterCount}</p>
                                                     {showTotalsLine && <div className={`app-line-totals font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}><span className="app-line-totals-label">סה"כ שורה:</span>
                                                         {lineResult.words.length > 1 && <span className="app-line-word-count mx-2">({lineResult.words.length} מילים)</span>}
                                                         {unitsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>יחידות={lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
