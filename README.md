@@ -95,7 +95,7 @@ Saved working sessions use version 2 of the `alephEfes:session` local-storage re
 
 The groups view mounts only nearby rows, while searches and exports use every analyzed word. The network computes its layout in a separate worker, pauses offscreen, and offers Pause/Resume; a failed worker leaves an interactive static layout. Copy, CSV, and JSON are available from each panel's export menu.
 
-The light workspace uses neutral page and paper surfaces with readable layer and prime colors. An explicit theme choice overrides the system theme and older saved preferences, including before React starts. The prime-color flower is centered on the viewport; open it from the color button or by hovering over the legend on desktop. It supports touch, arrow keys, Escape and focus restoration.
+The light workspace uses neutral page and paper surfaces with readable layer and prime colors. An explicit theme choice overrides the system theme and older saved preferences, including before React starts. The original prime-color flower is centered on the viewport; open it by hovering over the legend, or focus a filter and press Arrow Down. It supports touch, arrow keys, Escape and focus restoration.
 
 In **פירוט → שורות**, expanded lines with multiple words show each occurrence's original position beside the word. **ספירה מ־1 / ספירה מ־0** changes the display origin and is saved as a preference; filtering never renumbers the remaining words. This is independent of the א=0/א=1 calculation mode. Single-word lines and the distinct-word summary omit these badges. Inspector and research-note positions remain one-based.
 

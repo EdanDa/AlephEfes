@@ -68,14 +68,14 @@ try {
         await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'light');
         expect(await page.locator('html').evaluate((element) => element.classList.contains('dark'))).toBe(false);
         await expect(page.getByRole('button', { name: 'יחידות', exact: true }).locator('span').last()).toHaveCSS('color', 'rgb(12, 74, 110)');
-        const trigger = page.getByRole('button', { name: 'בחירת צבע לראשוניים', exact: true });
-        await trigger.click();
+        const trigger = page.locator('.app-legend-items > button').first();
+        await trigger.focus(); await page.keyboard.press('ArrowDown');
         const flower = page.getByRole('group', { name: 'צבעי הראשוניים', exact: true });
         await expect(flower).toBeVisible();
         const rect = await flower.boundingBox(), width = await page.evaluate(() => document.documentElement.clientWidth);
         expect(Math.abs(rect.x + rect.width / 2 - width / 2)).toBeLessThanOrEqual(2);
         await flower.getByRole('button', { name: 'צבע ורוד', exact: true }).click();
-        await expect(trigger).toHaveAttribute('title', 'צבע הראשוניים: ורוד');
+        await expect(page.locator('.app-legend')).toHaveAttribute('data-prime-color', 'pink');
         await expect(trigger).toBeFocused();
         await page.getByRole('button', { name: 'עבור למצב כהה', exact: true }).click();
         await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'dark');

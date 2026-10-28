@@ -654,6 +654,7 @@ const Legend = React.memo(() => {
     const dispatch = useAppDispatch();
     const [, startTransition] = useTransition();
     const colorPicker = useRef(null);
+    const legend = useRef(null);
     const toggleFilter = (filterKey) => {
         startTransition(() => {
             dispatch({ type: 'TOGGLE_FILTER', payload: filterKey });
@@ -668,11 +669,12 @@ const Legend = React.memo(() => {
 
     return (
         <>
-        <PrimeColorPicker ref={colorPicker} color={primeColor} onChange={(color) => dispatch({ type: 'SET_PRIME_COLOR', payload: color })} />
-        <div className="app-legend relative" onMouseEnter={() => { if (matchMedia('(hover: hover)').matches) colorPicker.current?.show(); }} onMouseLeave={() => colorPicker.current?.leave()}>
+        <PrimeColorPicker ref={colorPicker} anchor={legend} color={primeColor} onChange={(color) => dispatch({ type: 'SET_PRIME_COLOR', payload: color })} />
+        <div ref={legend} data-prime-color={primeColor} className="app-legend relative" onMouseEnter={() => colorPicker.current?.show()} onMouseLeave={() => colorPicker.current?.leave()} onKeyDown={(event) => { if (event.key === 'ArrowDown') { event.preventDefault(); colorPicker.current?.show(true); } }}>
             <div className="app-legend-items flex items-center gap-2 text-base text-slate-700 dark:text-gray-300 bg-slate-100/70 dark:bg-gray-700/50 px-3 py-1.5 rounded-full noselect">
                  <button
                     aria-pressed={filters.Prime}
+                    aria-description="חץ למטה לבחירת צבע הראשוניים"
                     onClick={() => toggleFilter('Prime')}
                     className={getFilterStyle(
                         'Prime',

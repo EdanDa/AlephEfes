@@ -51,17 +51,9 @@
 .app-shell[data-theme="light"] .tanakh-preview { background: var(--subtle); border-color: var(--line); }
 
 /* The flower is centered on the viewport, independently of the RTL toolbar. */
-.app-prime-color-control { flex-shrink: 0; }
-.app-prime-color-trigger { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #dce1e7; border-radius: 50%; background: #fff; }
-.app-prime-color-trigger > span { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px #202c3d24; }
-.app-color-picker { position: fixed; left: 50%; transform: translate(-50%, -50%); z-index: 60; display: grid; place-items: center; width: 116px; height: 116px; background: #fff; border: 1px solid #dce1e7; border-radius: 50%; box-shadow: 0 6px 24px #202c3d20; }
+.app-color-picker { position: fixed; left: 50%; transform: translate(-50%, -50%); z-index: 60; width: 112px; height: 112px; }
 .app-color-petals { position: relative; width: 112px; height: 112px; }
-.app-color-petal { position: absolute; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px #202c3d33; }
-.app-color-petal:hover, .app-color-petal:focus-visible { outline: 2px solid #285596; outline-offset: 2px; z-index: 1; }
-.app-color-petal[aria-pressed="true"] { box-shadow: 0 0 0 2px #263b58; }
-.dark :is(.app-prime-color-trigger, .app-color-picker) { background: #1f2937; border-color: #4b5563; }
-.dark .app-color-petal { border-color: #1f2937; }
-.dark .app-color-petal[aria-pressed="true"] { box-shadow: 0 0 0 2px #e2e8f0; }
-@media (max-width: 640px), (max-width: 1023px) and (pointer: coarse) {
-    .app-prime-color-control { grid-column: 1; grid-row: 1; justify-self: start; }
-}
+.app-color-petal { position: absolute; border: 0; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff, 0 4px 8px #0002; transition: transform .15s; }
+.app-color-petal:hover { transform: translate(-50%, -50%) scale(1.25); z-index: 1; }
+.app-color-petal:focus-visible { outline: 2px solid #285596; outline-offset: 3px; z-index: 1; }
+.dark .app-color-petal { box-shadow: 0 0 0 2px #1f2937, 0 4px 8px #0002; }

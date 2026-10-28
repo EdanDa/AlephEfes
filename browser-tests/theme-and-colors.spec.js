@@ -47,10 +47,15 @@ for (const theme of ['light', 'dark']) test(`explicit ${theme} overrides system 
 for (const theme of ['light', 'dark']) for (const size of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 1000 }, { width: 1920, height: 1000 }]) {
     test(`color flower centered and keyboard accessible: ${theme} ${size.width}`, async ({ page }, testInfo) => {
         await page.setViewportSize(size); await open(page, { theme });
-        const trigger = page.getByRole('button', { name: 'בחירת צבע לראשוניים', exact: true });
-        await trigger.focus(); await page.keyboard.press('Enter');
+        const trigger = page.locator('.app-legend-items > button').first();
+        if (size.width >= 1440) await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+        await trigger.focus(); await page.keyboard.press('ArrowDown');
         const flower = page.getByRole('group', { name: 'צבעי הראשוניים', exact: true });
         await expect(flower).toBeVisible();
+        await expect(page.locator('.app-prime-color-control, .app-prime-color-trigger')).toHaveCount(0);
+        await expect(flower).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(flower).toHaveCSS('box-shadow', 'none');
+        await expect(flower).toHaveCSS('border-top-width', '0px');
         const rect = await flower.boundingBox(), width = await page.evaluate(() => document.documentElement.clientWidth);
         expect(Math.abs(rect.x + rect.width / 2 - width / 2)).toBeLessThanOrEqual(2);
         expect(rect.x).toBeGreaterThanOrEqual(0); expect(rect.y).toBeGreaterThanOrEqual(0);
@@ -58,11 +63,11 @@ for (const theme of ['light', 'dark']) for (const size of [{ width: 320, height:
         await page.screenshot({ path: testInfo.outputPath('centered-flower.png') });
         await expect(flower.getByRole('button', { name: 'צבע צהוב', exact: true })).toBeFocused();
         await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-        await expect(trigger).toHaveAttribute('title', 'צבע הראשוניים: אדום');
+        await expect(page.locator('.app-legend')).toHaveAttribute('data-prime-color', 'red');
         await expect(trigger).toBeFocused(); await expect(flower).not.toBeVisible();
-        await trigger.click(); await expect(flower).toBeVisible();
+        await page.keyboard.press('ArrowDown'); await expect(flower).toBeVisible();
         await page.keyboard.press('Escape'); await expect(flower).not.toBeVisible(); await expect(trigger).toBeFocused();
-        await trigger.click(); await expect(flower).toBeVisible();
+        await page.keyboard.press('ArrowDown'); await expect(flower).toBeVisible();
         await page.getByRole('textbox', { name: 'טקסט לניתוח', exact: true }).click();
         await expect(flower).not.toBeVisible();
     });
@@ -107,6 +112,17 @@ for (const size of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { 
     await page.screenshot({ path: testInfo.outputPath('light-corpus.png') });
 });
 
+test('touching the existing legend opens the original flower and allows color selection', async ({ page }) => {
+    await open(page);
+    await page.locator('.app-legend-items > button').first().tap();
+    const flower = page.getByRole('group', { name: 'צבעי הראשוניים', exact: true });
+    await expect(flower).toBeVisible();
+    await expect(flower.getByRole('button', { name: 'צבע צהוב', exact: true })).toHaveCSS('background-color', 'rgb(250, 204, 21)');
+    await flower.getByRole('button', { name: 'צבע ורוד', exact: true }).tap();
+    await expect(page.locator('.app-legend')).toHaveAttribute('data-prime-color', 'pink');
+    await expect(flower).not.toBeVisible();
+});
+
 test.describe('desktop hover behavior', () => {
     test.use({ isMobile: false, hasTouch: false, viewport: { width: 1440, height: 1000 } });
     test('hovering the existing legend opens the centered flower and allows mouse selection', async ({ page }) => {
@@ -117,7 +133,7 @@ test.describe('desktop hover behavior', () => {
         const box = await flower.boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await flower.getByRole('button', { name: 'צבע ורוד', exact: true }).click();
-        await expect(page.getByRole('button', { name: 'בחירת צבע לראשוניים', exact: true })).toHaveAttribute('title', 'צבע הראשוניים: ורוד');
+        await expect(page.locator('.app-legend')).toHaveAttribute('data-prime-color', 'pink');
         await expect(flower).not.toBeVisible();
     });
 });
