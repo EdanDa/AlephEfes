@@ -73,29 +73,11 @@ test('detail rows open their own repeated occurrence and filters do not alter in
     await expect(page.getByRole('dialog').locator('.research-count')).toContainText('3 מופעים');
     await expect(page.getByRole('dialog').locator('.research-unit-source')).toContainText('שורה 2');
 });
-test('frequency and graph word selections expose the same inspector', async ({ page }) => {
+test('frequency value matches open the word inspector', async ({ page }) => {
     await open(page, { text: 'אב אב בא' });
     await page.getByRole('button', { name: 'שכיחות', exact: true }).click();
     await page.getByRole('button', { name: 'הצג מילים עם הערך 1', exact: true }).click();
-    await inspect(page, 'אב'); await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'רשת', exact: true }).click();
-    await page.getByLabel('בחירת מילה ברשת').fill('אב'); await page.getByRole('button', { name: 'בחר', exact: true }).click();
     await inspect(page, 'אב'); await expect(page.getByRole('dialog').locator('.research-count')).toContainText('2 מופעים');
-});
-test('graph exposes all value matches and distinguishes occurrences from forms', async ({ page }) => {
-    await open(page, { text: 'אב אב בא גד' });
-    await page.getByRole('button', { name: 'גרף', exact: true }).click();
-    await page.getByLabel('בחר ערך לבדיקה', { exact: true }).selectOption('1');
-    await expect(page.locator('.app-value-map')).toContainText('מופעים: 3');
-    await expect(page.locator('.app-value-map')).toContainText('מילים ייחודיות: 2');
-    await expect(page.locator('.app-value-map').getByRole('button', { name: 'בדוק מילה אב', exact: true })).toBeVisible();
-    await expect(page.locator('.app-value-map').getByRole('button', { name: 'בדוק מילה בא', exact: true })).toBeVisible();
-    await expect(page.locator('.app-value-map')).not.toContainText('ציון גישור');
-    await page.getByRole('button', { name: 'עשרות', exact: true }).click(); await page.getByRole('button', { name: 'מאות', exact: true }).click();
-    await expect(page.locator('.app-value-map')).toContainText('מופעים: 3');
-    await page.getByRole('button', { name: 'יחידות', exact: true }).click();
-    await expect(page.locator('.app-value-map').getByRole('status')).toContainText('אין ערכים');
-    await expect.poll(() => page.locator('.app-value-canvas canvas').evaluate((canvas) => canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.every((value) => value === 0))).toBe(true);
 });
 test('even word and letter centers remain visible without enabling numbering', async ({ page }) => {
     await open(page, { text: 'אב גד' }); const dialog = await inspect(page, 'אב');

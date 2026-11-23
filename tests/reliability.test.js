@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { computeCoreResults } from '../src/core/analysisCore.js';
-import { buildValueInsights } from '../src/core/valueInsights.js';
 import { getPinnedClusters } from '../src/core/wordConnections.js';
 import { appReducer, initialState } from '../src/state/appReducer.js';
 import { restoreSession, saveSession, SESSION_KEY } from '../src/state/sessionStorage.js';
@@ -12,26 +11,6 @@ const storage = () => {
     const values = new Map();
     return { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
 };
-
-test('value insights count occurrences once per value, retaining every matching layer in both modes', () => {
-    for (const mode of ['aleph-zero', 'aleph-one']) {
-        const core = computeCoreResults('אב אב בא', mode);
-        const [row] = buildValueInsights(core, allLayers);
-        assert.equal(row.totalOccurrences, 3);
-        assert.equal(row.uniqueWordCount, 2);
-        assert.equal(row.avgOccurrences, 1.5);
-        assert.equal(row.topWords[0].word, 'אב');
-        assert.deepEqual(row.topWords[0].layers, ['H', 'T', 'U']);
-        assert.equal(row.topWords.length, 2);
-        assert.equal(buildValueInsights(core, { ...allLayers, T: false, H: false })[0].totalOccurrences, 3);
-    }
-});
-
-test('insights respect prime and digital-root filters without changing occurrence weights', () => {
-    const core = computeCoreResults('אב אב בא גד גד גד', 'aleph-zero');
-    assert.deepEqual(buildValueInsights(core, { ...allLayers, Prime: true }).map((row) => [row.value, row.totalOccurrences]), [[5, 3]]);
-    assert.equal(buildValueInsights(core, allLayers, 1)[0].totalOccurrences, 3);
-});
 
 test('a pinned summary excludes unrelated words and connections through hidden layers', () => {
     const core = computeCoreResults('אב בא גד ברא אל', 'aleph-zero');

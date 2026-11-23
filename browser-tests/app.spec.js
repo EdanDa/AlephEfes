@@ -90,19 +90,6 @@ for (const mode of ['aleph-zero', 'aleph-one']) {
         }
     });
 
-    test(`the value map counts text occurrences once across equivalent layers (${mode})`, async ({ page }) => {
-        await open(page, 'אב אב', mode);
-        await view(page, 'גרף');
-        const result = await json(page);
-        expect(result.rows).toHaveLength(1);
-        expect(result.rows[0]).toMatchObject({ totalOccurrences: 2, uniqueWordCount: 1, avgOccurrences: 2, layerCount: 3 });
-        expect(result.rows[0].topWords).toEqual([{ word: 'אב', occurrences: 2, layers: ['H', 'T', 'U'] }]);
-        expect(result.metadata).toMatchObject({ mode, filters: { U: true, T: true, H: true, Prime: false } });
-        const csv = csvRows(await download(page, 'CSV'));
-        expect(csv[0].total_occurrences).toBe('2');
-        expect(csv[0].analysis_mode).toBe(mode);
-    });
-
     test(`pinned text, CSV and JSON select the same words (${mode})`, async ({ page, context }) => {
         await open(page, 'אב בא גד', mode);
         const card = page.getByRole('button', { name: 'נעץ מילה אב', exact: true });
@@ -317,13 +304,11 @@ for (const theme of ['light', 'dark']) {
             for (const mode of ['aleph-zero', 'aleph-one']) {
                 await page.getByRole('button', { name: mode === 'aleph-zero' ? 'א=0' : 'א=1', exact: true }).click();
                 await ready(page);
-                for (const [key, label] of [['frequency', 'שכיחות'], ['lines', 'פירוט'], ['clusters', 'קבוצות'], ['map', 'גרף'], ['network', 'רשת']]) {
+                for (const [key, label] of [['frequency', 'שכיחות'], ['lines', 'פירוט'], ['clusters', 'קבוצות']]) {
                     await view(page, label);
                     // Let the view-change scroll finish scheduling, then frame the actual controls.
                     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-                    const heading = key === 'network'
-                        ? page.getByRole('heading', { name: 'רשת', exact: true })
-                        : page.locator('.app-results-header').last();
+                    const heading = page.locator('.app-results-header').last();
                     await heading.evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY - 12, behavior: 'instant' }));
                     await page.screenshot({ path: testInfo.outputPath(`${mode}-${key}.png`) });
                     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

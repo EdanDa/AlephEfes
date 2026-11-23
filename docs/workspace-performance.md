@@ -22,8 +22,9 @@ The groups regression test checks the bounded DOM and verifies that JSON still
 contains every distinct word in the complete Genesis analysis. Existing export
 and corpus tests continue to validate counts and definitions.
 
-Reproduce with `scripts/browser-benchmark.mjs` against Vite production preview;
-set `BENCHMARK_URL` and, if required, `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome`.
+The current `scripts/browser-benchmark.mjs` measures analysis readiness and
+mounted elements in Groups. The Network timings in this report come from builds that included that view. Run the script against a Vite production preview
+with `BENCHMARK_URL` and, if required, `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome`.
 Raw local reports are under `.cache/verification/workspace-*-visible.json`.
 
 ## Final workspace, inspector and notes

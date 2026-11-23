@@ -88,9 +88,9 @@ for (const size of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { 
     });
     expect(ratios.filter((item) => item.ratio < 4.5)).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath('light-workspace.png') });
-    for (const name of ['קבוצות', 'פירוט', 'שכיחות', 'גרף', 'רשת']) {
+    for (const name of ['קבוצות', 'פירוט', 'שכיחות']) {
         await page.getByRole('button', { name, exact: true }).click();
-        const target = name === 'רשת' ? page.getByRole('heading', { name: 'רשת', exact: true }) : page.locator('.app-results-header').last();
+        const target = page.locator('.app-results-header').last();
         await target.evaluate((element) => scrollTo({ top: scrollY + element.getBoundingClientRect().top - 90, behavior: 'instant' }));
         await page.screenshot({ path: testInfo.outputPath(`light-${name}.png`) });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

@@ -1,5 +1,5 @@
 import { t } from '../i18n/locale.js';
-import useLanguage from '../i18n/LanguageContext.jsx';
+import useLanguage, { BilingualLabel } from '../i18n/LanguageContext.jsx';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
@@ -150,8 +150,8 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
             <div className={`tanakh-header p-5 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-slate-200 bg-white/70'}`}>
                 <div className="tanakh-header-row flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 className="text-2xl font-bold">{t("מקרא על פי המסורה")}</h2>
-                        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}>{t("כתיב בלבד · פרשיות מסורה רציפות · פרקים ופסוקים לאיתור בלבד")}</p>
+                        <h2 className="text-2xl font-bold"><BilingualLabel message="מקרא על פי המסורה" /></h2>
+                        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-slate-600'}`}><BilingualLabel message="כתיב בלבד · פרשיות מסורה רציפות · פרקים ופסוקים לאיתור בלבד" /></p>
                     </div>
                     {manifest && (
                         <div className="tanakh-meta-actions flex flex-col items-end gap-2">
@@ -162,14 +162,14 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                                     href={corpusUrl(manifest.downloads.fullCorpusJson)}
                                     download="aleph-efes-tanakh-corpus.json"
                                     className="tanakh-download inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                                >{t("הורד קורפוס מלא · א=0 / א=1 · JSON")}</a>
+                                ><BilingualLabel message="הורד קורפוס מלא · א=0 / א=1 · JSON" /></a>
                             )}
                             <div className="flex flex-wrap justify-end gap-3 text-xs">
                                 {manifest.downloads?.wordOccurrencesJson && (
-                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.wordOccurrencesJson)} download={manifest.downloads.wordOccurrencesJson}>{t("אינדקס מופעים · JSON")}</a>
+                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.wordOccurrencesJson)} download={manifest.downloads.wordOccurrencesJson}><BilingualLabel message="אינדקס מופעים · JSON" /></a>
                                 )}
                                 {manifest.downloads?.tokenLocationsJson && (
-                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.tokenLocationsJson)} download={manifest.downloads.tokenLocationsJson}>{t("מיקומי פסוקים · JSON")}</a>
+                                    <a className="text-blue-600 dark:text-blue-400 underline" href={corpusUrl(manifest.downloads.tokenLocationsJson)} download={manifest.downloads.tokenLocationsJson}><BilingualLabel message="מיקומי פסוקים · JSON" /></a>
                                 )}
                             </div>
                         </div>
@@ -234,7 +234,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                                         aria-pressed={selectionScope === scope.id}
                                         className={`rounded-md px-2 py-2 text-sm font-semibold transition-colors ${selectionScope === scope.id ? (isDarkMode ? 'bg-blue-500 text-white' : 'bg-white text-blue-700 shadow-sm') : ''}`}
                                     >
-                                        {t(scope.label)}
+                                        <BilingualLabel message={scope.label} />
                                     </button>
                                 ))}
                             </div>
@@ -271,7 +271,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                                     >
                                         {bookData.sections.map((section) => <option key={section.id} value={section.ordinal}>{sectionOptionLabel(section)}</option>)}
                                     </select>
-                                    <div className="grid grid-cols-2 gap-2 mt-3">
+                                    <div className="tanakh-section-navigation grid grid-cols-2 gap-2 mt-3" dir="rtl">
                                         <button type="button" disabled={rangeStart <= 1} onClick={() => moveSingleSection(-1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">{t("הקודמת")}</button>
                                         <button type="button" disabled={rangeStart >= bookData.sections.length} onClick={() => moveSingleSection(1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">{t("הבאה")}</button>
                                     </div>
@@ -280,7 +280,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
 
                             <dl className={`mt-4 text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
                                 <div className="flex justify-between gap-3"><dt>{t("בחירה")}</dt><dd className="font-semibold text-left">{tanakhSelectionLabel(activeSelection)}</dd></div>
-                                <div className="flex justify-between gap-3"><dt>{t("איתור")}</dt><dd className="font-semibold text-left">{locatorRangeLabel(activeSelection.locators)}</dd></div>
+                                <div className="tanakh-location flex justify-between gap-3"><dt>{t("איתור")}</dt><dd className="font-semibold text-left">{locatorRangeLabel(activeSelection.locators)}</dd></div>
                                 <div className="flex justify-between"><dt>{t("פרשיות")}</dt><dd className="font-semibold">{activeSelection.sectionCount.toLocaleString('he-IL')}</dd></div>
                                 <div className="flex justify-between"><dt>{t("מילים")}</dt><dd className="font-semibold">{activeSelection.wordCount.toLocaleString('he-IL')}</dd></div>
                                 <div className="tanakh-letter-count flex justify-between" title={t("אותיות החישוב בלבד; ללא ניקוד, טעמים, רווחים וסימני פיסוק.")}><dt>{t("אותיות")}</dt><dd className="font-semibold">{activeSelection.letterCount.toLocaleString('he-IL')}</dd></div>

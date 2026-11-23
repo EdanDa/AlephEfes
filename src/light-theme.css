@@ -39,7 +39,6 @@
 .app-shell[data-theme="light"] thead { background: var(--subtle); color: var(--muted); }
 .app-shell[data-theme="light"] .research-detail-table tbody tr { background: var(--paper); }
 .app-shell[data-theme="light"] .research-detail-table tbody tr:hover { background: var(--accent-soft); }
-.app-shell[data-theme="light"] :is(.app-value-canvas, .app-network-canvas) { background: #fafbfc; border-color: var(--line); }
 :root:not(.dark) .research-dialog { background: var(--paper); color: var(--ink); box-shadow: -8px 0 48px #202c3d1c; }
 :root:not(.dark) .research-dialog > header { border-color: var(--line); }
 :root:not(.dark) .research-dialog :is(input:not([type="checkbox"]), select, textarea) { background: var(--paper); color: var(--ink); border-color: #cbd3dd; }

@@ -48,7 +48,9 @@ export function saveSession(state, storage) {
 function restorePreferences(record) {
     const p = record.preferences || {};
     const result = {};
-    if (['clusters', 'lines', 'hot-words', 'graph', 'network'].includes(p.view)) result.view = p.view;
+    if (['clusters', 'lines', 'hot-words'].includes(p.view)) result.view = p.view;
+    if (p.view === 'graph') result.view = 'hot-words';
+    if (p.view === 'network') result.view = 'clusters';
     if (['sm', 'md', 'lg'].includes(p.textSize)) result.textSize = p.textSize;
     if (p.wordNumberingStart === 0 || p.wordNumberingStart === 1) result.wordNumberingStart = p.wordNumberingStart;
     if (p.filters && ['U', 'T', 'H', 'Prime'].every((key) => typeof p.filters[key] === 'boolean')) result.filters = Object.fromEntries(['U', 'T', 'H', 'Prime'].map((key) => [key, p.filters[key]]));

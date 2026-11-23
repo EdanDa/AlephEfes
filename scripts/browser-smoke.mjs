@@ -15,14 +15,13 @@ try {
     await page.goto(url);
     await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
     await expect(page.getByRole('button', { name: 'א=1', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('button', { name: 'רשת', exact: true }).click();
-    await page.getByRole('button', { name: 'השהה תנועה', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('מושהית');
+    await expect(page.locator('.app-view-tab')).toHaveCount(3);
     if (stage >= 2) {
-        await page.getByLabel('בחירת מילה ברשת').fill('אב'); await page.getByRole('button', { name: 'בחר', exact: true }).click();
+        await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('אב');
         await page.getByRole('button', { name: 'בדוק מילה אב', exact: true }).click();
         await expect(page.getByRole('dialog').locator('.research-count')).toContainText('2 מופעים');
         await page.keyboard.press('Escape');
+        await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('');
     }
     if (stage >= 3) {
         await page.getByRole('button', { name: 'קבוצות', exact: true }).click();

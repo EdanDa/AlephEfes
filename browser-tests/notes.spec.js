@@ -62,9 +62,10 @@ test('a corpus inspector note contains the complete unit list and an explicitly 
     expect(text.split('\n').filter((line) => line.startsWith('| אלהים |'))).toHaveLength(6);
     await page.keyboard.press('Escape'); await expect(inspector.getByRole('button', { name: 'הערת מחקר', exact: true })).toBeFocused();
 });
-test('graph notes use the selected value and active layer filters', async ({ page }) => {
+test('frequency notes use the selected value and active layer filters', async ({ page }) => {
     await open(page, { text: 'אב אב בא גד' });
-    await page.getByRole('button', { name: 'גרף', exact: true }).click(); await page.getByLabel('בחר ערך לבדיקה').selectOption('1');
+    await page.getByRole('button', { name: 'שכיחות', exact: true }).click();
+    await page.getByRole('button', { name: 'הצג מילים עם הערך 1', exact: true }).click();
     await page.getByRole('button', { name: 'עשרות', exact: true }).click(); await page.getByRole('button', { name: 'מאות', exact: true }).click();
     const dialog = await menuNote(page);
     await expect(dialog.locator('.research-note-preview')).toContainText('ערך נבחר: 1');

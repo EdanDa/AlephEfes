@@ -26,12 +26,16 @@ export function subscribeLanguage(listener) {
     return () => listeners.delete(listener);
 }
 
+export function translateLabel(key, locale) {
+    return locale === 'en' && Object.hasOwn(english, key) ? english[key] : key;
+}
+
 // Tagged messages keep interpolated words and numbers out of the dictionary.
 /** @param {string | TemplateStringsArray} message @param {...any} values */
 export function t(message, ...values) {
     const key = typeof message === 'string' ? message
         : message.reduce((text, part, i) => text + (i ? `{${i - 1}}` : '') + part, '');
-    const result = language === 'en' && Object.prototype.hasOwnProperty.call(english, key) ? english[key] : key;
+    const result = translateLabel(key, language);
     return values.length ? result.replace(/\{(\d+)\}/g, (_, n) => String(values[n])) : result;
 }
 

@@ -13,8 +13,6 @@ try {
         const page = await context.newPage();
         await page.addInitScript((text) => {
             localStorage.setItem('alephEfes:session', JSON.stringify({ version: 1, text, mode: 'aleph-zero', corpusSelection: null }));
-            window.benchmarkTasks = [];
-            new PerformanceObserver((entries) => window.benchmarkTasks.push(...entries.getEntries().map((entry) => ({ start: entry.startTime, duration: entry.duration })))).observe({ type: 'longtask', buffered: true });
         }, text);
         const started = Date.now();
         await page.goto(baseURL);
@@ -24,17 +22,12 @@ try {
         await page.getByRole('heading', { name: 'קבוצות לפי שורש דיגיטלי', exact: true }).evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY, behavior: 'instant' }));
         await page.waitForTimeout(250);
         const elements = await page.locator('*').count();
-        await page.getByRole('button', { name: /^(רשת|רשת קשרים)$/ }).click();
-        await page.locator('.app-network-canvas').evaluate((element) => window.scrollTo({ top: element.getBoundingClientRect().top + scrollY, behavior: 'instant' }));
-        await page.evaluate(() => { window.benchmarkTasks = []; window.benchmarkStart = performance.now(); });
-        await page.waitForTimeout(5000);
-        const tasks = await page.evaluate(() => window.benchmarkTasks.filter((entry) => entry.start >= window.benchmarkStart));
-        runs.push({ readyMs, groupElements: elements, networkLongTaskMs: tasks.reduce((sum, entry) => sum + entry.duration, 0), networkMaxTaskMs: Math.max(0, ...tasks.map((entry) => entry.duration)), networkLongTasks: tasks.length });
+        runs.push({ readyMs, groupElements: elements });
         await context.close();
     }
 } finally { await browser.close(); }
 const median = (key) => runs.map((run) => run[key]).sort((a, b) => a - b)[2];
-const report = { baseURL, device: 'Pixel 7 emulation, 390x844, desktop CPU without throttling', observationMs: 5000, runs, median: Object.fromEntries(Object.keys(runs[0]).map((key) => [key, median(key)])) };
+const report = { baseURL, device: 'Pixel 7 emulation, 390x844, desktop CPU without throttling', runs, median: Object.fromEntries(Object.keys(runs[0]).map((key) => [key, median(key)])) };
 fs.mkdirSync(new URL('../.cache/verification/', import.meta.url), { recursive: true });
 fs.writeFileSync(output, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
