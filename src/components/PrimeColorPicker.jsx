@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { COLOR_PALETTE, PRIME_COLOR_HEX } from '../core/analysisCore.js';
@@ -48,10 +49,10 @@ export default forwardRef(function PrimeColorPicker({ color, onChange, anchor },
             buttons[next].focus();
         } else if (event.key === 'Tab' && (event.shiftKey ? index === 0 : index === buttons.length - 1)) { event.preventDefault(); close(true); }
     };
-    return open ? createPortal(<div id="prime-color-flower" ref={panel} role="group" aria-label="צבעי הראשוניים" className="app-color-picker" style={{ top }} onMouseEnter={cancelClose} onMouseLeave={leave} onFocusCapture={() => { cancelClose(); pinned.current = true; }} onKeyDown={keyboard}>
+    return open ? createPortal(<div id="prime-color-flower" ref={panel} role="group" aria-label={t("צבעי הראשוניים")} className="app-color-picker" style={{ top }} onMouseEnter={cancelClose} onMouseLeave={leave} onFocusCapture={() => { cancelClose(); pinned.current = true; }} onKeyDown={keyboard}>
             <div className="app-color-petals">{colors.map((key, index) => {
                 const angle = 2 * Math.PI / (colors.length - 1) * (index - 1) - Math.PI / 2;
-                return <button key={key} type="button" aria-label={`צבע ${COLOR_PALETTE[key].name}`} aria-pressed={color === key} className="app-color-petal" style={{ background: key === 'yellow' ? '#facc15' : PRIME_COLOR_HEX[key], width: index ? 28 : 32, height: index ? 28 : 32, top: `calc(50% + ${index ? 36 * Math.sin(angle) : 0}px)`, left: `calc(50% + ${index ? 36 * Math.cos(angle) : 0}px)` }} onClick={() => { onChange(key); close(true); }} />;
+                return <button key={key} type="button" aria-label={t`צבע ${t(COLOR_PALETTE[key].name)}`} aria-pressed={color === key} className="app-color-petal" style={{ background: key === 'yellow' ? '#facc15' : PRIME_COLOR_HEX[key], width: index ? 28 : 32, height: index ? 28 : 32, top: `calc(50% + ${index ? 36 * Math.sin(angle) : 0}px)`, left: `calc(50% + ${index ? 36 * Math.cos(angle) : 0}px)` }} onClick={() => { onChange(key); close(true); }} />;
             })}</div>
         </div>, document.body) : null;
 });

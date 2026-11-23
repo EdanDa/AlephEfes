@@ -1,4 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../i18n/locale.js';
+import useLanguage from '../i18n/LanguageContext.jsx';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppState, useAppDispatch } from '../state/appStore';
 import WordInspector from './WordInspector';
 import ResearchNote from './ResearchNote';
@@ -8,9 +10,10 @@ export const useResearch = () => useContext(ResearchContext);
 export function InspectWord({ word, lineIndex, wordPosition, compact = false }) {
     const { inspect } = useResearch();
     const { isAnalysisStale } = useAppState();
-    return <button type="button" className={`research-inspect ${compact ? 'research-inspect-compact' : ''}`} disabled={isAnalysisStale} title={`בדוק מילה ${word}`} aria-label={`בדוק מילה ${word}`} onClick={(event) => { event.stopPropagation(); inspect(word, { lineIndex, wordPosition }); }}>{compact ? '⋯' : 'בדוק מילה'}</button>;
+    return <button type="button" className={`research-inspect ${compact ? 'research-inspect-compact' : ''}`} disabled={isAnalysisStale} title={t`בדוק מילה ${word}`} aria-label={t`בדוק מילה ${word}`} onClick={(event) => { event.stopPropagation(); inspect(word, { lineIndex, wordPosition }); }}>{compact ? '⋯' : t('בדוק מילה')}</button>;
 }
 export default function ResearchWorkspace({ children }) {
+    useLanguage();
     const state = useAppState(), dispatch = useAppDispatch();
     const [request, setRequest] = useState(null), [focus, setFocus] = useState(null);
     const [noteRequest, setNoteRequest] = useState(null), selectedLine = useRef(null);

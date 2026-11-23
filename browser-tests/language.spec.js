@@ -1,0 +1,112 @@
+import { test, expect } from '@playwright/test';
+
+for (const [width, height] of [[390, 844], [820, 850], [1280, 800]]) {
+    test(`the language switch keeps the reading workspace in place at ${width}px`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height });
+        await page.goto('/?lang=he');
+        await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
+        await page.getByRole('button', { name: 'פרשיה אחת', exact: true }).click();
+        await page.getByRole('button', { name: 'נתח את הפרשיה', exact: true }).click();
+        await page.getByRole('button', { name: 'פירוט', exact: true }).click();
+        const row = page.locator('.app-line-disclosure').first();
+        if (await row.getAttribute('aria-expanded') !== 'true') await row.click();
+        await expect(row).toHaveAttribute('aria-expanded', 'true');
+        await page.locator('.app-language-switch').scrollIntoViewIfNeeded();
+        const geometry = () => page.evaluate(() => Object.fromEntries([
+            '.app-language-switch', '.app-header-copy', '.app-title', '.app-repository-link', '.app-value-table-action',
+            '.app-theme-toggle', '.app-mode-toggle', '.app-clear-control', '.app-text-size-control select',
+            '.app-source-controls button', '.app-input-toolbar', '.app-view-tabs', '.app-legend'
+        ].map(selector => {
+            const r = document.querySelector(selector).getBoundingClientRect();
+            return [selector, [r.left, r.top + scrollY]];
+        })));
+        const before = await geometry();
+        await page.evaluate(() => { document.body.dataset.sameWorkspace = 'true'; });
+        await page.locator('.app-language-switch').click();
+        await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+        await expect(page.locator('body')).toHaveAttribute('data-same-workspace', 'true');
+        await expect(page.getByRole('button', { name: 'One section', exact: true })).toBeVisible();
+        await expect(page.locator('.app-text-size-control option:checked')).toHaveText('Medium');
+        await expect(page.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-pressed', 'true');
+        await expect(row).toHaveAttribute('aria-expanded', 'true');
+        const after = await geometry();
+        for (const key of Object.keys(before)) {
+            expect(Math.abs(after[key][0] - before[key][0]), key + ' x').toBeLessThanOrEqual(2);
+            // View tabs follow the translated navigator, which can wrap to another line.
+            if (key !== '.app-view-tabs' && !key.startsWith('.app-input') && !key.startsWith('.app-mode') && !key.startsWith('.app-clear') && !key.startsWith('.app-text-size')) {
+                expect(Math.abs(after[key][1] - before[key][1]), key + ' y').toBeLessThanOrEqual(2);
+            }
+        }
+        const toggle = page.locator('.app-mode-toggle button').first();
+        expect(await toggle.locator('bdo').getAttribute('dir')).toBe('ltr');
+        await expect(toggle).toHaveText('א=0');
+        const passage = row.locator('.app-line-text');
+        await expect(passage).toHaveAttribute('dir', 'rtl');
+        await expect(passage).toHaveCSS('word-break', 'normal');
+        const table = page.locator('.research-detail-table').first();
+        const word = await table.locator('thead th').first().boundingBox();
+        const sum = await table.locator('thead th').nth(1).boundingBox();
+        expect(word.x).toBeGreaterThan(sum.x);
+        await expect(table.locator('tbody tr').first().locator('td').nth(1)).toHaveText('1+19+0+20+9+21');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        await row.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: testInfo.outputPath('line-reading-en.png') });
+        await page.locator('.app-language-switch').click();
+        await expect(row).toHaveAttribute('aria-expanded', 'true');
+        await expect(page.getByRole('button', { name: 'פרשיה אחת', exact: true })).toBeVisible();
+    });
+}
+
+test('the centered globe and the Hebrew reading order survive an English interface', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('alephEfes:session', JSON.stringify({
+        version: 2, text: 'בראשית ברא אלהים את השמים', mode: 'aleph-zero',
+        corpusSelection: null, preferences: {},
+    })));
+    await page.goto('/?lang=en');
+    const globe = page.getByRole('link', { name: 'עברית', exact: true });
+    await expect(globe).toHaveText('🌐');
+    for (const width of [390, 1100]) {
+        await page.setViewportSize({ width, height: 800 });
+        const centerOffset = await globe.evaluate((node) => {
+            const rect = node.getBoundingClientRect();
+            return Math.abs(rect.left + rect.width / 2 - document.documentElement.clientWidth / 2);
+        });
+        expect(centerOffset).toBeLessThanOrEqual(2);
+    }
+    await expect(page.getByRole('heading', { name: 'א=0', exact: true })).toBeVisible();
+    await page.getByRole('textbox', { name: /Search for a Hebrew word/ }).fill('בראשית');
+    await page.getByRole('button', { name: 'Inspect word בראשית', exact: true }).first().click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('1 occurrence of בראשית in this unit');
+    const passage = dialog.locator('.research-passage');
+    await expect(passage).toHaveAttribute('dir', 'rtl');
+    const first = passage.locator('[data-word-position="1"]');
+    const second = passage.locator('[data-word-position="2"]');
+    const rect1 = await first.boundingBox();
+    const rect2 = await second.boundingBox();
+    expect(rect1.x).toBeGreaterThan(rect2.x);
+    await dialog.getByRole('checkbox', { name: 'Letter numbers' }).check();
+    const letter1 = await first.locator('[data-letter-position="1"]').boundingBox();
+    const letter2 = await first.locator('[data-letter-position="2"]').boundingBox();
+    expect(letter1.x).toBeGreaterThan(letter2.x);
+});
+
+test('switching language preserves the Hebrew text, mapping and source', async ({ page }) => {
+    await page.goto('/?lang=en');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await page.getByRole('button', { name: 'Open Tanakh', exact: true }).click();
+    await page.getByRole('button', { name: 'One section', exact: true }).click();
+    await page.getByRole('button', { name: 'Analyze this section', exact: true }).click();
+    const input = page.getByRole('textbox', { name: 'Text to analyze', exact: true });
+    await expect(input).toHaveValue(/^בראשית ברא /);
+    const text = await input.inputValue();
+    await page.getByRole('button', { name: 'א=1', exact: true }).click();
+    await page.getByRole('link', { name: 'עברית', exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'he');
+    await expect(page.getByRole('textbox', { name: 'טקסט לניתוח', exact: true })).toHaveValue(text);
+    await expect(page.getByRole('heading', { name: 'א=1', exact: true })).toBeVisible();
+    await expect(page.getByText(/MAM · בראשית · פרשיה 1/)).toBeVisible();
+    await page.getByRole('link', { name: 'English', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'א=1', exact: true })).toBeVisible();
+    await expect(page.getByText(/MAM · Genesis · Section 1/)).toBeVisible();
+});

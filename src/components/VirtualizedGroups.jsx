@@ -1,4 +1,7 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../i18n/locale.js';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+
+const createTextMeasurer = () => document.createElement('canvas').getContext('2d');
 
 // A single document scroll keeps group navigation usable on phones. Only nearby
 // rows (and the focused row) are mounted; exports use the complete source data.
@@ -6,8 +9,7 @@ export default function VirtualizedGroups({ groups, renderWord, clusterRefs }) {
     const root = useRef(null);
     const [viewport, setViewport] = useState({ top: 0, height: 900, width: 300, scale: 1, font: '700 18.4px sans-serif', valueFont: '12px monospace', fontSize: 18.4 });
     const [focusedRow, setFocusedRow] = useState(null);
-    const [fontRevision, setFontRevision] = useState(0);
-    const measure = useMemo(() => document.createElement('canvas').getContext('2d'), []);
+    const [measure, setMeasure] = useState(createTextMeasurer);
     const rows = useMemo(() => {
         let top = 0;
         return groups.flatMap(({ dr, words }) => {
@@ -35,7 +37,7 @@ export default function VirtualizedGroups({ groups, renderWord, clusterRefs }) {
             flush();
             return result;
         });
-    }, [groups, viewport.width, viewport.scale, viewport.font, viewport.valueFont, viewport.fontSize, measure, fontRevision]);
+    }, [groups, viewport.width, viewport.scale, viewport.font, viewport.valueFont, viewport.fontSize, measure]);
     useLayoutEffect(() => {
         let frame;
         const update = () => {
@@ -52,7 +54,7 @@ export default function VirtualizedGroups({ groups, renderWord, clusterRefs }) {
         const observer = new ResizeObserver(schedule);
         observer.observe(root.current);
         const fontObserver = new MutationObserver(schedule); fontObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-        const fontsChanged = () => { setFontRevision((revision) => revision + 1); schedule(); };
+        const fontsChanged = () => { setMeasure(createTextMeasurer()); schedule(); };
         document.fonts?.addEventListener('loadingdone', fontsChanged);
         addEventListener('scroll', schedule, { passive: true });
         addEventListener('resize', schedule);
@@ -83,7 +85,7 @@ export default function VirtualizedGroups({ groups, renderWord, clusterRefs }) {
     return <div ref={root} className="workspace-virtual-groups" style={{ position: 'relative', height }}>
         {visible.map((row) => <div key={row.key} data-row={row.key} onFocus={() => setFocusedRow(row.key)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusedRow(null); }} onKeyDown={(event) => moveFocus(event, row)} style={{ position: 'absolute', top: row.top, width: '100%', height: row.height }}>
             {row.words ? <div className="workspace-word-grid" style={{ display: 'flex', gap: 8 }}>{row.words.map(({ wordData, width, height, wrap }) => <div key={wordData.word} style={{ width, height, flexShrink: 0, '--word-card-height': `${height}px`, '--word-title-wrap': wrap ? 'normal' : 'nowrap' }}>{renderWord(wordData)}</div>)}</div>
-                : <h3 ref={(element) => { clusterRefs.current[row.dr] = element; }} className="workspace-group-heading">ש״ד {row.dr} · {row.count} צורות מילים</h3>}
+                : <h3 ref={(element) => { clusterRefs.current[row.dr] = element; }} className="workspace-group-heading">{t("ש״ד ")}{row.dr} · {row.count}{t(" צורות מילים")}</h3>}
         </div>)}
     </div>;
 }

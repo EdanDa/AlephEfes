@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { computeCoreResults } from './analysisCore.js';
 
 export function centerPositions(length) {
@@ -18,7 +19,13 @@ export function makeResearchUnit(text, mode, metadata = {}) {
 }
 
 export function manualResearchUnits(text, mode) {
-    return text.split('\n').flatMap((line, index) => line.trim() ? [makeResearchUnit(line, mode, { id: `manual-line-${index + 1}`, lineNumber: index + 1, label: `שורה ${index + 1}`, source: null })] : []);
+    return text.split('\n').flatMap((line, index) => line.trim() ? [makeResearchUnit(line, mode, { id: `manual-line-${index + 1}`, lineNumber: index + 1, label: t`שורה ${index + 1}`, source: null })] : []);
+}
+
+export function researchUnitLabel(unit) {
+    if (unit.source?.ordinal && unit.source.bookName) return t`${t(unit.source.bookName)} · פרשיה ${unit.source.ordinal}`;
+    if (unit.lineNumber) return t`שורה ${unit.lineNumber}`;
+    return unit.label;
 }
 
 // Use the same tokenizer as analysis. A query must be exactly one word.
@@ -32,11 +39,13 @@ export function passageOccurrences(units, word) {
 }
 
 export function locatorText(locator) {
-    return locator ? `${locator.subBook || locator.book24 || ''} ${locator.chapter}:${locator.verse}` : '';
+    if (!locator) return '';
+    const book = locator.subBook || (locator.book24 || '').replace(/^(ספר|מגילת)\s+/u, '');
+    return `${t(book)} ${locator.chapter},${locator.verse}`;
 }
 
 export function boundaryText(boundary, initial = false) {
-    if (!boundary) return initial ? 'תחילת הספר' : 'סוף הספר';
-    const types = { petuhah: 'פתוחה', setumah: 'סתומה', 'shirah-setumah': 'גבול שירה', 'masoretic-book-part-spacing': 'ריווח חלק ספר' };
-    return `${types[boundary.normalizedType] || boundary.normalizedType} · ${boundary.upstreamMarker || ''} · ${locatorText(boundary.location)} · ${['inside-verse', 'within-verse'].includes(boundary.position) ? 'בתוך פסוק' : boundary.position === 'before-verse' ? 'לפני פסוק' : boundary.position || ''}`;
+    if (!boundary) return initial ? t('תחילת הספר') : t('סוף הספר');
+    const types = { petuhah: t('פתוחה'), setumah: t('סתומה'), 'shirah-setumah': t('גבול שירה'), 'masoretic-book-part-spacing': t('ריווח חלק ספר') };
+    return `${types[boundary.normalizedType] || boundary.normalizedType} · ${boundary.upstreamMarker || ''} · ${locatorText(boundary.location)} · ${['inside-verse', 'within-verse'].includes(boundary.position) ? t('בתוך פסוק') : boundary.position === 'before-verse' ? t('לפני פסוק') : boundary.position || ''}`;
 }

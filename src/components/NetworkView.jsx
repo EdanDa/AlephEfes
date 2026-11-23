@@ -1,13 +1,19 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../i18n/locale.js';
+import useLanguage from '../i18n/LanguageContext.jsx';
+import LayoutWorker from '../workers/networkLayout.worker.js?worker';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { buildWordConnectionIndex } from '../core/networkLayout.js';
 import { COLOR_PALETTE, LAYER_COLORS, PRIME_COLOR_HEX } from '../core/analysisCore.js';
 import { InspectWord, useResearch } from './ResearchWorkspace';
 import ExportMenu from './ExportMenu';
 
 export default memo(function NetworkView({ coreResults, filters, isDarkMode, primeColor, onWordClick, selectedDR }) {
+    useLanguage();
     const { openNote } = useResearch();
     const canvasRef = useRef(null), hostRef = useRef(null), control = useRef(null);
+    const layoutGeneration = useRef(0);
     const [paused, setPaused] = useState(false);
+    const pausedRef = useRef(false);
     const [status, setStatus] = useState('running');
     const [selected, setSelected] = useState(null);
     const [query, setQuery] = useState('');
@@ -16,8 +22,8 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
     callback.current = onWordClick;
     useEffect(() => {
         const canvas = canvasRef.current, host = hostRef.current, ctx = canvas.getContext('2d');
-        const generation = crypto.randomUUID();
-        let alive = true, worker = null, frame = null, fallback = false, userPaused = paused, inView = true, settled = false;
+        const generation = ++layoutGeneration.current;
+        let alive = true, worker = null, frame = null, inView = true, settled = false;
         let size = { width: host.clientWidth, height: host.clientHeight, dpr: Math.min(devicePixelRatio || 1, 2) };
         let transform = { x: 0, y: 0, k: 1 }, drag = null, selectedId = null, hoveredId = null;
         const nodes = graph.nodes.map((node, index) => {
@@ -64,13 +70,17 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
             ctx.globalAlpha = 1;
         };
         const requestDraw = () => { if (!frame) frame = requestAnimationFrame(draw); };
-        const fail = () => { fallback = true; worker?.terminate(); worker = null; if (alive) setStatus('fallback'); requestDraw(); };
+        const fail = () => { worker?.terminate(); worker = null; if (alive) setStatus('fallback'); requestDraw(); };
         const send = (message) => { try { worker?.postMessage({ generation, ...message }); } catch { fail(); } };
-        const syncPause = () => { send({ type: 'pause', paused: userPaused || document.hidden || !inView }); requestDraw(); };
+        const syncPause = (restart = false) => {
+            send({ type: 'pause', paused: pausedRef.current || document.hidden || !inView, restart });
+            requestDraw();
+        };
+        const visibilityChanged = () => syncPause();
         const resize = () => { size = { ...size, width: host.clientWidth, height: host.clientHeight }; canvas.width = size.width * size.dpr; canvas.height = size.height * size.dpr; requestDraw(); };
         const ro = new ResizeObserver(resize); ro.observe(host); resize();
         try {
-            worker = new Worker(new URL('../workers/networkLayout.worker.js', import.meta.url), { type: 'module' });
+            worker = new LayoutWorker();
             worker.onerror = (event) => { event.preventDefault(); fail(); };
             worker.onmessageerror = fail;
             worker.onmessage = ({ data }) => {
@@ -86,7 +96,7 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
             syncPause();
         } catch { fail(); }
         const io = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; syncPause(); }); io.observe(host);
-        document.addEventListener('visibilitychange', syncPause);
+        document.addEventListener('visibilitychange', visibilityChanged);
         const point = (event) => { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left - transform.x) / transform.k, y: (event.clientY - rect.top - transform.y) / transform.k }; };
         const nearest = (p) => { let found = null, best = (24 / transform.k) ** 2; for (const node of nodes) { const distance = (node.x - p.x) ** 2 + (node.y - p.y) ** 2; if (distance < best) { best = distance; found = node; } } return found; };
         const down = (event) => { if (!event.isPrimary || event.button !== 0) return; canvas.setPointerCapture(event.pointerId); drag = { node: nearest(point(event)), x: event.clientX, y: event.clientY, moved: false }; };
@@ -112,27 +122,27 @@ export default memo(function NetworkView({ coreResults, filters, isDarkMode, pri
         const zoom = (factor) => { const next = Math.max(0.1, Math.min(5, transform.k * factor)); transform = { x: size.width / 2 - (size.width / 2 - transform.x) * next / transform.k, y: size.height / 2 - (size.height / 2 - transform.y) * next / transform.k, k: next }; requestDraw(); };
         const wheel = (event) => { event.preventDefault(); zoom(event.deltaY < 0 ? 1.1 : 0.9); };
         control.current = (action, value) => {
-            if (action === 'pause') { userPaused = value; send({ type: 'pause', paused: userPaused || document.hidden || !inView, restart: !value }); requestDraw(); }
+            if (action === 'pause') { pausedRef.current = value; syncPause(!value); }
             else if (action === 'reset') { transform = { x: 0, y: 0, k: 1 }; requestDraw(); }
             else if (action === 'select') { selectedId = nodeIndices.has(value) ? value : null; setSelected(nodes.find((node) => node.id === selectedId) || null); requestDraw(); }
             else zoom(action === 'in' ? 1.25 : 0.8);
         };
         canvas.addEventListener('pointerdown', down); canvas.addEventListener('pointermove', move); canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.addEventListener('wheel', wheel, { passive: false });
         requestDraw();
-        return () => { alive = false; worker?.terminate(); cancelAnimationFrame(frame); io.disconnect(); ro.disconnect(); document.removeEventListener('visibilitychange', syncPause); control.current = null; canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel); };
+        return () => { alive = false; worker?.terminate(); cancelAnimationFrame(frame); io.disconnect(); ro.disconnect(); document.removeEventListener('visibilitychange', visibilityChanged); control.current = null; canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move); canvas.removeEventListener('pointerup', up); canvas.removeEventListener('pointercancel', up); canvas.removeEventListener('wheel', wheel); };
     }, [graph, isDarkMode, primeColor]);
     return <section className={`app-results-card app-network-card p-4 rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50 border-slate-300'}`}>
-        <h2 className="app-results-title text-center font-bold mb-4">רשת</h2>
-        <ExportMenu><button onClick={() => openNote(selected?.type === 'word' ? { word: selected.id } : { value: selected?.value ?? null })}>הערת מחקר</button></ExportMenu>
+        <h2 className="app-results-title text-center font-bold mb-4">{t("רשת")}</h2>
+        <ExportMenu><button onClick={() => openNote(selected?.type === 'word' ? { word: selected.id } : { value: selected?.value ?? null })}>{t("הערת מחקר")}</button></ExportMenu>
         <div className="app-canvas-toolbar flex flex-wrap justify-center gap-2 mb-3">
-            <button aria-label="הגדל את רשת הקשרים" onClick={() => control.current?.('in')}>+</button><button aria-label="הקטן את רשת הקשרים" onClick={() => control.current?.('out')}>−</button>
-            <button onClick={() => control.current?.('reset')}>איפוס תצוגה</button>
-            <button disabled={status === 'fallback'} aria-pressed={paused} onClick={() => { setPaused(!paused); control.current?.('pause', !paused); }}>{paused ? 'המשך תנועה' : 'השהה תנועה'}</button>
+            <button aria-label={t("הגדל את רשת הקשרים")} onClick={() => control.current?.('in')}>+</button><button aria-label={t("הקטן את רשת הקשרים")} onClick={() => control.current?.('out')}>−</button>
+            <button onClick={() => control.current?.('reset')}>{t("איפוס תצוגה")}</button>
+            <button disabled={status === 'fallback'} aria-pressed={paused} onClick={() => { setPaused(!paused); control.current?.('pause', !paused); }}>{paused ? t('המשך תנועה') : t('השהה תנועה')}</button>
         </div>
-        <p className="text-sm text-center mb-3" role="status">{status === 'fallback' ? 'פריסה סטטית · אפשר לבחור, לגרור ולהגדיל' : paused ? 'התנועה מושהית' : status === 'settled' ? 'הפריסה התייצבה' : 'מסדר את הרשת…'}</p>
-        <details className="workspace-help"><summary>איך חוקרים את הרשת?</summary><p>המילים מחוברות לערכיהן בשכבות המוצגות. גררו להזזה והקישו לבחירה. ברשת גדולה תוויות מופיעות בבחירה או בהגדלה.</p></details>
-        <form className="workspace-network-search" onSubmit={(event) => { event.preventDefault(); control.current?.('select', query.trim()); }}><label>בחירת מילה ברשת <input value={query} onChange={(event) => setQuery(event.target.value)} /></label><button>בחר</button></form>
-        <div ref={hostRef} className="app-network-canvas relative w-full h-[600px] overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border"><canvas ref={canvasRef} className="w-full h-full block" style={{ touchAction: 'none' }} aria-label="רשת קשרים; ניתן לבחור מילה גם בשדה החיפוש" /></div>
-        {selected && <div className="workspace-network-selection"><strong>{selected.type === 'word' ? selected.id : `ערך ${selected.value}`}</strong>{selected.type === 'word' && <><button onClick={() => callback.current?.(selected.data)}>הצג קשרי מילה</button><InspectWord word={selected.id} /></>}</div>}
+        <p className="text-sm text-center mb-3" role="status">{status === 'fallback' ? t('פריסה סטטית · אפשר לבחור, לגרור ולהגדיל') : paused ? t('התנועה מושהית') : status === 'settled' ? t('הפריסה התייצבה') : t('מסדר את הרשת…')}</p>
+        <details className="workspace-help"><summary>{t("איך חוקרים את הרשת?")}</summary><p>{t("המילים מחוברות לערכיהן בשכבות המוצגות. גררו להזזה והקישו לבחירה. ברשת גדולה תוויות מופיעות בבחירה או בהגדלה.")}</p></details>
+        <form className="workspace-network-search" onSubmit={(event) => { event.preventDefault(); control.current?.('select', query.trim()); }}><label>{t("בחירת מילה ברשת ")}<input value={query} onChange={(event) => setQuery(event.target.value)} /></label><button>{t("בחר")}</button></form>
+        <div ref={hostRef} className="app-network-canvas relative w-full h-[600px] overflow-hidden bg-slate-100 dark:bg-gray-900 rounded-lg border"><canvas ref={canvasRef} className="w-full h-full block" style={{ touchAction: 'none' }} aria-label={t("רשת קשרים; ניתן לבחור מילה גם בשדה החיפוש")} /></div>
+        {selected && <div className="workspace-network-selection"><strong>{selected.type === 'word' ? selected.id : t`ערך ${selected.value}`}</strong>{selected.type === 'word' && <><button onClick={() => callback.current?.(selected.data)}>{t("הצג קשרי מילה")}</button><InspectWord word={selected.id} /></>}</div>}
     </section>;
 });

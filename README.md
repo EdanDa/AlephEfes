@@ -2,9 +2,9 @@
 
 Aleph Efes is Edan-David Eyon’s calculator and research project on the consonantal text of the Hebrew Bible. Its starting question is simple enough to try by hand. If a Hebrew word has an alphabetic value of 51, what occupies word 51 in the passage where it occurs? The research follows such observations through the spelling, the boundaries of the passage, other books and, where possible, another textual witness.
 
-[Open the web calculator](https://aleph-efes.vercel.app/)
+## Open Aleph Efes
 
-## Using the calculator
+[עברית](https://aleph-efes.vercel.app/?lang=he) · [English](https://aleph-efes.vercel.app/?lang=en)
 
 Paste Hebrew text or open a Tanakh book, section or range. Switch between `א=0` and `א=1` to compare the same text. **Details** shows each word in order and how its letters add up. **Inspect word** finds its occurrences. A **Research note** keeps the selected text, counts, positions and source together.
 
@@ -48,6 +48,7 @@ A broader question gives a different perspective. Across all 305,437 tokens, a w
 | Exodus | מועד gives 35, 98, 98 at zero. It occurs 35 times in Exodus and in 98 distinct sections across the Tanakh. | In 34 of the 35 Exodus occurrences the preceding word is אהל, באהל or לאהל. Repetition of “tent of meeting” helps explain why the book count is concentrated there. |
 | Joshua | The final section has 90 words and ends with אפרים. The earlier אפרים ends at the 90th consonant. | Applying the same forward count everywhere gives 8 matches among 4,039 sections. The open/closed partition gives 6 among 3,696. |
 | Daniel | Across the book’s 5,923 words, the middle word is להקמותה. Its two middle consonants lie ten words earlier in סרכיא. Both can be located at Daniel 6,4. | Counting the Aramaic span from the start of the Aramaic speech in Daniel 2,4 through Daniel 7,28 gives a different word center, לך. The counted extent is part of the finding. |
+| Psalms | In the 49-word section at Psalms 67,2–67,8, עמים (“peoples”) occurs at 15, 18, 25, 32 and 35. Each position reflects onto another occurrence or itself about word 25. In the 45-word section at Psalms 93,1–93,5, נהרות (“rivers”) occurs at 20, 23 and 26. | Requiring at least three occurrences of one exact spelling and reflection of **every** occurrence yields 13 spelling–section pairs across all 4,039 sections. These are the two in Psalms. The rule depends only on word order and section boundaries. [Psalms text](public/corpus/books/psalms.json) |
 
 The corpus comprises 305,437 word occurrences in 4,039 MAM sections. Calculations use written consonants (*ketiv*). Research positions start at 1 in either mapping. Chapter and verse numbers locate the text. [Exodus](public/corpus/books/exodus.json) · [Joshua](public/corpus/books/joshua.json) · [Daniel](public/corpus/books/daniel.json) · [Manifest](public/corpus/manifest.json)
 

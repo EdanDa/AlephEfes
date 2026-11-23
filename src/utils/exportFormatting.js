@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 export function stripTrailingSpacesPerLine(text) {
   if (typeof text !== 'string') return '';
   return text
@@ -15,7 +16,7 @@ export function formatTextForClipboard(text) {
   if (!cleaned) return '';
 
   const normalized = cleaned.trimStart();
-  const headerLine = `${COPY_LAYER_LEGEND} ${COPY_PRIME_LEGEND}`;
+  const headerLine = `${t(COPY_LAYER_LEGEND)} ${t(COPY_PRIME_LEGEND)}`;
   if (normalized.startsWith(headerLine)) return cleaned;
 
   return `${headerLine}\n---\n\n${cleaned}`;

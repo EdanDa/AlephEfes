@@ -1,3 +1,4 @@
+import { t } from '../i18n/locale.js';
 import { countCalculationLetters } from './analysisCore.js';
 
 const VALID_SCOPES = new Set(['section', 'range', 'book']);
@@ -42,14 +43,14 @@ export function createTanakhSelection(sections, requestedScope = 'section', requ
 
 export function tanakhSelectionLabel(selection) {
     if (!selection) return '';
-    if (selection.scope === 'book') return 'הספר כולו';
-    if (selection.sectionCount === 1) return `פרשיה ${selection.startOrdinal}`;
-    return `פרשיות ${selection.startOrdinal}–${selection.endOrdinal}`;
+    if (selection.scope === 'book') return t('הספר כולו');
+    if (selection.sectionCount === 1) return t`פרשיה ${selection.startOrdinal}`;
+    return t`פרשיות ${selection.startOrdinal}–${selection.endOrdinal}`;
 }
 
 export function tanakhActionLabel(selection) {
     if (!selection) return '';
-    if (selection.scope === 'book') return 'נתח את הספר כולו';
-    if (selection.sectionCount === 1) return 'נתח את הפרשיה';
-    return `נתח ${selection.sectionCount.toLocaleString('he-IL')} פרשיות`;
+    if (selection.scope === 'book') return t('נתח את הספר כולו');
+    if (selection.sectionCount === 1) return t('נתח את הפרשיה');
+    return t`נתח ${selection.sectionCount.toLocaleString('he-IL')} פרשיות`;
 }

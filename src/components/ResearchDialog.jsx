@@ -1,4 +1,5 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import { direction, t } from '../i18n/locale.js';
+import { useLayoutEffect, useRef } from 'react';
 
 export default function ResearchDialog({ title, onClose, children, wide = false }) {
     const dialog = useRef(null), close = useRef(onClose);
@@ -16,8 +17,8 @@ export default function ResearchDialog({ title, onClose, children, wide = false 
         const next = event.shiftKey ? items.at(-1) : items[0];
         if (document.activeElement === (event.shiftKey ? items[0] : items.at(-1)) || !dialog.current.contains(document.activeElement)) { event.preventDefault(); next.focus(); }
     };
-    return <dialog ref={dialog} tabIndex={-1} dir="rtl" aria-label={title} className={`research-dialog ${wide ? 'research-dialog-wide' : ''}`} onKeyDown={trapFocus} onCancel={(event) => { event.preventDefault(); close.current(); }}>
-        <header><h2>{title}</h2><button autoFocus type="button" onClick={onClose} aria-label="סגור חלונית">סגור ×</button></header>
+    return <dialog ref={dialog} tabIndex={-1} dir={direction} aria-label={title} className={`research-dialog ${wide ? 'research-dialog-wide' : ''}`} onKeyDown={trapFocus} onCancel={(event) => { event.preventDefault(); close.current(); }}>
+        <header><h2>{title}</h2><button autoFocus type="button" onClick={onClose} aria-label={t("סגור חלונית")}>{t("סגור ×")}</button></header>
         <div className="research-dialog-content">{children}</div>
     </dialog>;
 }

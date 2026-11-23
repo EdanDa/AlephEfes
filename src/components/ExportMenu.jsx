@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { t } from '../i18n/locale.js';
+import { useEffect, useRef, useState } from 'react';
 
 export default function ExportMenu({ children, disabled = false }) {
     const ref = useRef(null);
@@ -11,7 +12,7 @@ export default function ExportMenu({ children, disabled = false }) {
     return <details ref={ref} onToggle={(event) => setOpen(event.currentTarget.open)} className="app-export-toolbar workspace-export-menu" onKeyDown={(event) => {
         if (event.key === 'Escape') { ref.current.removeAttribute('open'); ref.current.querySelector('summary button').focus(); }
     }}>
-        <summary><button type="button" disabled={disabled} aria-haspopup="true" aria-expanded={open} onClick={(event) => { event.preventDefault(); ref.current.open = !ref.current.open; }}>העתקה וייצוא ▾</button></summary>
+        <summary><button type="button" disabled={disabled} aria-haspopup="true" aria-expanded={open} onClick={(event) => { event.preventDefault(); ref.current.open = !ref.current.open; }}>{t("העתקה וייצוא ▾")}</button></summary>
         <div className="workspace-export-options" onClick={(event) => { event.stopPropagation(); if (event.target.closest('button') && !event.target.closest('button').disabled) { ref.current.open = false; ref.current.querySelector('summary button').focus(); } }}>{children}</div>
     </details>;
 }
