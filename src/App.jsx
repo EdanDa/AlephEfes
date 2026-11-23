@@ -736,17 +736,18 @@ const StatsPanel = memo(() => {
     if (!stats) return null;
 
     const isSectionSelection = Boolean(corpusSelection && corpusSelection.sectionCount === stats.totalLines);
-    const unitName = isSectionSelection ? t('פרשיות') : t('שורות');
+    const unitLabel = isSectionSelection ? 'פרשיות' : 'שורות';
+    const unitName = t(unitLabel);
     const uniqueShare = stats.totalWords > 0 ? ((stats.uniqueWords / stats.totalWords) * 100).toFixed(1) : '0.0';
     const averageWords = stats.totalLines > 0 ? (stats.totalWords / stats.totalLines).toFixed(1) : '0.0';
     const summaryItems = [
-        { label: unitName, value: stats.totalLines, title: t`מספר ה${unitName} בטקסט המחושב` },
-        { label: t('מילים'), value: stats.totalWords, title: t('מספר כל מופעי המילים בטקסט') },
-        { label: t('אותיות'), value: stats.totalLetters, title: t('כל מופעי אותיות החישוב בטקסט המקור, לפני סינון; ללא ניקוד, טעמים, רווחים וסימני פיסוק') },
-        { label: t('מילים ייחודיות'), value: stats.uniqueWords, secondary: t`${uniqueShare}% מן המופעים`, title: t('מספר צורות המילה השונות ושיעורן מכלל המופעים') },
-        { label: t`מילים ל${isSectionSelection ? t('פרשיה') : t('שורה')}`, value: averageWords, title: t`הממוצע האריתמטי של מספר המילים בכל ${isSectionSelection ? t('פרשיה') : t('שורה')}` },
-        { label: t`${unitName} עם סכום ראשוני`, value: stats.primeLineTotals, title: t`מספר ה${unitName} שבהן לפחות אחד מסכומי היחידות, העשרות או המאות הוא מספר ראשוני` },
-        { label: t('ערכים מקשרים'), value: connectionValues.size, title: t('ערכים מספריים המופיעים ביותר ממילה ייחודית אחת בשכבות המוצגות') },
+        { label: unitLabel, value: stats.totalLines, title: t`מספר ה${unitName} בטקסט המחושב` },
+        { label: 'מילים', value: stats.totalWords, title: t('מספר כל מופעי המילים בטקסט') },
+        { label: 'אותיות', value: stats.totalLetters, title: t('כל מופעי אותיות החישוב בטקסט המקור, לפני סינון; ללא ניקוד, טעמים, רווחים וסימני פיסוק') },
+        { label: 'מילים ייחודיות', value: stats.uniqueWords, secondary: <BilingualLabel message="{0}% מן המופעים" values={[uniqueShare]} />, title: t('מספר צורות המילה השונות ושיעורן מכלל המופעים') },
+        { label: isSectionSelection ? 'מילים לפרשיה' : 'מילים לשורה', value: averageWords, title: t`הממוצע האריתמטי של מספר המילים בכל ${isSectionSelection ? t('פרשיה') : t('שורה')}` },
+        { label: isSectionSelection ? 'פרשיות עם סכום ראשוני' : 'שורות עם סכום ראשוני', value: stats.primeLineTotals, title: t`מספר ה${unitName} שבהן לפחות אחד מסכומי היחידות, העשרות או המאות הוא מספר ראשוני` },
+        { label: 'ערכים מקשרים', value: connectionValues.size, title: t('ערכים מספריים המופיעים ביותר ממילה ייחודית אחת בשכבות המוצגות') },
     ];
 
     return (
@@ -760,7 +761,7 @@ const StatsPanel = memo(() => {
                 <div className="app-stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3 text-center mt-6">
                     {summaryItems.map((item, index) => (
                         <div key={item.label} title={item.title} className={`min-h-28 p-4 rounded-lg bg-slate-200 dark:bg-gray-700/50 noselect cursor-help flex flex-col justify-center ${index === summaryItems.length - 1 ? 'col-span-2 md:col-span-3 xl:col-span-1' : ''}`}>
-                            <p className="app-stat-label text-sm text-gray-700 dark:text-gray-300 font-semibold">{item.label}</p>
+                            <p className="app-stat-label text-sm text-gray-700 dark:text-gray-300 font-semibold"><BilingualLabel message={item.label} /></p>
                             <p className="app-stat-value text-3xl font-bold text-slate-900 dark:text-gray-100">{item.value}</p>
                             {item.secondary && <p className="app-stat-secondary mt-1 text-xs text-gray-600 dark:text-gray-400">{item.secondary}</p>}
                         </div>
@@ -2002,7 +2003,7 @@ const App = () => {
                                     className={`rounded-full border px-5 py-2 font-semibold transition-colors ${isTanakhOpen ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : (isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100')}`}
                                     aria-expanded={isTanakhOpen}
                                 >
-                                    {isTanakhOpen ? t('סגור תנ״ך') : t('פתח תנ״ך')}
+                                    <BilingualLabel message={isTanakhOpen ? 'סגור תנ״ך' : 'פתח תנ״ך'} />
                                 </button>
                                 {corpusSelection && (
                                     <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
@@ -2032,7 +2033,7 @@ const App = () => {
                                     onClick={handleClearText}
                                     disabled={!text}
                                     className={`px-4 py-1 text-sm font-semibold rounded-md border transition-colors noselect ${!text ? 'opacity-50 cursor-not-allowed' : ''} ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 disabled:hover:bg-white'}`}
-                                >{t("אפס")}</button>
+                                ><BilingualLabel message="אפס" /></button>
                             </div>
                             <label className="app-text-size-control text-sm font-semibold noselect">
                                 <span>{t("גודל גופן")}</span>
@@ -2071,9 +2072,9 @@ const App = () => {
                     {hasInput && (
                         <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
                             <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
-                                <button aria-label={t("שכיחות")} aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label">{t("שכיחות")}</span></button>
-                                <button aria-label={t("פירוט")} aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label">{t("פירוט")}</span></button>
-                                <button aria-label={t("קבוצות")} aria-pressed={view === 'clusters'} onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="groups" className="w-4 h-4" /><span className="app-view-tab-label">{t("קבוצות")}</span></button>
+                                <button aria-label={t("שכיחות")} aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="שכיחות" /></span></button>
+                                <button aria-label={t("פירוט")} aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="פירוט" /></span></button>
+                                <button aria-label={t("קבוצות")} aria-pressed={view === 'clusters'} onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="groups" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="קבוצות" /></span></button>
                                 <button type="button" disabled={!showScrollTop} className="app-nav-top rounded-full" aria-label={t("גלול לראש העמוד")} onClick={scrollToTop}><Icon name="arrow-up" className="w-5 h-5" /></button>
                             </div>
                         </div>
@@ -2191,11 +2192,11 @@ const App = () => {
                                         {coreResults.lines.some((line) => line.words.length > 1) && <div className="research-numbering-control">
                                             <span>{t("מספור מילים בשורה")}</span>
                                             <div role="group" aria-label={t("תחילת מספור המילים")} className="research-numbering-options">
-                                                {[1, 0].map((start) => <button key={start} type="button" aria-pressed={wordNumberingStart === start} onClick={() => dispatch({ type: 'SET_WORD_NUMBERING_START', payload: start })}>{t("ספירה מ־")}{start}</button>)}
+                                                {[1, 0].map((start) => <button key={start} type="button" aria-pressed={wordNumberingStart === start} onClick={() => dispatch({ type: 'SET_WORD_NUMBERING_START', payload: start })}><BilingualLabel message="ספירה מ־{0}" values={[start]} /></button>)}
                                             </div>
                                             <small><BilingualLabel message="לפי המיקום בשורת המקור, לפני סינון." /></small>
                                         </div>}
-                                        <button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors noselect">{coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? t('קפל הכל') : t('פתח הכל')}</button>
+                                        <button onClick={() => dispatch({ type: 'TOGGLE_ALL_ROWS' })} className="bg-gray-200 dark:bg-gray-700/50 text-slate-600 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors noselect"><BilingualLabel message={coreResults && Object.keys(expandedRows).length === coreResults.lines.length && Object.values(expandedRows).every(v => v) ? 'קפל הכל' : 'פתח הכל'} /></button>
                                     </div>
                                     {coreResults.lines.map((lineResult, lineIndex) => {
                                         const isExpanded = !!expandedRows[lineIndex];
@@ -2228,7 +2229,7 @@ const App = () => {
                                                 </button>
                                                 {isExpanded && (
                                                     <div className="overflow-x-auto mt-4">
-                                                        <table className="research-detail-table min-w-full">
+                                                        <table className="research-detail-table">
                                                             <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                                                 <tr>
                                                                     <th scope="col" className="app-word-column">{t("מילה")}</th>
@@ -2241,7 +2242,7 @@ const App = () => {
                                                             </thead>
                                                             <tbody>{visibleWords.map((res, index) => (
                                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
-                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word">{lineResult.words.length > 1 && <span className="research-detail-position" dir="ltr" aria-label={t`מיקום מילה בשורה: ${visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}`}>{visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}</span>}<bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
+                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 rounded-r-lg text-right"><span className="research-detail-word">{lineResult.words.length > 1 && <span className="research-detail-position" dir="ltr" aria-label={t`מיקום מילה בשורה: ${visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}`}>{visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}</span>}<bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
                                                                     <td dir="ltr" className="app-letter-sum font-mono">{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
@@ -2260,14 +2261,14 @@ const App = () => {
                                 <div className={`p-4 sm:p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                                     <div className="app-results-header mb-4">
                                         <ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' />
-                                        <h2 className="app-results-title text-center font-bold noselect">{t("סיכום מילים ייחודיות (")}{coreResults.allWords.length}{t(" מילים)")}</h2>
+                                        <h2 className="app-results-title text-center font-bold noselect"><BilingualLabel message="סיכום מילים ייחודיות ({0} מילים)" values={[coreResults.allWords.length]} /></h2>
                                         <div className={`app-segmented-control items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                                             <button aria-pressed={detailsView === 'lines'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("שורות")}</button>
                                             <button aria-pressed={detailsView === 'words'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("מילים")}</button>
                                         </div>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <table className="app-word-table research-detail-table min-w-full">
+                                        <table className="app-word-table research-detail-table">
                                             <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
                                                 <tr>
                                                     <th scope="col" className="app-word-column">{t("מילה")}</th>
@@ -2280,7 +2281,7 @@ const App = () => {
                                             </thead>
                                             <tbody>{visibleAllWords.map((res, index) => (
                                                 <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
-                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 whitespace-nowrap rounded-r-lg text-right"><span className="research-detail-word"><bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} compact /></span></td>
+                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 rounded-r-lg text-right"><span className="research-detail-word"><bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} compact /></span></td>
                                                     <td dir="ltr" className="app-letter-sum font-mono">{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
                                                     {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
                                                     {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
@@ -2329,8 +2330,8 @@ const App = () => {
                                     {selectedHotValue === null ? (
                                         <div>
                                             <div className={`app-frequency-table-header flex text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
-                                                <button type="button" className="w-1/4 text-right cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })} aria-label={t("מיין לפי ערך")}>{t("ערך ")}{hotSort.key === 'value' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
-                                                <button type="button" className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })} aria-label={t("מיין לפי כמות מילים")}>{t("כמות ")}{hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
+                                                <button type="button" className="w-1/4 text-right cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'value' })} aria-label={t("מיין לפי ערך")}><BilingualLabel message="ערך {0}" values={[hotSort.key === 'value' ? (hotSort.order === 'desc' ? '↓' : '↑') : '']} /></button>
+                                                <button type="button" className="w-1/4 text-center cursor-pointer" onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })} aria-label={t("מיין לפי כמות מילים")}><BilingualLabel message="כמות {0}" values={[hotSort.key === 'count' ? (hotSort.order === 'desc' ? '↓' : '↑') : '']} /></button>
                                                 <div className="w-1/2">{t("מילים")}</div>
                                             </div>
                                             <VirtualizedList
@@ -2389,7 +2390,7 @@ const App = () => {
                                 <div>
                                     <div className={`app-word-frequency-row text-right sticky top-0 p-2 font-semibold border-b noselect ${isDarkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-slate-800 text-white border-slate-700'}`}>
                                         <div className="min-w-0">{t("מילה")}</div>
-                                        <button type="button" className="min-w-0 text-center cursor-pointer" aria-label={t("מיין לפי כמות מופעים")} onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}>{t("כמות ")}{hotSort.key === 'count' && (hotSort.order === 'desc' ? '↓' : '↑')}</button>
+                                        <button type="button" className="min-w-0 text-center cursor-pointer" aria-label={t("מיין לפי כמות מופעים")} onClick={() => dispatch({ type: 'SET_HOT_SORT', payload: 'count' })}><BilingualLabel message="כמות {0}" values={[hotSort.key === 'count' ? (hotSort.order === 'desc' ? '↓' : '↑') : '']} /></button>
                                     </div>
                                     <VirtualizedList items={sortedHotViewList} itemHeight={60} listHeight={384} getKey={(item) => item.word} renderItem={({ word, count }) => (
                                         <div className="app-word-frequency-row items-center text-right hover:bg-gradient-to-l from-slate-100 to-indigo-100 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700/50 noselect" style={{ height: 60 }}>

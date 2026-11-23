@@ -140,7 +140,7 @@ html[dir="rtl"] body { direction: rtl; }
   border-bottom: 1px solid #94a3b844;
 }
 .app-source-controls { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-.app-source-controls button { flex: 0 0 9rem; min-height: 44px; padding-inline: .65rem; }
+.app-source-controls button { flex: 0 0 9rem; min-height: 44px; padding-inline: .4rem; }
 .app-source-controls > span { width: min(100%, 13.5rem); text-align: center; }
 .app-legend-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .25rem; }
 .app-legend-items button { justify-content: center; min-width: 0; }
@@ -192,6 +192,7 @@ html[dir="rtl"] body { direction: rtl; }
 .research-numbering-control > span, .research-numbering-control small { text-align: right; }
 .research-numbering-control small { grid-column: 1 / -1; }
 .research-numbering-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: center; }
+.research-numbering-options button { padding-inline: .25rem; }
 .app-word-frequency-row { display: grid; grid-template-columns: minmax(0, 1fr) 25% minmax(6rem, 20%); }
 .app-word-frequency-row > .research-inspect { justify-self: center; width: min(100%, 9rem); height: calc(100% - .5rem); padding: .125rem .25rem; }
 .research-detail-table { table-layout: fixed; min-width: 44rem; }
@@ -199,6 +200,7 @@ html[dir="rtl"] body { direction: rtl; }
 .research-detail-table .app-sum-column { width: 27%; }
 .research-detail-table .app-letter-sum { white-space: normal; overflow-wrap: anywhere; }
 .research-detail-word { max-width: 100%; overflow-wrap: anywhere; }
+.research-detail-word bdi { min-width: 0; }
 .app-card .tanakh-books { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr)); }
 .app-card .tanakh-division-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 24rem); margin-left: auto; }
 .tanakh-division-tabs button { padding-inline: .4rem; }
@@ -250,7 +252,6 @@ html[dir="rtl"] body { direction: rtl; }
   .app-card .tanakh-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .research-numbering-control { grid-template-columns: minmax(0, 14rem); gap: .25rem; }
   .research-numbering-control > span, .research-numbering-options, .research-numbering-control small { grid-column: 1; }
-  .research-numbering-options button { padding-inline: .25rem; }
   .research-detail-controls > button { width: 6rem; min-width: 0; }
 }
 @media (max-width: 360px) {

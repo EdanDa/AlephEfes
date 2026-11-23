@@ -26,8 +26,9 @@ export function subscribeLanguage(listener) {
     return () => listeners.delete(listener);
 }
 
-export function translateLabel(key, locale) {
-    return locale === 'en' && Object.hasOwn(english, key) ? english[key] : key;
+export function translateLabel(key, locale, ...values) {
+    const template = locale === 'en' && Object.hasOwn(english, key) ? english[key] : key;
+    return values.length ? template.replace(/\{(\d+)\}/g, (_, n) => String(values[n])) : template;
 }
 
 // Tagged messages keep interpolated words and numbers out of the dictionary.
@@ -35,8 +36,7 @@ export function translateLabel(key, locale) {
 export function t(message, ...values) {
     const key = typeof message === 'string' ? message
         : message.reduce((text, part, i) => text + (i ? `{${i - 1}}` : '') + part, '');
-    const result = translateLabel(key, language);
-    return values.length ? result.replace(/\{(\d+)\}/g, (_, n) => String(values[n])) : result;
+    return translateLabel(key, language, ...values);
 }
 
 export function switchLanguageUrl() {

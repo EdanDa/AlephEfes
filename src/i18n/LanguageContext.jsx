@@ -12,10 +12,10 @@ export default function useLanguage() {
     return useContext(LanguageContext);
 }
 
-// Size wrapping headings for both languages, including at enlarged font sizes.
-export function BilingualLabel({ message }) {
+// Reserve the larger translation's footprint even when a label wraps.
+export function BilingualLabel({ message, values = [] }) {
     const language = useLanguage();
-    return <span className="bilingual-label" data-alternate={translateLabel(message, language === 'en' ? 'he' : 'en')}>
-        <span>{translateLabel(message, language)}</span>
+    return <span className="bilingual-label" data-alternate={translateLabel(message, language === 'en' ? 'he' : 'en', ...values)}>
+        <span>{translateLabel(message, language, ...values)}</span>
     </span>;
 }
