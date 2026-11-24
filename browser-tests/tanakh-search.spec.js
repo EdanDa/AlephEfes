@@ -1,0 +1,68 @@
+import { test, expect } from '@playwright/test';
+
+test('search finds exact spellings and opens the selected pointed occurrence in One Section', async ({ page }) => {
+    const bookRequests = [];
+    page.on('request', request => { if (request.url().includes('/corpus/')) bookRequests.push(request.url()); });
+    await page.goto('/?lang=en');
+    await page.locator('.app-textarea').fill('אב');
+    await page.getByRole('button', { name: 'Open Tanakh', exact: true }).click();
+    const search = page.getByRole('searchbox', { name: 'Search the Tanakh' });
+    const results = page.locator('.tanakh-search-results button');
+    await search.fill('ABC 20+11');
+    await expect(search).toHaveValue('');
+    expect(bookRequests.some(url => url.includes('word-occurrences'))).toBe(false);
+    await search.fill('בְּרֵאשִׁית');
+    await expect(search).toHaveValue('בראשית');
+    await page.keyboard.insertText('֖');
+    await expect(search).toHaveValue('בראשית');
+    await expect(results).toHaveCount(5);
+    await expect(results.first()).toContainText('Genesis · Section 1');
+    await results.nth(1).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'One section', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#tanakh-section')).toHaveValue('148');
+    const match = page.locator('.tanakh-preview mark');
+    await expect(match).toBeFocused();
+    expect((await match.innerText()).normalize('NFKD').replace(/\p{M}/gu, '')).toBe('בראשית');
+    await expect(page.locator('.app-textarea')).toHaveValue('אב');
+    await search.evaluate(input => {
+        input.select();
+        const clipboardData = new DataTransfer();
+        clipboardData.setData('text/plain', 'בְּרֵאשִׁ֖ית\nבָּרָ֣א123');
+        input.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+    });
+    await expect(search).toHaveValue('בראשית ברא');
+    await expect(results).toHaveCount(1);
+    await results.first().click();
+    await expect(page.locator('#tanakh-section')).toHaveValue('1');
+    await expect(match).toHaveText('בְּרֵאשִׁ֖ית בָּרָ֣א');
+    await search.fill('עַל־פְּנֵ֣י');
+    await expect(search).toHaveValue('על פני');
+    await results.first().click();
+    await expect(match).toHaveText('עַל־פְּנֵ֣י');
+    await page.getByRole('button', { name: 'Analyze this section', exact: true }).click();
+    await expect(page.locator('.app-textarea')).toHaveValue(/^בראשית ברא /);
+    expect(bookRequests.some(url => url.endsWith('/aleph-efes-tanakh-corpus.json'))).toBe(false);
+});
+
+test('search can retry an index load, page through matches, and clear stale results', async ({ page }) => {
+    await page.route('**/*word-occurrences.json', route => route.abort(), { times: 1 });
+    await page.goto('/?lang=he');
+    await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
+    const region = page.getByRole('search');
+    const input = region.getByRole('searchbox');
+    await input.fill('את');
+    await region.getByRole('button', { name: 'נסה שוב' }).click();
+    const results = region.getByRole('listitem');
+    await expect(results).toHaveCount(8);
+    await expect(results.first()).toContainText('מילה 4');
+    await region.getByRole('button', { name: 'תוצאות נוספות' }).click();
+    await expect(region.getByRole('status')).toContainText('9–16');
+    await region.getByRole('button', { name: 'תוצאות קודמות' }).click();
+    await expect(results.first()).toContainText('מילה 4');
+    await input.fill('תתתתתתת');
+    await expect(region.getByRole('status')).toHaveText('לא נמצאו מופעים בכתיב הזה.');
+    await expect(results).toHaveCount(0);
+    await input.fill('');
+    await expect(region.getByRole('status')).toHaveCount(0);
+});

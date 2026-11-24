@@ -4,6 +4,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { createTanakhSelection, tanakhActionLabel, tanakhSelectionLabel } from '../core/tanakhSelection.js';
+import { sourceMatchRange } from '../core/tanakhSearch.js';
+import TanakhSearch from './TanakhSearch.jsx';
 
 const SELECTION_SCOPES = Object.freeze([
     { id: 'book', label: 'כל הספר' },
@@ -44,7 +46,9 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
     const [error, setError] = useState(null);
     const [manifestAttempt, setManifestAttempt] = useState(0);
     const [bookAttempt, setBookAttempt] = useState(0);
-    const initialSelectionRef = useRef(currentSelection);
+    const pendingSelectionRef = useRef(currentSelection);
+    const [searchHit, setSearchHit] = useState(null);
+    const matchRef = useRef(null);
 
     useEffect(() => {
         let active = true;
@@ -54,8 +58,8 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
             .then((data) => {
                 if (!active) return;
                 setManifest(data);
-                const selectedBookFromManifest = initialSelectionRef.current
-                    ? data.divisions.flatMap((item) => item.books).find((book) => book.slug === initialSelectionRef.current.bookSlug)
+                const selectedBookFromManifest = pendingSelectionRef.current
+                    ? data.divisions.flatMap((item) => item.books).find((book) => book.slug === pendingSelectionRef.current.bookSlug)
                     : null;
                 const division = data.divisions.find((item) => (
                     selectedBookFromManifest ? item.books.includes(selectedBookFromManifest) : item.id === 'torah'
@@ -85,7 +89,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
         loadVerifiedCorpusFile(selectedBook.file)
             .then((data) => {
                 if (!active) return;
-                const saved = initialSelectionRef.current;
+                const saved = pendingSelectionRef.current;
                 const restored = saved?.bookSlug === selectedBook.slug
                     ? createTanakhSelection(data.sections, saved.scope, saved.startSectionOrdinal, saved.endSectionOrdinal)
                     : null;
@@ -93,7 +97,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                 setRangeStart(restored?.startOrdinal || 1);
                 setRangeEnd(restored?.endOrdinal || 1);
                 setLoadedBook({ file: selectedBook.file, data });
-                initialSelectionRef.current = null;
+                pendingSelectionRef.current = null;
                 setStatus(null);
             })
             .catch((fetchError) => {
@@ -114,18 +118,52 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
         [bookData, rangeEnd, rangeStart, selectionScope],
     );
 
+    const matchRange = useMemo(() => {
+        if (!searchHit || activeSelection?.scope !== 'section' || activeSelection.sections[0].id !== searchHit.sectionId) return null;
+        return sourceMatchRange(activeSelection.sourceText, searchHit.position, searchHit.length);
+    }, [activeSelection, searchHit]);
+
+    useEffect(() => {
+        if (matchRange && matchRef.current) {
+            matchRef.current.focus({ preventScroll: true });
+            matchRef.current.scrollIntoView({ block: 'center', inline: 'nearest' });
+        }
+    }, [matchRange]);
+
+    const openSearchHit = (hit) => {
+        setSearchHit(hit);
+        setSelectedDivision(hit.divisionId);
+        if (selectedBook === hit.book && bookData) {
+            setSelectionScope('section');
+            setRangeStart(hit.ordinal);
+            setRangeEnd(hit.ordinal);
+        } else {
+            pendingSelectionRef.current = { bookSlug: hit.book.slug, scope: 'section', startSectionOrdinal: hit.ordinal, endSectionOrdinal: hit.ordinal };
+            setSelectedBook(hit.book);
+            if (selectedBook === hit.book && error) setBookAttempt(n => n + 1);
+        }
+    };
+
+    const chooseBook = (book) => {
+        pendingSelectionRef.current = null;
+        setSearchHit(null);
+        setSelectedBook(book);
+    };
+
     const chooseDivision = (division) => {
         setSelectedDivision(division.id);
-        setSelectedBook(division.books[0] || null);
+        chooseBook(division.books[0] || null);
     };
 
     const chooseScope = (scope) => {
+        setSearchHit(null);
         setSelectionScope(scope);
         if (scope === 'section') setRangeEnd(rangeStart);
         if (scope === 'range') setRangeEnd((currentEnd) => Math.max(currentEnd, rangeStart));
     };
 
     const chooseStart = (ordinal) => {
+        setSearchHit(null);
         setRangeStart(ordinal);
         setRangeEnd((currentEnd) => selectionScope === 'section' ? ordinal : Math.max(currentEnd, ordinal));
     };
@@ -133,8 +171,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
     const moveSingleSection = (delta) => {
         if (!bookData) return;
         const ordinal = Math.min(Math.max(rangeStart + delta, 1), bookData.sections.length);
-        setRangeStart(ordinal);
-        setRangeEnd(ordinal);
+        chooseStart(ordinal);
     };
 
     const loadProvenance = () => {
@@ -176,6 +213,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                     )}
                 </div>
 
+                {manifest && <TanakhSearch manifest={manifest} onOpen={openSearchHit} />}
                 {manifest && (
                     <div className={`tanakh-division-tabs inline-flex mt-4 p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-slate-200'}`}>
                         {manifest.divisions.map((division) => (
@@ -200,7 +238,7 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                             <button
                                 key={book.slug}
                                 type="button"
-                                onClick={() => setSelectedBook(book)}
+                                onClick={() => chooseBook(book)}
                                 aria-pressed={selectedBook?.slug === book.slug}
                                 className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${selectedBook?.slug === book.slug ? 'bg-blue-600 border-blue-600 text-white' : (isDarkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-slate-300 bg-white hover:bg-slate-100')}`}
                             >
@@ -290,7 +328,11 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
 
                         <div>
                             <div className={`tanakh-preview rounded-xl border p-5 max-h-96 overflow-y-auto whitespace-pre-wrap text-xl leading-9 ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
-                                {activeSelection.sourceText}
+                                {matchRange ? <>
+                                    {activeSelection.sourceText.slice(0, matchRange[0])}
+                                    <mark tabIndex={-1} ref={matchRef}>{activeSelection.sourceText.slice(...matchRange)}</mark>
+                                    {activeSelection.sourceText.slice(matchRange[1])}
+                                </> : activeSelection.sourceText}
                             </div>
                             <div className="tanakh-actions mt-4 flex justify-end">
                                 <button

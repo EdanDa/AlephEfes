@@ -24,8 +24,17 @@ for (const width of [320, 1280]) {
             if (lang === 'en') await page.locator('.app-language-switch').click();
             const tabs = page.locator('.app-view-tab');
             const middleTab = tabs.nth(1);
-            await expectCenteredText(middleTab.locator('.app-view-tab-label'), page.locator('.app-view-tabs'));
-            for (const tab of await tabs.all()) await expectCenteredText(tab.locator('.app-view-tab-label'), tab);
+            for (const tab of await tabs.all()) {
+                const offset = await tab.evaluate(button => {
+                    const range = document.createRange();
+                    range.selectNodeContents(button.querySelector('.bilingual-label > span'));
+                    const text = range.getBoundingClientRect();
+                    const icon = button.querySelector('svg').getBoundingClientRect();
+                    const box = button.getBoundingClientRect();
+                    return (Math.min(text.left, icon.left) + Math.max(text.right, icon.right) - box.left - box.right) / 2;
+                });
+                expect(Math.abs(offset)).toBeLessThanOrEqual(2);
+            }
             await expect(page.locator('.app-legend-items > *')).toHaveCount(4);
             await expect(page.locator('.app-legend-items > button')).toHaveCount(4);
             const fontSize = page.getByRole('combobox', { name: lang === 'he' ? 'גודל גופן' : 'Font size', exact: true });

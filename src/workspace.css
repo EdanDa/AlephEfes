@@ -205,6 +205,20 @@ html[dir="rtl"] body { direction: rtl; }
 .app-card .tanakh-division-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 24rem); margin-left: auto; }
 .tanakh-division-tabs button { padding-inline: .4rem; }
 .app-card .tanakh-scope-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tanakh-search { margin-top: 1rem; }
+.tanakh-search label { display: block; margin-bottom: .25rem; font-weight: 600; }
+.tanakh-search input { width: 100%; min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid #94a3b8; border-radius: .5rem; background: transparent; color: inherit; }
+.tanakh-search [role="status"] { margin-block: .5rem; font-size: .875rem; }
+.tanakh-search-results { max-height: 17rem; overflow-y: auto; list-style: none; margin: 0; padding: 0; border-block: 1px solid #94a3b866; }
+.tanakh-search-results button { display: grid; width: 100%; gap: .125rem; padding: .5rem .75rem; text-align: start; }
+.tanakh-search-results li + li { border-top: 1px solid #94a3b844; }
+.tanakh-search-results button:hover, .tanakh-search-results button:focus-visible { background: #94a3b822; }
+.tanakh-search-results button > span:first-child { font-size: .875rem; font-weight: 600; }
+.tanakh-search-excerpt { text-align: right; }
+.tanakh-search mark, .tanakh-preview mark { background: #fde68a; color: #352600; border-radius: .15rem; }
+.tanakh-search-pages { display: flex; justify-content: space-between; }
+.tanakh-search-pages button, .tanakh-search > button { min-height: 2.75rem; text-decoration: underline; }
+.tanakh-search-pages button:disabled { opacity: .45; }
 .tanakh-actions > button { min-inline-size: min(100%, 13rem); }
 .tanakh-meta-actions > span { min-width: 7rem; text-align: center; }
 .app-stat-label { display: grid; align-content: end; min-height: 2lh; }
@@ -220,7 +234,7 @@ html[dir="rtl"] body { direction: rtl; }
 
 @media (min-width: 641px) and (pointer: fine), (min-width: 1024px) {
   .app-view-tabs .app-view-tab { justify-content: center; gap: .3rem; min-width: 0; padding-inline: .4rem; }
-  .app-view-tab::after { content: ""; flex: 0 0 1rem; }
+  .app-view-tab-label .bilingual-label::after { content: none; }
   .app-view-tab svg { flex-shrink: 0; }
   .app-view-tab-label { text-align: center; }
 }

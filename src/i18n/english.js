@@ -1,4 +1,12 @@
 export default {
+  "חיפוש בתנ״ך": "Search the Tanakh",
+  "טעינת מפתח החיפוש נכשלה.": "The search index could not be loaded.",
+  "טוען את מפתח החיפוש…": "Loading the search index…",
+  "לא נמצאו מופעים בכתיב הזה.": "No matches for this spelling.",
+  "מופעים {0}–{1} מתוך {2}": "Matches {0}–{1} of {2}",
+  "מילה {0}": "Word {0}",
+  "תוצאות קודמות": "Previous results",
+  "תוצאות נוספות": "More results",
   "קטן": "Small",
   "בינוני": "Medium",
   "גדול": "Large",

@@ -75,6 +75,12 @@ function normalizeSearchInput(value = '') {
         .join(' ');
 }
 
+// Keep the last space so a second word can be typed into the controlled input.
+export function normalizeTanakhSearchInput(value) {
+    return value.normalize('NFKD').replace(/[\s־׃׀–—-]+/gu, ' ')
+        .replace(/[^א-ת ]/gu, '').replace(/ +/gu, ' ').trimStart();
+}
+
 export {
     EN_TO_HE_LETTER_MAP,
     EN_TO_HE_PUNCT_LETTER_MAP,
