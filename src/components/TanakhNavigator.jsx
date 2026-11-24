@@ -126,10 +126,14 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
     }, [activeSelection, searchHit]);
 
     useEffect(() => {
-        if (matchRange && matchRef.current) {
-            matchRef.current.focus({ preventScroll: true });
-            matchRef.current.scrollIntoView({ block: 'center', inline: 'nearest' });
-        }
+        if (!matchRange) return;
+        const frame = requestAnimationFrame(() => {
+            const match = matchRef.current;
+            if (!match) return;
+            match.focus({ preventScroll: true });
+            match.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+        });
+        return () => cancelAnimationFrame(frame);
     }, [matchRange]);
 
     const chooseBook = (book) => {
@@ -248,7 +252,7 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
                 )}
 
                 {bookData && activeSelection && (
-                    <div className="tanakh-workspace grid lg:grid-cols-[19rem_1fr] gap-5">
+                    <div className="tanakh-workspace">
                         <div className={`tanakh-controls rounded-xl p-4 ${isDarkMode ? 'bg-gray-700/60' : 'bg-slate-100'}`}>
                             <div className={`tanakh-scope-tabs grid grid-cols-3 gap-1 p-1 rounded-lg mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-slate-200'}`} aria-label={t("היקף הבחירה")}>
                                 {SELECTION_SCOPES.map((scope) => (
@@ -314,7 +318,7 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
                         </div>
 
                         <div>
-                            <div className={`tanakh-preview rounded-xl border p-5 max-h-96 overflow-y-auto whitespace-pre-wrap text-xl leading-9 ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
+                            <div className={`tanakh-preview rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
                                 {matchRange ? <>
                                     {activeSelection.sourceText.slice(0, matchRange[0])}
                                     <mark tabIndex={-1} ref={matchRef}>{activeSelection.sourceText.slice(...matchRange)}</mark>

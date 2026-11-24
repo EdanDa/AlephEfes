@@ -1,5 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+for (const width of [390, 1280]) {
+    test(`opening a closed viewer brings a deep match into view at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 780 });
+        await page.goto('/?lang=he');
+        await expect(page.locator('.app-corpus-panel')).toHaveCount(0);
+        await page.getByRole('searchbox').fill('ישופך');
+        await page.getByRole('search').getByRole('button', { name: /ישופך/ }).click();
+
+        await expect(page.locator('#tanakh-section')).toHaveValue('8');
+        const match = page.locator('.tanakh-preview mark');
+        await expect(match).toBeFocused();
+        await expect.poll(() => match.evaluate(word => {
+            const preview = word.closest('.tanakh-preview');
+            const box = preview.getBoundingClientRect();
+            const rect = word.getBoundingClientRect();
+            return preview.scrollTop > 0 && rect.top >= box.top && rect.bottom <= box.bottom &&
+                document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === word;
+        })).toBe(true);
+    });
+}
+
 test('search finds exact spellings and opens the selected pointed occurrence in One Section', async ({ page }) => {
     const bookRequests = [];
     page.on('request', request => { if (request.url().includes('/corpus/')) bookRequests.push(request.url()); });
