@@ -17,11 +17,11 @@ try {
     await expect(page.getByRole('button', { name: 'א=1', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.app-view-tab')).toHaveCount(3);
     if (stage >= 2) {
-        await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('אב');
+        await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('אב');
         await page.getByRole('button', { name: 'בדוק מילה אב', exact: true }).click();
         await expect(page.getByRole('dialog').locator('.research-count')).toContainText('2 מופעים');
         await page.keyboard.press('Escape');
-        await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('');
+        await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('');
     }
     if (stage >= 3) {
         await page.getByRole('button', { name: 'קבוצות', exact: true }).click();

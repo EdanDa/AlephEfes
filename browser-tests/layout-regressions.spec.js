@@ -9,7 +9,7 @@ for (const theme of ['light', 'dark']) for (const width of [320, 390, 1440]) tes
         localStorage.setItem('alephEfes:session', JSON.stringify({ version: 2, text, mode: 'aleph-zero', corpusSelection: { bookSlug: 'genesis', bookName: 'בראשית', scope: 'section', startSectionOrdinal: 75, endSectionOrdinal: 75, sectionCount: 1 } }));
     }, { theme, text: section.calculationText });
     await page.goto('/'); await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
-    await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('הישמעאלים');
+    await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('הישמעאלים');
     const card = page.getByRole('button', { name: 'נעץ מילה הישמעאלים', exact: true });
     await card.scrollIntoViewIfNeeded();
     await expect.poll(() => card.locator('.research-word-title').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);

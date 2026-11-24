@@ -6,6 +6,7 @@ import VirtualizedList from './components/VirtualizedList';
 import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
 import PrimeColorPicker from './components/PrimeColorPicker';
+import TanakhSearch from './components/TanakhSearch';
 import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
 import './light-theme.css';
@@ -993,7 +994,8 @@ const ClusterView = memo(({ clusterRefs, unpinOnBackgroundClick, filteredWordsIn
                 <DigitalRootHeading as="h2" message="קבוצות לפי שורש דיגיטלי" tooltipId="groups-dr-definition" />
             </div>
             <div className="mb-4">
-                <input dir="rtl" type="text" placeholder={t("חפש מילה, מספר או צירוף כמו 20+11...")} value={searchTerm} onChange={handleSearchChange} className={`w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
+                <input dir="rtl" type="text" aria-label={t("חיפוש בקבוצות")} aria-describedby="groups-search-hint" placeholder={t("חפש מילה או ערך")} value={searchTerm} onChange={handleSearchChange} className={`workspace-search-field w-full p-2 border rounded-md text-right ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'border-slate-300'}`} />
+                <small id="groups-search-hint" className="groups-search-hint"><BilingualLabel message="20+11 מחפש את שני הערכים באותה מילה, בשכבות שנבחרו." /></small>
             </div>
             <VirtualizedGroups groups={filteredWordsInView} clusterRefs={clusterRefs} renderWord={(wordData) => (
                 <WordCard key={wordData.word} wordData={wordData} isAnalysisStale={isAnalysisStale} pinnedWord={pinnedWord} activeWord={activeWord} activeWordKey={activeWordKey} isConnectedToActive={connectedWordsSet.has(wordData.word)} isDarkMode={isDarkMode} primeColor={primeColor} connectionValues={scopedConnectionValues} dispatch={dispatch} filters={filters} />
@@ -1417,7 +1419,8 @@ const App = () => {
         stats, connectionValues, valueToWordsMap, filters,
         hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
     } = state;
-    const [isTanakhOpen, setIsTanakhOpen] = useState(false);
+    const [tanakhPanel, setTanakhPanel] = useState(null);
+    const isTanakhOpen = tanakhPanel !== null;
 
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
@@ -1999,7 +2002,7 @@ const App = () => {
                             <div className="app-source-controls">
                                 <button
                                     type="button"
-                                    onClick={() => setIsTanakhOpen((open) => !open)}
+                                    onClick={() => setTanakhPanel(panel => panel ? null : { key: 0, hit: null })}
                                     className={`rounded-full border px-5 py-2 font-semibold transition-colors ${isTanakhOpen ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : (isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100')}`}
                                     aria-expanded={isTanakhOpen}
                                 >
@@ -2017,9 +2020,10 @@ const App = () => {
                             </div>
                             <Legend />
                         </div>
+                        <TanakhSearch onOpen={hit => setTanakhPanel(panel => ({ key: (panel?.key ?? 0) + 1, hit }))} />
                         {isTanakhOpen && (
                             <Suspense fallback={<div className={`rounded-xl border p-8 mb-8 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-300'}`}>{t("טוען תנ״ך…")}</div>}>
-                                <TanakhNavigator currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} />
+                                <TanakhNavigator key={tanakhPanel.key} initialHit={tanakhPanel.hit} currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} />
                             </Suspense>
                         )}
                         <div className="app-input-toolbar">

@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { loadVerifiedCorpusFile } from '../core/corpusData.js';
-import { normalizeTanakhSearchInput } from '../core/searchInput.js';
+import { loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
+import { normalizeTanakhSearchInput, normalizeTypedTanakhSearchInput } from '../core/searchInput.js';
 import { findSpellingMatches, indexSectionWords } from '../core/tanakhSearch.js';
 import useLanguage, { BilingualLabel } from '../i18n/LanguageContext.jsx';
 import { t } from '../i18n/locale.js';
 
 const PAGE_SIZE = 8;
 
-export default function TanakhSearch({ manifest, onOpen }) {
-    useLanguage();
+async function loadSearchData() {
+    const manifest = await loadCorpusManifest();
+    const index = await loadVerifiedCorpusFile(manifest.downloads.wordOccurrencesJson);
+    if (index.contentHash !== manifest.contentHash) throw new Error('Corpus index version mismatch');
+    const books = new Map(manifest.divisions.flatMap(division => division.books.map(book => [book.slug, book])));
+    return { index, sections: indexSectionWords(index), books };
+}
+
+export default function TanakhSearch({ onOpen }) {
+    const language = useLanguage();
     const [query, setQuery] = useState('');
     const [data, setData] = useState(null);
     const [failed, setFailed] = useState(false);
@@ -21,27 +29,23 @@ export default function TanakhSearch({ manifest, onOpen }) {
         if (!searching || data) return;
         let active = true;
         setFailed(false);
-        loadVerifiedCorpusFile(manifest.downloads.wordOccurrencesJson).then(index => {
-            if (!active) return;
-            if (index.contentHash !== manifest.contentHash) throw new Error('Corpus index version mismatch');
-            setData({ index, sections: indexSectionWords(index) });
+        loadSearchData().then(result => {
+            if (active) setData(result);
         }).catch(() => { if (active) setFailed(true); });
         return () => { active = false; };
-    }, [searching, manifest, data, attempt]);
+    }, [searching, data, attempt]);
 
-    const books = useMemo(() => new Map(manifest.divisions.flatMap(division =>
-        division.books.map(book => [book.slug, { book, divisionId: division.id }]))), [manifest]);
     const words = useMemo(() => spelling.split(' '), [spelling]);
     const matches = useMemo(() => data && searching ? findSpellingMatches(data.index, data.sections, words) : [],
         [data, searching, words]);
     const first = page * PAGE_SIZE;
     const end = Math.min(first + PAGE_SIZE, matches.length);
 
-    const updateInput = (input, raw, caret) => {
-        const cleaned = normalizeTanakhSearchInput(raw);
+    const updateInput = (input, raw, caret, normalize) => {
+        const cleaned = normalize(raw);
         if (cleaned !== input.value) {
             input.value = cleaned;
-            const position = normalizeTanakhSearchInput(raw.slice(0, caret)).length;
+            const position = normalize(raw.slice(0, caret)).length;
             input.setSelectionRange(position, position);
         }
         setQuery(cleaned);
@@ -51,14 +55,14 @@ export default function TanakhSearch({ manifest, onOpen }) {
     return (
         <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label">
             <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
-            <input id="tanakh-search" type="search" dir="rtl" lang="he" autoComplete="off" spellCheck={false}
-                placeholder="בראשית ברא" value={query}
-                onChange={({ currentTarget: input }) => updateInput(input, input.value, input.selectionStart)}
+            <input id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
+                placeholder={t('חפש מילה או צירוף')} value={query}
+                onChange={({ currentTarget: input }) => updateInput(input, input.value, input.selectionStart, normalizeTypedTanakhSearchInput)}
                 onPaste={event => {
                     event.preventDefault();
                     const input = event.currentTarget;
                     const prefix = input.value.slice(0, input.selectionStart) + event.clipboardData.getData('text/plain');
-                    updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length);
+                    updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length, normalizeTanakhSearchInput);
                 }} />
             {searching && <>
                 <p role="status">{failed ? t('טעינת מפתח החיפוש נכשלה.') : !data ? t('טוען את מפתח החיפוש…')
@@ -70,13 +74,13 @@ export default function TanakhSearch({ manifest, onOpen }) {
                         {matches.slice(first, end).map(([section, position]) => {
                             const sectionId = data.index.sectionIds[section];
                             const split = sectionId.lastIndexOf('-');
-                            const entry = books.get(sectionId.slice(0, split));
+                            const book = data.books.get(sectionId.slice(0, split));
                             const ordinal = Number(sectionId.slice(split + 1));
                             const tokens = data.sections[section];
                             const start = position - 1, stop = start + words.length;
                             return <li key={sectionId + '/' + position}>
-                                <button type="button" onClick={() => onOpen({ ...entry, ordinal, sectionId, position, length: words.length })}>
-                                    <span>{t`${t(entry.book.name)} · פרשיה ${ordinal}`} · {t`מילה ${position}`}</span>
+                                <button type="button" onClick={() => onOpen({ bookSlug: book.slug, ordinal, sectionId, position, length: words.length })}>
+                                    <span>{t`${t(book.name)} · פרשיה ${ordinal}`} · {t`מילה ${position}`}</span>
                                     <span className="tanakh-search-excerpt" dir="rtl" lang="he">
                                         {start > 4 && '… '}{tokens.slice(Math.max(0, start - 4), start).join(' ')}{' '}
                                         <mark>{spelling}</mark>{' '}{tokens.slice(stop, stop + 4).join(' ')}{stop + 4 < tokens.length && ' …'}

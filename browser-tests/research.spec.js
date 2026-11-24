@@ -9,7 +9,7 @@ async function open(page, { text = 'אב אב ה מם ממ', mode = 'aleph-zero'
     await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
 }
 async function inspect(page, word) {
-    const search = page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...');
+    const search = page.getByRole('textbox', { name: 'חיפוש בקבוצות' });
     if (await search.count()) await search.fill(word);
     await page.getByRole('button', { name: `בדוק מילה ${word}`, exact: true }).first().click();
     const dialog = page.getByRole('dialog');
@@ -54,7 +54,7 @@ test('hash mismatch and failed index loads provide retry without inventing sourc
     let broken = true;
     await page.route('**/corpus/books/genesis.json', async (route) => { if (broken) await route.fulfill({ json: { sections: [] } }); else await route.continue(); });
     await open(page, { text: section.calculationText, source: selection });
-    await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('אלהים');
+    await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('אלהים');
     await page.getByRole('button', { name: 'בדוק מילה אלהים', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('alert')).toContainText('אינו תואם'); await expect(dialog.locator('.research-unit-source')).toHaveCount(0);

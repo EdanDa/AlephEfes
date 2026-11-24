@@ -5,7 +5,6 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { createTanakhSelection, tanakhActionLabel, tanakhSelectionLabel } from '../core/tanakhSelection.js';
 import { sourceMatchRange } from '../core/tanakhSearch.js';
-import TanakhSearch from './TanakhSearch.jsx';
 
 const SELECTION_SCOPES = Object.freeze([
     { id: 'book', label: 'כל הספר' },
@@ -30,7 +29,7 @@ function sectionOptionLabel(section) {
     return t`פרשיה ${section.ordinal} · ${locatorRangeLabel(section.locators)}`;
 }
 
-const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
+const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSelect }) => {
     useLanguage();
     const [manifest, setManifest] = useState(null);
     const [selectedDivision, setSelectedDivision] = useState('torah');
@@ -46,8 +45,11 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
     const [error, setError] = useState(null);
     const [manifestAttempt, setManifestAttempt] = useState(0);
     const [bookAttempt, setBookAttempt] = useState(0);
-    const pendingSelectionRef = useRef(currentSelection);
-    const [searchHit, setSearchHit] = useState(null);
+    const pendingSelectionRef = useRef(initialHit ? {
+        bookSlug: initialHit.bookSlug, scope: 'section',
+        startSectionOrdinal: initialHit.ordinal, endSectionOrdinal: initialHit.ordinal,
+    } : currentSelection);
+    const [searchHit, setSearchHit] = useState(initialHit);
     const matchRef = useRef(null);
 
     useEffect(() => {
@@ -130,20 +132,6 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
         }
     }, [matchRange]);
 
-    const openSearchHit = (hit) => {
-        setSearchHit(hit);
-        setSelectedDivision(hit.divisionId);
-        if (selectedBook === hit.book && bookData) {
-            setSelectionScope('section');
-            setRangeStart(hit.ordinal);
-            setRangeEnd(hit.ordinal);
-        } else {
-            pendingSelectionRef.current = { bookSlug: hit.book.slug, scope: 'section', startSectionOrdinal: hit.ordinal, endSectionOrdinal: hit.ordinal };
-            setSelectedBook(hit.book);
-            if (selectedBook === hit.book && error) setBookAttempt(n => n + 1);
-        }
-    };
-
     const chooseBook = (book) => {
         pendingSelectionRef.current = null;
         setSearchHit(null);
@@ -213,7 +201,6 @@ const TanakhNavigator = memo(({ currentSelection, isDarkMode, onSelect }) => {
                     )}
                 </div>
 
-                {manifest && <TanakhSearch manifest={manifest} onOpen={openSearchHit} />}
                 {manifest && (
                     <div className={`tanakh-division-tabs inline-flex mt-4 p-1 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-slate-200'}`}>
                         {manifest.divisions.map((division) => (

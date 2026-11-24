@@ -81,6 +81,10 @@ export function normalizeTanakhSearchInput(value) {
         .replace(/[^א-ת ]/gu, '').replace(/ +/gu, ' ').trimStart();
 }
 
+export function normalizeTypedTanakhSearchInput(value) {
+    return normalizeTanakhSearchInput(value.replace(/[a-z;:,.<>]/gi, mapCharToHebrewForSearch));
+}
+
 export {
     EN_TO_HE_LETTER_MAP,
     EN_TO_HE_PUNCT_LETTER_MAP,

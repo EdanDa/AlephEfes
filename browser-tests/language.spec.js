@@ -19,6 +19,7 @@ for (const width of [320, 1280]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto('/?lang=he');
         await page.locator('.app-textarea').fill(babel.calculationText);
+        await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).scrollIntoViewIfNeeded();
         await expect(page.locator('.workspace-group-heading').first()).toBeVisible();
         for (const lang of ['he', 'en']) {
             if (lang === 'en') await page.locator('.app-language-switch').click();
@@ -43,6 +44,8 @@ for (const width of [320, 1280]) {
             await expect(page.locator('.app-subtitle')).toContainText(lang === 'he' ? 'טקסט עברי' : 'Hebrew text');
 
             const groupHeading = page.locator('.workspace-group-heading').first();
+            await page.getByRole('textbox', { name: lang === 'he' ? 'חיפוש בקבוצות' : 'Search groups' }).scrollIntoViewIfNeeded();
+            await expect(groupHeading).toBeVisible();
             await expectCenteredText(groupHeading, page.locator('.workspace-virtual-groups'));
             const title = page.locator('.app-results-card .app-dr-heading');
             await expectCenteredText(title.locator('.bilingual-label > span'), page.locator('.app-results-card'));
@@ -175,7 +178,7 @@ test('the centered globe and the Hebrew reading order survive an English interfa
         expect(centerOffset).toBeLessThanOrEqual(2);
     }
     await expect(page.getByRole('heading', { name: 'א=0', exact: true })).toBeVisible();
-    await page.getByRole('textbox', { name: /Search for a Hebrew word/ }).fill('בראשית');
+    await page.getByRole('textbox', { name: 'Search groups', exact: true }).fill('בראשית');
     await page.getByRole('button', { name: 'Inspect word בראשית', exact: true }).first().click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('1 occurrence of בראשית in this unit');

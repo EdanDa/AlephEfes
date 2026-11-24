@@ -1,5 +1,6 @@
 export default {
   "חיפוש בתנ״ך": "Search the Tanakh",
+  "חפש מילה או צירוף": "Search for a word or phrase",
   "טעינת מפתח החיפוש נכשלה.": "The search index could not be loaded.",
   "טוען את מפתח החיפוש…": "Loading the search index…",
   "לא נמצאו מופעים בכתיב הזה.": "No matches for this spelling.",
@@ -51,7 +52,9 @@ export default {
   "נעץ מילה {0}": "Pin word {0}",
   "קבוצות לפי שורש דיגיטלי": "Digital-root groups",
   "באפליקציה השורש הספרתי נקרא ״שורש דיגיטלי״ (ש״ד). מחברים את ספרות המספר שוב ושוב עד שנותרת ספרה אחת. למשל, סכום הספרות של 985 הוא 22, וסכום הספרות של 22 הוא 4.": "The digital root is the single digit left after repeatedly adding a number’s digits. For 985, the digits add up to 22, then to 4.",
-  "חפש מילה, מספר או צירוף כמו 20+11...": "Search for a Hebrew word, a number or a sum like 20+11…",
+  "חיפוש בקבוצות": "Search groups",
+  "חפש מילה או ערך": "Search for a word or value",
+  "20+11 מחפש את שני הערכים באותה מילה, בשכבות שנבחרו.": "20+11 finds words with both values in the selected layers.",
   "אין נתונים להצגה.": "No results.",
   "גרף מרוכזת – ערכי מפתח לפי גישור בין שכבות": "Value graph by layer coverage",
   "דרוג | ערך | שכבות | מילים ייחודיות | מופעים בטקסט | מופעים/מילה | ציון גישור": "Rank | Value | Layers | Distinct forms | Occurrences | Occurrences per form | Bridge score",

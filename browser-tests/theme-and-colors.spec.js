@@ -96,7 +96,7 @@ for (const size of [{ width: 320, height: 740 }, { width: 390, height: 844 }, { 
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     }
     await page.getByRole('button', { name: 'קבוצות', exact: true }).click();
-    await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('בראשית');
+    await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('בראשית');
     await page.getByRole('button', { name: 'בדוק מילה בראשית', exact: true }).click();
     const inspector = page.getByRole('dialog', { name: 'בדיקת מילה · בראשית', exact: true });
     await expect(inspector.locator('.research-unit-source')).toContainText('genesis-0001');

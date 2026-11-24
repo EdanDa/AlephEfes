@@ -1,12 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeTanakhSearchInput } from '../src/core/searchInput.js';
+import { normalizeTanakhSearchInput, normalizeTypedTanakhSearchInput } from '../src/core/searchInput.js';
 import { findSpellingMatches, indexSectionWords, sourceMatchRange } from '../src/core/tanakhSearch.js';
 
 test('Tanakh search keeps only Hebrew letters and spaces, including final forms', () => {
     assert.equal(normalizeTanakhSearchInput(' בְּרֵאשִׁ֖ית\nעַל־פְּנֵ֣י ךםןףץ  '), 'בראשית על פני ךםןףץ ');
     assert.equal(normalizeTanakhSearchInput('123+ABC🙂'), '');
     assert.equal(normalizeTanakhSearchInput('שָׁלוֹם!'), 'שלום');
+});
+
+test('English-layout typing uses Hebrew key positions, including the final-letter keys', () => {
+    assert.equal(normalizeTypedTanakhSearchInput('crtah, crt'), 'בראשית ברא');
+    assert.equal(normalizeTypedTanakhSearchInput('l oi;. 123+'), 'ך םןףץ ');
+    assert.equal(normalizeTypedTanakhSearchInput('שָׁלוֹם'), 'שלום');
 });
 
 test('exact phrases include overlapping occurrences and stop at section boundaries', () => {

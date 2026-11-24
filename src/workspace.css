@@ -205,7 +205,9 @@ html[dir="rtl"] body { direction: rtl; }
 .app-card .tanakh-division-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(100%, 24rem); margin-left: auto; }
 .tanakh-division-tabs button { padding-inline: .4rem; }
 .app-card .tanakh-scope-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.tanakh-search { margin-top: 1rem; }
+.tanakh-search { margin-bottom: 1rem; }
+.app-shell .workspace-search-field:placeholder-shown { direction: var(--ui-direction); text-align: start; }
+.groups-search-hint { display: block; margin-top: .25rem; font-size: .8rem; }
 .tanakh-search label { display: block; margin-bottom: .25rem; font-weight: 600; }
 .tanakh-search input { width: 100%; min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid #94a3b8; border-radius: .5rem; background: transparent; color: inherit; }
 .tanakh-search [role="status"] { margin-block: .5rem; font-size: .875rem; }

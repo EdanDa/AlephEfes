@@ -19,7 +19,7 @@ test('large groups remain bounded while exports include every word', async ({ pa
     await page.getByRole('button', { name: 'ייצא JSON', exact: true }).first().click();
     let data = ''; for await (const chunk of await (await pending).createReadStream()) data += chunk;
     expect(JSON.parse(data).clusters.flatMap((group) => group.words).length).toBe(computeCoreResults(text, 'aleph-zero').allWords.length);
-    await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('בראשית');
+    await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('בראשית');
     await expect(page.getByRole('button', { name: 'נעץ מילה בראשית', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'נעץ מילה בראשית', exact: true }).focus();
     await page.keyboard.press('Enter');

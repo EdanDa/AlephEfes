@@ -5,18 +5,19 @@ test('search finds exact spellings and opens the selected pointed occurrence in 
     page.on('request', request => { if (request.url().includes('/corpus/')) bookRequests.push(request.url()); });
     await page.goto('/?lang=en');
     await page.locator('.app-textarea').fill('אב');
-    await page.getByRole('button', { name: 'Open Tanakh', exact: true }).click();
     const search = page.getByRole('searchbox', { name: 'Search the Tanakh' });
     const results = page.locator('.tanakh-search-results button');
-    await search.fill('ABC 20+11');
+    await expect(search).toHaveAttribute('placeholder', 'Search for a word or phrase');
+    await search.fill('20+11');
     await expect(search).toHaveValue('');
-    expect(bookRequests.some(url => url.includes('word-occurrences'))).toBe(false);
-    await search.fill('בְּרֵאשִׁית');
+    expect(bookRequests).toHaveLength(0);
+    await search.pressSequentially('crtah,');
     await expect(search).toHaveValue('בראשית');
     await page.keyboard.insertText('֖');
     await expect(search).toHaveValue('בראשית');
     await expect(results).toHaveCount(5);
     await expect(results.first()).toContainText('Genesis · Section 1');
+    await expect(page.locator('.app-corpus-panel')).toHaveCount(0);
     await results.nth(1).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'One section', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -25,10 +26,14 @@ test('search finds exact spellings and opens the selected pointed occurrence in 
     await expect(match).toBeFocused();
     expect((await match.innerText()).normalize('NFKD').replace(/\p{M}/gu, '')).toBe('בראשית');
     await expect(page.locator('.app-textarea')).toHaveValue('אב');
+    await page.getByRole('button', { name: 'Close Tanakh', exact: true }).click();
+    await expect(page.locator('.app-corpus-panel')).toHaveCount(0);
+    await expect(search).toHaveValue('בראשית');
+    await expect(results).toHaveCount(5);
     await search.evaluate(input => {
         input.select();
         const clipboardData = new DataTransfer();
-        clipboardData.setData('text/plain', 'בְּרֵאשִׁ֖ית\nבָּרָ֣א123');
+        clipboardData.setData('text/plain', 'בְּרֵאשִׁ֖ית\nבָּרָ֣א123ABC');
         input.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
     });
     await expect(search).toHaveValue('בראשית ברא');
@@ -48,15 +53,19 @@ test('search finds exact spellings and opens the selected pointed occurrence in 
 test('search can retry an index load, page through matches, and clear stale results', async ({ page }) => {
     await page.route('**/*word-occurrences.json', route => route.abort(), { times: 1 });
     await page.goto('/?lang=he');
-    await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
     const region = page.getByRole('search');
     const input = region.getByRole('searchbox');
+    await expect(input).toHaveAttribute('placeholder', 'חפש מילה או צירוף');
     await input.fill('את');
     await region.getByRole('button', { name: 'נסה שוב' }).click();
     const results = region.getByRole('listitem');
     await expect(results).toHaveCount(8);
     await expect(results.first()).toContainText('מילה 4');
     await region.getByRole('button', { name: 'תוצאות נוספות' }).click();
+    await expect(region.getByRole('status')).toContainText('9–16');
+    await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
+    await page.getByRole('button', { name: 'סגור תנ״ך', exact: true }).click();
+    await expect(input).toHaveValue('את');
     await expect(region.getByRole('status')).toContainText('9–16');
     await region.getByRole('button', { name: 'תוצאות קודמות' }).click();
     await expect(results.first()).toContainText('מילה 4');
@@ -65,4 +74,24 @@ test('search can retry an index load, page through matches, and clear stale resu
     await expect(results).toHaveCount(0);
     await input.fill('');
     await expect(region.getByRole('status')).toHaveCount(0);
+});
+
+test('Tanakh and Groups use separate queries and localized prompts', async ({ page }) => {
+    await page.goto('/?lang=he');
+    await page.locator('.app-textarea').fill('ל גל בל');
+    const groups = page.getByRole('textbox', { name: 'חיפוש בקבוצות' });
+    const tanakh = page.getByRole('searchbox');
+    await expect(groups).toHaveAttribute('placeholder', 'חפש מילה או ערך');
+    await expect(tanakh).toHaveAttribute('placeholder', 'חפש מילה או צירוף');
+    await groups.fill('20+11');
+    await expect(page.locator('.research-word-title')).toHaveText(['ל']);
+    await tanakh.pressSequentially('akuo');
+    await expect(tanakh).toHaveValue('שלום');
+    await page.locator('.app-language-switch').click();
+    await expect(tanakh).toHaveAttribute('placeholder', 'Search for a word or phrase');
+    await expect(tanakh).toHaveValue('שלום');
+    const translated = page.getByRole('textbox', { name: 'Search groups' });
+    await expect(translated).toHaveValue('20+11');
+    await expect(translated).toHaveAttribute('placeholder', 'Search for a word or value');
+    await expect(translated).toHaveAccessibleDescription('20+11 finds words with both values in the selected layers.');
 });

@@ -124,7 +124,7 @@ test('pinned exports respect hidden layers, search scope, and prime filtering', 
     await page.getByRole('button', { name: '♢ ראשוני', exact: true }).click();
     expect((await json(page)).clusters.flatMap((group) => group.words.map((word) => word.word))).toEqual([]);
     await page.getByRole('button', { name: '♢ ראשוני', exact: true }).click();
-    await page.getByPlaceholder('חפש מילה, מספר או צירוף כמו 20+11...').fill('ברא');
+    await page.getByRole('textbox', { name: 'חיפוש בקבוצות' }).fill('ברא');
     await page.getByRole('button', { name: 'נעץ מילה ברא', exact: true }).click();
     expect((await json(page)).clusters.flatMap((group) => group.words.map((word) => word.word))).toEqual(['ברא']);
 });
