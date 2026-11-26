@@ -41,7 +41,7 @@ export function passageOccurrences(units, word) {
 export function locatorText(locator) {
     if (!locator) return '';
     const book = locator.subBook || (locator.book24 || '').replace(/^(ספר|מגילת)\s+/u, '');
-    return `${t(book)} ${locator.chapter},${locator.verse}`;
+    return `${t(book)} ${locator.chapter}:${locator.verse}`;
 }
 
 export const boundaryTypeNames = {

@@ -219,6 +219,15 @@ html[dir="rtl"] body { direction: rtl; }
   line-height: 2.25rem;
 }
 .tanakh-search { margin-bottom: 1rem; }
+.tanakh-named-songs, .tanakh-variants { margin-block: .5rem; }
+.tanakh-named-songs button, .tanakh-variants > button, .tanakh-actions > button:first-child:not(:only-child) { text-decoration: underline; padding: .4rem; }
+.tanakh-song-picker, .tanakh-variants label { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-block: .6rem; }
+.tanakh-song-picker select, .tanakh-variants select { max-width: 100%; border: 1px solid #94a3b8; border-radius: .35rem; padding: .35rem; background: Canvas; color: CanvasText; }
+.tanakh-song-heading { font-weight: 700; margin-block-end: .5rem; }
+.tanakh-song-unit + .tanakh-song-unit { margin-block-start: .45em; }
+.tanakh-variants small a { text-decoration: underline; }
+.tanakh-variant-reading { display: block; margin-block-end: .4rem; }
+.tanakh-actions { flex-wrap: wrap; gap: .5rem; }
 .app-shell .workspace-search-field:placeholder-shown { direction: var(--ui-direction); text-align: start; }
 .groups-search-hint { display: block; margin-top: .25rem; font-size: .8rem; }
 .tanakh-search label { display: block; margin-bottom: .25rem; font-weight: 600; }

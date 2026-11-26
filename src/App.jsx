@@ -7,6 +7,8 @@ import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
 import PrimeColorPicker from './components/PrimeColorPicker';
 import TanakhSearch from './components/TanakhSearch';
+import SongLabel from './components/SongLabel';
+import { songs } from './core/tanakhSongs';
 import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
 import './light-theme.css';
@@ -1421,6 +1423,9 @@ const App = () => {
     } = state;
     const [tanakhPanel, setTanakhPanel] = useState(null);
     const isTanakhOpen = tanakhPanel !== null;
+    const openTanakhResult = useCallback(hit => setTanakhPanel(panel => ({ key: (panel?.key ?? 0) + 1, hit })), []);
+    const selectedSong = corpusSelection && songs.find(song => song.bookSlug === corpusSelection.bookSlug &&
+        song.ordinal === corpusSelection.startSectionOrdinal && song.endOrdinal === corpusSelection.endSectionOrdinal);
 
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
@@ -2010,20 +2015,20 @@ const App = () => {
                                 </button>
                                 {corpusSelection && (
                                     <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                                        MAM · {t(corpusSelection.bookName)} · {corpusSelection.scope === 'book'
+                                        MAM · {selectedSong ? <SongLabel song={selectedSong} /> : <>{t(corpusSelection.bookName)} · {corpusSelection.scope === 'book'
                                             ? t('הספר כולו')
                                             : corpusSelection.sectionCount === 1
                                                 ? t`פרשיה ${corpusSelection.startSectionOrdinal}`
-                                                : t`פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}
+                                                : t`פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}</>}
                                     </span>
                                 )}
                             </div>
                             <Legend />
                         </div>
-                        <TanakhSearch onOpen={hit => setTanakhPanel(panel => ({ key: (panel?.key ?? 0) + 1, hit }))} />
+                        <TanakhSearch onOpen={openTanakhResult} />
                         {isTanakhOpen && (
                             <Suspense fallback={<div className={`rounded-xl border p-8 mb-8 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-300'}`}>{t("טוען תנ״ך…")}</div>}>
-                                <TanakhNavigator key={tanakhPanel.key} initialHit={tanakhPanel.hit} currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} />
+                                <TanakhNavigator key={tanakhPanel.key} initialHit={tanakhPanel.hit} currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} onOpen={openTanakhResult} />
                             </Suspense>
                         )}
                         <div className="app-input-toolbar">

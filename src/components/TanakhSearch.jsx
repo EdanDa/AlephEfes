@@ -1,9 +1,12 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { normalizeTanakhSearchInput, normalizeTypedTanakhSearchInput } from '../core/searchInput.js';
 import { buildSpellingIndex, findSpellingMatches, matchesSectionFilter } from '../core/tanakhSearch.js';
 import { boundaryTypeNames } from '../core/researchModel.js';
-import TanakhBoundary from './TanakhBoundary.jsx';
+import SpellingResult from './SpellingResult.jsx';
+import RelatedSpellings from './RelatedSpellings.jsx';
+import SongLabel from './SongLabel.jsx';
+import { findSongs } from '../core/tanakhSongs.js';
 import useLanguage, { BilingualLabel } from '../i18n/LanguageContext.jsx';
 import { t } from '../i18n/locale.js';
 
@@ -14,36 +17,7 @@ async function loadSearchData() {
     const index = await loadVerifiedCorpusFile(manifest.downloads.wordOccurrencesJson);
     if (index.contentHash !== manifest.contentHash) throw new Error('Corpus index version mismatch');
     const books = new Map(manifest.divisions.flatMap(division => division.books.map(book => [book.slug, book])));
-    return { index: buildSpellingIndex(index), books };
-}
-
-function SpellingResult({ data, hit, onOpen }) {
-    const { tokens, offsets, bookOffsets, sectionIds, boundariesAfter } = data.index;
-    const { start, end, section, endSection, position, endPosition } = hit;
-    const sectionId = sectionIds[section];
-    const split = sectionId.lastIndexOf('-');
-    const book = data.books.get(sectionId.slice(0, split));
-    const ordinal = Number(sectionId.slice(split + 1));
-    const endOrdinal = ordinal + endSection - section;
-    const contextStart = Math.max(start - 4, offsets[section], bookOffsets[hit.book]);
-    const contextEnd = Math.min(end + 4, offsets[endSection + 1], bookOffsets[hit.book + 1]);
-    const label = section === endSection ? t`${t(book.name)} · פרשיה ${ordinal}`
-        : t`${t(book.name)} · פרשיות ${ordinal}–${endOrdinal}`;
-    const parts = [];
-    for (let i = section; i <= endSection; i++) {
-        parts.push(<Fragment key={i}>
-            {i > section && <> <TanakhBoundary boundary={boundariesAfter[i - 1]} /> </>}
-            <mark>{tokens.slice(Math.max(start, offsets[i]), Math.min(end, offsets[i + 1])).join(' ')}</mark>
-        </Fragment>);
-    }
-    return <li><button type="button" onClick={() => onOpen({ bookSlug: book.slug, ordinal, endOrdinal, sectionId, position, endPosition })}>
-        <span>{label} · {section === endSection ? t`מילה ${position}` : t`ממילה ${position} עד מילה ${endPosition}`}</span>
-        <span className="tanakh-search-excerpt" dir="rtl" lang="he">
-            {contextStart > Math.max(offsets[section], bookOffsets[hit.book]) && '… '}
-            {tokens.slice(contextStart, start).join(' ')} {parts} {tokens.slice(end, contextEnd).join(' ')}
-            {contextEnd < Math.min(offsets[endSection + 1], bookOffsets[hit.book + 1]) && ' …'}
-        </span>
-    </button></li>;
+    return { index: buildSpellingIndex(index), books, contentHash: manifest.contentHash };
 }
 
 export default function TanakhSearch({ onOpen }) {
@@ -55,6 +29,7 @@ export default function TanakhSearch({ onOpen }) {
     const [page, setPage] = useState(0);
     const [filter, setFilter] = useState('all');
     const spelling = query.trim();
+    const namedSongs = findSongs(spelling);
     const searching = Boolean(spelling);
 
     useEffect(() => {
@@ -101,6 +76,11 @@ export default function TanakhSearch({ onOpen }) {
                     updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length, normalizeTanakhSearchInput);
                 }} />
             {searching && <>
+                {namedSongs.length > 0 && <div className="tanakh-named-songs" role="group" aria-label={t('שירות מקראיות')}>
+                    {namedSongs.map(song => <button key={song.id} type="button" onClick={() => onOpen(song)}>
+                        <SongLabel song={song} /> · {t('פתח את השירה')}
+                    </button>)}
+                </div>}
                 {allMatches.length > 0 && <label className="tanakh-match-filter">
                     {t('סינון לפי פרשיות')}
                     <select value={filter} onChange={event => { setFilter(event.target.value); setPage(0); }}>
@@ -130,6 +110,7 @@ export default function TanakhSearch({ onOpen }) {
                         <button type="button" disabled={end === matches.length} onClick={() => setPage(page + 1)}>{t('תוצאות נוספות')}</button>
                     </div>}
                 </>}
+                {data && words.length === 1 && <RelatedSpellings key={spelling} data={data} query={spelling} onOpen={onOpen} />}
             </>}
         </div>
     );

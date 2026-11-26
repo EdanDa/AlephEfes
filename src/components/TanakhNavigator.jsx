@@ -6,6 +6,9 @@ import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/c
 import { createTanakhSelection, tanakhActionLabel, tanakhSelectionLabel } from '../core/tanakhSelection.js';
 import { sourceMatchRange } from '../core/tanakhSearch.js';
 import TanakhBoundary from './TanakhBoundary.jsx';
+import { songs, songNumbers } from '../core/tanakhSongs.js';
+import SongLabel from './SongLabel.jsx';
+import { locatorText } from '../core/researchModel.js';
 
 const SELECTION_SCOPES = Object.freeze([
     { id: 'book', label: 'כל הספר' },
@@ -13,16 +16,10 @@ const SELECTION_SCOPES = Object.freeze([
     { id: 'section', label: 'פרשיה אחת' },
 ]);
 
-function locatorLabel(locator) {
-    if (!locator) return '';
-    const book = locator.subBook || locator.book24.replace(/^(ספר|מגילת)\s+/u, '');
-    return `${t(book)} ${locator.chapter},${locator.verse}`;
-}
-
 function locatorRangeLabel(locators) {
     if (!locators) return '';
-    const start = locatorLabel(locators.start);
-    const end = locatorLabel(locators.end);
+    const start = locatorText(locators.start);
+    const end = locatorText(locators.end);
     return start === end ? start : `${start}–${end}`;
 }
 
@@ -30,7 +27,7 @@ function sectionOptionLabel(section) {
     return t`פרשיה ${section.ordinal} · ${locatorRangeLabel(section.locators)}`;
 }
 
-const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSelect }) => {
+const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSelect, onOpen }) => {
     useLanguage();
     const [manifest, setManifest] = useState(null);
     const [selectedDivision, setSelectedDivision] = useState('torah');
@@ -50,8 +47,9 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
         bookSlug: initialHit.bookSlug, scope: initialHit.ordinal === initialHit.endOrdinal ? 'section' : 'range',
         startSectionOrdinal: initialHit.ordinal, endSectionOrdinal: initialHit.endOrdinal,
     } : currentSelection);
-    const [searchHit, setSearchHit] = useState(initialHit);
+    const [searchHit, setSearchHit] = useState(initialHit?.sectionId ? initialHit : null);
     const matchRef = useRef(null);
+    const songHeading = useRef(null);
 
     useEffect(() => {
         let active = true;
@@ -148,6 +146,19 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
         return () => cancelAnimationFrame(frame);
     }, [matchParts]);
 
+    const containingSong = activeSelection && songs.find(song => song.bookSlug === selectedBook?.slug &&
+        song.ordinal <= activeSelection.startOrdinal && song.endOrdinal >= activeSelection.endOrdinal);
+    const fullSong = containingSong && containingSong.ordinal === activeSelection.startOrdinal &&
+        containingSong.endOrdinal === activeSelection.endOrdinal ? containingSong : null;
+    useEffect(() => {
+        if (!fullSong || initialHit?.id !== fullSong.id) return;
+        const frame = requestAnimationFrame(() => {
+            songHeading.current?.focus({ preventScroll: true });
+            songHeading.current?.scrollIntoView({ block: 'start' });
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [fullSong, initialHit]);
+
     const chooseBook = (book) => {
         pendingSelectionRef.current = null;
         setSearchHit(null);
@@ -235,6 +246,15 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
             </div>
 
             <div className="tanakh-content p-5">
+                <label className="tanakh-song-picker">{t('שירות מקראיות')}
+                    <select value={fullSong?.id || ''} onChange={event => {
+                        const song = songs.find(item => item.id === event.target.value);
+                        if (song) onOpen(song);
+                    }}>
+                        <option value="">{t('בחר שירה')}</option>
+                        {songs.map(song => <option key={song.id} value={song.id}>{t(song.title)} · {t(song.book)} {songNumbers(song)}</option>)}
+                    </select>
+                </label>
                 {activeDivision && (
                     <div className="tanakh-books flex flex-wrap gap-2 mb-5" aria-label={t("ספרים")}>
                         {activeDivision.books.map((book) => (
@@ -330,16 +350,22 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
                         </div>
 
                         <div>
+                            {fullSong && <h3 ref={songHeading} tabIndex={-1} className="tanakh-song-heading"><SongLabel song={fullSong} /></h3>}
                             <div className={`tanakh-preview rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
-                                {matchParts || activeSelection.sourceText}
+                                {matchParts || (fullSong ? activeSelection.sections.map(section =>
+                                    <div className="tanakh-song-unit" key={section.id}>{section.sourceText}</div>
+                                ) : activeSelection.sourceText)}
                             </div>
                             <div className="tanakh-actions mt-4 flex justify-end">
+                                {containingSong && !fullSong && <button type="button" onClick={() => onOpen(containingSong)}>
+                                    {t('פתח את השירה המלאה')} · <SongLabel song={containingSong} />
+                                </button>}
                                 <button
                                     type="button"
                                     onClick={() => onSelect(activeSelection.calculationText, activeSelection, selectedBook)}
                                     className="rounded-lg bg-blue-600 px-5 py-2.5 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                                 >
-                                    {tanakhActionLabel(activeSelection)}
+                                    {fullSong ? t('נתח את השירה') : tanakhActionLabel(activeSelection)}
                                 </button>
                             </div>
                         </div>

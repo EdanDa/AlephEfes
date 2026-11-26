@@ -14,6 +14,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout pinned Open Scriptures annotations
+        uses: actions/checkout@v4
+        with:
+          repository: openscriptures/morphhb
+          ref: 6a5db284c715c18b239422e57bb89684e6a19f00
+          path: upstream/morphhb
+
+      - name: Verify MAM spelling variant index
+        run: python3 scripts/generate-tanakh-variants.py upstream/morphhb --check
+
       - name: Checkout pinned MAM-parsed source
         uses: actions/checkout@v4
         with:

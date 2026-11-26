@@ -8,6 +8,10 @@ Aleph Efes is Edan-David Eyon’s calculator and research project on the consona
 
 Paste Hebrew text or open a Tanakh book, section or range. Switch between `א=0` and `א=1` to compare the same text. **Details** shows each word in order and how its letters add up. **Inspect word** finds its occurrences. A **Research note** keeps the selected text, counts, positions and source together.
 
+Search a Hebrew song title or choose **Biblical songs** in the reader to open the Song of the Sea (Exodus 15:1–19), Haazinu (Deuteronomy 32:1–43), or the Song of Deborah (Judges 5:1–31). **Analyze this song** loads the full passage with one line per MAM section.
+
+Tanakh search shows exact written forms first. For a single word, expand the additional matches to see attested prefixes and spelling variants grouped by their MAM spelling. Occurrences share an annotated lexical entry, inflection (including suffixes), and a consonantal form compared with and without ו and י. An unpointed query can represent multiple readings. The optional index uses aligned written words from all 39 books. To reproduce it, run `python scripts/generate-tanakh-variants.py PATH_TO_MORPHHB --check` with the pinned source checkout. The derived annotations credit the [Open Scriptures Hebrew Bible v2.2](https://github.com/openscriptures/morphhb/tree/6a5db284c715c18b239422e57bb89684e6a19f00) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 The web calculator runs in a browser on Windows, macOS, Linux, Android and iOS. If you have the local distribution, double-click **Aleph Efes.exe** on Windows or open **Aleph Efes.html** in a desktop browser on Windows, macOS or Linux. Both include the corpus. The 🌐 control switches between Hebrew and English. To use the local version on a phone, choose **Open on my Wi-Fi** in the Windows launcher and open the displayed address on the same network.
 
 ## What the alphabet fixes

@@ -48,6 +48,30 @@ export function matchesSectionFilter(index, hit, filter) {
     }
 }
 
+export function variantSpellings(families, query) {
+    const bySpelling = new Map();
+    for (const { forms, lemma, morph } of families) {
+        const queryBases = new Set(forms.filter(([word, base]) => word === query || base === query).map(([, base]) => base));
+        if (!queryBases.size) continue;
+        for (const [spelling, base, offsets] of forms) {
+            if (spelling === query) continue;
+            if (!bySpelling.has(spelling)) bySpelling.set(spelling, { spelling, positions: [], readings: [] });
+            const group = bySpelling.get(spelling);
+            for (const offset of offsets) group.positions.push(offset);
+            for (const queryBase of queryBases) group.readings.push({ queryBase, base, lemma, morph });
+        }
+    }
+    for (const group of bySpelling.values()) group.positions.sort((a, b) => a - b);
+    return [...bySpelling.values()].sort((a, b) => a.spelling.localeCompare(b.spelling, 'he'));
+}
+
+export function hitAtWord(index, start) {
+    const section = containingInterval(index.offsets, start);
+    const position = start - index.offsets[section] + 1;
+    return { start, end: start + 1, section, endSection: section, position, endPosition: position,
+        book: containingInterval(index.bookOffsets, start) };
+}
+
 // Locate the selected words without changing the source's niqqud, cantillation or maqaf.
 export function sourceMatchRange(source, position, length) {
     let ordinal = 0, start = 0;
