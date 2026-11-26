@@ -45,6 +45,7 @@ import { useHebrewInputSanitizer } from './hooks/useHebrewInputSanitizer';
 import { buildWordConnectionIndex as buildVisibleWordConnectionIndex, getConnectionValues, getPinnedClusters } from './core/wordConnections';
 
 const TanakhNavigator = lazy(() => import('./components/TanakhNavigator.jsx'));
+const OperatorExplorer = lazy(() => import('./components/OperatorExplorer.jsx'));
 
 // -----------------------------------------------------------------------------
 // 1. Context Definitions
@@ -439,6 +440,7 @@ const GlobalStyles = () => (
 // -----------------------------------------------------------------------------
 const Icon = React.memo(({ name, className }) => {
     switch (name) {
+        case 'research': return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>;
         case 'sun': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
         case 'moon': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
         case 'hash': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></svg>;
@@ -1422,6 +1424,7 @@ const App = () => {
         hasExplicitThemeChoice, isPending, corpusSelection, isAnalysisStale, analysisError, retryAnalysis
     } = state;
     const [tanakhPanel, setTanakhPanel] = useState(null);
+    const [researchVisited, setResearchVisited] = useState(view === 'research');
     const isTanakhOpen = tanakhPanel !== null;
     const openTanakhResult = useCallback(hit => setTanakhPanel(panel => ({ key: (panel?.key ?? 0) + 1, hit })), []);
     const selectedSong = corpusSelection && songs.find(song => song.bookSlug === corpusSelection.bookSlug &&
@@ -1431,6 +1434,8 @@ const App = () => {
     const valueTableRef = useRef(null);
     const valueTableButtonRef = useRef(null);
     const viewContentTopRef = useRef(null);
+    const linesToggleRef = useRef(null);
+    const revealCorpusLines = useRef(false);
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
@@ -1881,7 +1886,11 @@ const App = () => {
     const prepareFrequenciesJSON = useCallback(() => JSON.stringify({ mode, hotView, rows: sortedHotViewList }, null, 2), [mode, hotView, sortedHotViewList]);
 
     // --- Event Handlers ---
-    const handleTableIconEnter = () => dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
+    const handleTableIconHover = (event) => {
+        if (!isValueTableOpen && event.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches) {
+            dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: true });
+        }
+    };
     const handleTableIconLeave = () => !isValueTablePinned && dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: false });
     const handleTableIconClick = () => dispatch({ type: 'TOGGLE_VALUE_TABLE_PIN' });
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1907,6 +1916,8 @@ const App = () => {
     }, [dispatch, selectedDR, stats]);
 
     const handleViewChange = useCallback((newView) => {
+        revealCorpusLines.current = false;
+        if (newView === 'research') setResearchVisited(true);
         dispatch({ type: 'SET_VIEW', payload: newView });
         requestAnimationFrame(() => {
             viewContentTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1918,6 +1929,7 @@ const App = () => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
     }, [dispatch]);
     const handleCorpusSelection = useCallback((selectedText, selection, book) => {
+        revealCorpusLines.current = true;
         dispatch({
             type: 'LOAD_CORPUS_SELECTION',
             payload: {
@@ -1934,10 +1946,16 @@ const App = () => {
             },
         });
     }, [dispatch]);
-    const hasInput = text.trim().length > 0;
+
+    useEffect(() => {
+        if (!revealCorpusLines.current || !corpusSelection || isAnalysisStale || !linesToggleRef.current) return;
+        revealCorpusLines.current = false;
+        linesToggleRef.current.focus({ preventScroll: true });
+        linesToggleRef.current.scrollIntoView({ block: 'center' });
+    }, [corpusSelection, coreResults, isAnalysisStale]);
 
     return (
-        <div dir={direction} data-theme={isDarkMode ? 'dark' : 'light'} className={`app-shell ${hasInput ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
+        <div dir={direction} data-theme={isDarkMode ? 'dark' : 'light'} className={`app-shell ${!isValueTableOpen ? 'app-shell-has-nav' : ''} min-h-screen font-sans p-4 sm:p-6 lg:p-8 transition-colors duration-500 ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gradient-to-br from-slate-100 to-blue-100 text-gray-900'}`}>
             <GlobalStyles />
             <div className="max-w-7xl mx-auto">
                 <header className="app-header">
@@ -1964,7 +1982,7 @@ const App = () => {
                             <span dir="ltr">Aleph Efes</span>
                         </a>
                         <div className="app-top-tools">
-                            <div className="app-value-table-action relative" onMouseEnter={handleTableIconEnter} onMouseLeave={handleTableIconLeave}>
+                            <div className="app-value-table-action relative" onPointerMove={handleTableIconHover} onPointerLeave={handleTableIconLeave}>
                                 <button aria-expanded={isValueTableOpen} ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label={t("הצג טבלת ערכי אותיות")}>
                                     <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                                 </button>
@@ -2078,21 +2096,22 @@ const App = () => {
                     )}
                     <StatsPanel />
 
-                    {hasInput && (
-                        <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
+                    <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
                             <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
                                 <button aria-label={t("שכיחות")} aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="שכיחות" /></span></button>
                                 <button aria-label={t("פירוט")} aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="פירוט" /></span></button>
                                 <button aria-label={t("קבוצות")} aria-pressed={view === 'clusters'} onClick={() => handleViewChange('clusters')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'clusters' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="groups" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="קבוצות" /></span></button>
+                                <button aria-label={t("מחקר")} aria-pressed={view === 'research'} onClick={() => handleViewChange('research')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'research' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="research" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="מחקר" /></span></button>
                                 <button type="button" disabled={!showScrollTop} className="app-nav-top rounded-full" aria-label={t("גלול לראש העמוד")} onClick={scrollToTop}><Icon name="arrow-up" className="w-5 h-5" /></button>
                             </div>
                         </div>
-                    )}
 
                     <div ref={viewContentTopRef} />
                     <div className="app-analysis-results" aria-busy={isPending} inert={isAnalysisStale ? '' : undefined} style={isAnalysisStale ? { opacity: 0.6 } : undefined}>
 
-                    {stats && (
+                    {(view === 'research' || researchVisited) && <Suspense fallback={null}><OperatorExplorer open={view === 'research'} state={state} /></Suspense>}
+
+                    {view !== 'research' && stats && (
                         <div className={`app-distribution-card p-6 rounded-xl border mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)]'}`}>
                             <div className="app-results-header mb-4 noselect">
                                 <DigitalRootHeading as="h3" message="התפלגות שורשים דיגיטליים · צורות מילים שונות" tooltipId="distribution-dr-definition" />
@@ -2139,7 +2158,7 @@ const App = () => {
                                                 <ExportToolbar getText={prepareAllDetailsText} getCSV={prepareAllDetailsCSV} getJSON={prepareAllDetailsJSON} id='all-details' />
                                                 <h2 className="app-results-title text-center font-bold noselect">{t("סיכום כללי")}</h2>
                                                 <div className={`app-segmented-control items-center p-1 rounded-full noselect ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                                                    <button aria-pressed={detailsView === 'lines'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("שורות")}</button>
+                                                    <button ref={linesToggleRef} aria-pressed={detailsView === 'lines'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'lines' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'lines' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("שורות")}</button>
                                                     <button aria-pressed={detailsView === 'words'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("מילים")}</button>
                                                 </div>
                                             </div>
@@ -2416,7 +2435,7 @@ const App = () => {
                     </div>
                 </>
                 )}
-                {showScrollTop && (!hasInput || isValueTableOpen) && (
+                {showScrollTop && isValueTableOpen && (
                     <div className="app-scroll-top fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
                         <button onClick={scrollToTop} aria-label={t("גלול לראש העמוד")} className="bg-gray-800/55 dark:bg-white/20 text-white p-3 rounded-full hover:bg-gray-800/75 dark:hover:bg-white/30 transition-opacity shadow-lg">
                             <Icon name="arrow-up" className="w-7 h-7" />

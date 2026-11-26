@@ -1,0 +1,242 @@
+{
+  "corpusHash": "e84e7491e095e7ad9eef927b40743f01ce1be7255406860ab086b649ec9c9213",
+  "units": 4039,
+  "words": 305437,
+  "oddUnits": 1913,
+  "sameFormPairs": 262939,
+  "unitsWithRepeats": 2964,
+  "modes": {
+    "aleph-zero": {
+      "wordCount": {
+        "units": 1198,
+        "cases": 1865,
+        "byLayer": {
+          "U": 1031,
+          "T": 824,
+          "H": 692
+        }
+      },
+      "letterCount": {
+        "units": 382,
+        "cases": 448,
+        "byLayer": {
+          "U": 144,
+          "T": 207,
+          "H": 219
+        }
+      },
+      "wordPosition": {
+        "units": 1797,
+        "cases": 3173,
+        "byLayer": {
+          "U": 2259,
+          "T": 1156,
+          "H": 1034
+        }
+      },
+      "repeatDistance": {
+        "units": 1025,
+        "cases": 2614,
+        "byLayer": {
+          "U": 1842,
+          "T": 1092,
+          "H": 995
+        }
+      },
+      "zeroAddress": {
+        "units": 1752,
+        "cases": 3115
+      },
+      "sectionOrdinal": {
+        "units": 1019,
+        "cases": 2804
+      },
+      "centerMeasuresWords": {
+        "units": 21,
+        "cases": 21
+      },
+      "bothDimensions": {
+        "units": 111,
+        "cases": 111
+      },
+      "letterStart": {
+        "units": 1175,
+        "cases": 1477
+      },
+      "letterEnd": {
+        "units": 1263,
+        "cases": 1620
+      },
+      "formOccurrence": {
+        "units": 330,
+        "cases": 458
+      },
+      "mirrorSpelling": {
+        "units": 841,
+        "cases": 1193
+      },
+      "sameWordBothDimensions": {
+        "units": 3,
+        "cases": 3
+      },
+      "localFrequency": {
+        "units": 232,
+        "cases": 682
+      },
+      "middleSelfPosition": {
+        "units": 25,
+        "cases": 25
+      },
+      "doubleCenter": {
+        "units": 388,
+        "cases": 388
+      },
+      "centerSeam": {
+        "units": 129,
+        "cases": 129
+      },
+      "repeatLattice": {
+        "units": 824,
+        "cases": 2268
+      },
+      "prefixMeasuresWords": {
+        "units": 108,
+        "cases": 108
+      },
+      "suffixMeasuresWords": {
+        "units": 105,
+        "cases": 106
+      },
+      "frameSpelling": {
+        "units": 4,
+        "cases": 4
+      },
+      "adjacentEquivalent": {
+        "units": 361,
+        "cases": 459
+      }
+    },
+    "aleph-one": {
+      "wordCount": {
+        "units": 1174,
+        "cases": 2016,
+        "byLayer": {
+          "U": 1090,
+          "T": 882,
+          "H": 669
+        }
+      },
+      "letterCount": {
+        "units": 381,
+        "cases": 470,
+        "byLayer": {
+          "U": 127,
+          "T": 204,
+          "H": 232
+        }
+      },
+      "wordPosition": {
+        "units": 1666,
+        "cases": 2936,
+        "byLayer": {
+          "U": 2146,
+          "T": 956,
+          "H": 824
+        }
+      },
+      "repeatDistance": {
+        "units": 994,
+        "cases": 2463,
+        "byLayer": {
+          "U": 1823,
+          "T": 872,
+          "H": 769
+        }
+      },
+      "zeroAddress": {
+        "units": 1635,
+        "cases": 2882
+      },
+      "sectionOrdinal": {
+        "units": 930,
+        "cases": 2636
+      },
+      "centerMeasuresWords": {
+        "units": 22,
+        "cases": 22
+      },
+      "bothDimensions": {
+        "units": 113,
+        "cases": 113
+      },
+      "letterStart": {
+        "units": 1139,
+        "cases": 1432
+      },
+      "letterEnd": {
+        "units": 1170,
+        "cases": 1475
+      },
+      "formOccurrence": {
+        "units": 74,
+        "cases": 137
+      },
+      "mirrorSpelling": {
+        "units": 841,
+        "cases": 1193
+      },
+      "sameWordBothDimensions": {
+        "units": 4,
+        "cases": 4
+      },
+      "localFrequency": {
+        "units": 23,
+        "cases": 271
+      },
+      "middleSelfPosition": {
+        "units": 22,
+        "cases": 22
+      },
+      "doubleCenter": {
+        "units": 388,
+        "cases": 388
+      },
+      "centerSeam": {
+        "units": 129,
+        "cases": 129
+      },
+      "repeatLattice": {
+        "units": 824,
+        "cases": 2268
+      },
+      "prefixMeasuresWords": {
+        "units": 114,
+        "cases": 114
+      },
+      "suffixMeasuresWords": {
+        "units": 67,
+        "cases": 67
+      },
+      "frameSpelling": {
+        "units": 4,
+        "cases": 4
+      },
+      "adjacentEquivalent": {
+        "units": 293,
+        "cases": 365
+      }
+    }
+  },
+  "shuffleExpectations": {
+    "aleph-zero": {
+      "wordPosition": 3138.19,
+      "zeroAddress": 3098.36,
+      "repeatDistance": 2488.99
+    },
+    "aleph-one": {
+      "wordPosition": 2933.5,
+      "zeroAddress": 2895.51,
+      "repeatDistance": 2367.93
+    }
+  }
+}

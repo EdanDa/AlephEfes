@@ -6,8 +6,9 @@ import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/c
 import { createTanakhSelection, tanakhActionLabel, tanakhSelectionLabel } from '../core/tanakhSelection.js';
 import { sourceMatchRange } from '../core/tanakhSearch.js';
 import TanakhBoundary from './TanakhBoundary.jsx';
-import { songs, songNumbers } from '../core/tanakhSongs.js';
+import { passageTitle, passageAction, songs, songNumbers } from '../core/tanakhSongs.js';
 import SongLabel from './SongLabel.jsx';
+import CatalogPicker from './CatalogPicker.jsx';
 import { locatorText } from '../core/researchModel.js';
 
 const SELECTION_SCOPES = Object.freeze([
@@ -246,15 +247,12 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
             </div>
 
             <div className="tanakh-content p-5">
-                <label className="tanakh-song-picker">{t('שירות מקראיות')}
-                    <select value={fullSong?.id || ''} onChange={event => {
-                        const song = songs.find(item => item.id === event.target.value);
-                        if (song) onOpen(song);
-                    }}>
-                        <option value="">{t('בחר שירה')}</option>
-                        {songs.map(song => <option key={song.id} value={song.id}>{t(song.title)} · {t(song.book)} {songNumbers(song)}</option>)}
-                    </select>
-                </label>
+                <div className="tanakh-reading-picker"><CatalogPicker label={t('שירות, מזמורים וקטעים')} placeholder={t('בחירת קטע לקריאה')}
+                    value={fullSong?.id} options={songs.map(song => ({
+                        id: song.id, label: passageTitle(song), detail: t(song.book) + ' \u2066' + songNumbers(song) + '\u2069',
+                        group: t(song.kind === 'psalm' ? 'תהלים' : song.kind === 'lament' ? 'איכה' : 'שירות וקטעים'),
+                        keywords: [song.title, song.book, ...(song.aliases || []), song.kind === 'psalm' ? 'תהילים' : ''].join(' '),
+                    }))} onChoose={id => onOpen(songs.find(song => song.id === id))} /></div>
                 {activeDivision && (
                     <div className="tanakh-books flex flex-wrap gap-2 mb-5" aria-label={t("ספרים")}>
                         {activeDivision.books.map((book) => (
@@ -353,19 +351,19 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
                             {fullSong && <h3 ref={songHeading} tabIndex={-1} className="tanakh-song-heading"><SongLabel song={fullSong} /></h3>}
                             <div className={`tanakh-preview rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
                                 {matchParts || (fullSong ? activeSelection.sections.map(section =>
-                                    <div className="tanakh-song-unit" key={section.id}>{section.sourceText}</div>
+                                    <div className="tanakh-song-unit" key={section.id}>{section.sourceText.replace(/׃\s+/gu, '׃\n')}</div>
                                 ) : activeSelection.sourceText)}
                             </div>
                             <div className="tanakh-actions mt-4 flex justify-end">
                                 {containingSong && !fullSong && <button type="button" onClick={() => onOpen(containingSong)}>
-                                    {t('פתח את השירה המלאה')} · <SongLabel song={containingSong} />
+                                    {passageAction(containingSong, false)} · <SongLabel song={containingSong} />
                                 </button>}
                                 <button
                                     type="button"
                                     onClick={() => onSelect(activeSelection.calculationText, activeSelection, selectedBook)}
                                     className="rounded-lg bg-blue-600 px-5 py-2.5 font-bold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                                 >
-                                    {fullSong ? t('נתח את השירה') : tanakhActionLabel(activeSelection)}
+                                    {fullSong ? passageAction(fullSong, true) : tanakhActionLabel(activeSelection)}
                                 </button>
                             </div>
                         </div>

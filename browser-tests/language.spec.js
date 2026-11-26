@@ -60,7 +60,7 @@ for (const width of [320, 1280]) {
             await expectCenteredText(line.getByRole('heading'), line);
             const lines = page.locator('.app-segmented-control button').first();
             await expectCenteredText(lines, lines);
-            await tabs.last().click();
+            await page.getByRole('button', { name: lang === 'he' ? 'קבוצות' : 'Groups', exact: true }).click();
         }
     });
 }
@@ -92,7 +92,7 @@ for (const width of [320, 390, 990, 1280]) {
             const before = await bounds();
             await page.locator('.app-language-switch').click();
             await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-            await expect(page.locator('.app-view-tab-label')).toHaveText(['Frequency', 'Details', 'Groups']);
+            await expect(page.locator('.app-view-tab-label')).toHaveText(['Frequency', 'Details', 'Groups', 'Research']);
             const after = await bounds();
             expect(after.length).toBe(before.length);
             for (const [i, rect] of before.entries()) {

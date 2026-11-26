@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test('a creation transition opens both sections and keeps the search available', async ({ page }) => {
     await page.goto('/?lang=en');
+    await page.locator('.app-textarea').fill('אב');
+    await page.getByRole('button', { name: 'Details', exact: true }).click();
+    await page.getByRole('button', { name: 'Words', exact: true }).click();
+    await page.getByRole('button', { name: 'Research', exact: true }).click();
     const search = page.getByRole('search');
     await search.getByRole('searchbox').fill('יום אחד ויאמר אלהים');
     const result = search.getByRole('button', { name: /Genesis · Sections 1–2/ });
@@ -25,10 +29,48 @@ test('a creation transition opens both sections and keeps the search available',
     await page.locator('.app-language-switch').click();
     await page.getByRole('button', { name: 'Analyze 2 sections' }).click();
     await expect(page.locator('.app-textarea')).toHaveValue(/יום אחד\nויאמר אלהים/);
+    await expect(page.getByRole('button', { name: 'Details', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    const lines = page.getByRole('button', { name: 'Lines', exact: true });
+    await expect(lines).toBeFocused();
+    await expect(lines).toBeInViewport();
+    await expect(lines).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Close Tanakh' }).click();
     await expect(filter).toHaveValue('across');
     await expect(result).toBeVisible();
 });
+
+for (const [width, lang] of [[390, 'he'], [1440, 'en']]) {
+    test(`clear and collapse stay by the Tanakh search label at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 820 });
+        await page.goto('/?lang=' + lang);
+        const region = page.getByRole('search');
+        const input = region.getByRole('searchbox');
+        await input.fill('את');
+        const next = region.getByRole('button', { name: lang === 'he' ? 'תוצאות נוספות' : 'More results', exact: true });
+        await next.first().click();
+        await expect(region.getByRole('status')).toContainText('9–16');
+        const hide = region.getByRole('button', { name: lang === 'he' ? 'הסתר תוצאות' : 'Hide results' });
+        const clear = region.getByRole('button', { name: lang === 'he' ? 'נקה חיפוש' : 'Clear search' });
+        const label = await region.locator('#tanakh-search-label').boundingBox();
+        for (const button of [clear, hide]) {
+            const bounds = await button.boundingBox();
+            expect(Math.abs(bounds.x + bounds.width - label.x)).toBeLessThan(150);
+        }
+        await hide.click();
+        await expect(region.getByRole('status')).toHaveCount(0);
+        await expect(input).toHaveValue('את');
+        await region.getByRole('button', { name: lang === 'he' ? 'הצג תוצאות' : 'Show results' }).click();
+        await expect(region.getByRole('status')).toContainText('9–16');
+        await next.first().press('Escape');
+        await expect(input).toBeFocused();
+        await expect(region.getByRole('status')).toHaveCount(0);
+        await clear.click();
+        await expect(input).toHaveValue('');
+        await expect(input).toBeFocused();
+        await input.fill('את');
+        await expect(region.getByRole('status')).toContainText('1–8');
+    });
+}
 
 test('Hebrew search shows both poetic dividers and highlights the three source lines', async ({ page }) => {
     await page.goto('/?lang=he');

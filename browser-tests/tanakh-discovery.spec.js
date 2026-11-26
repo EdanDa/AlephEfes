@@ -14,10 +14,28 @@ test('a named song opens with a numeric reference and enters analysis only on re
     expect((await editor.inputValue()).split('\n')).toHaveLength(44);
     await expect(page.locator('.app-source-controls')).toContainText('שירת הים · שמות 15:1–19');
     await page.locator('.app-language-switch').click();
-    await page.getByRole('combobox', { name: 'Biblical songs' }).selectOption('deborah');
+    await page.getByRole('combobox', { name: 'Songs, psalms and passages' }).fill('deborah');
+    await page.getByRole('option', { name: 'Song of Deborah' }).click();
     await expect(page.getByRole('heading', { name: 'Song of Deborah · Judges 5:1–31' })).toBeFocused();
     await expect(page.locator('.tanakh-song-unit')).toHaveCount(87);
     expect((await editor.inputValue()).split('\n')).toHaveLength(44);
+});
+
+test('the reading picker opens the 22 stanzas of Psalm 119 and the shared section 114–115', async ({ page }) => {
+    await page.goto('/?lang=he');
+    await page.getByRole('button', { name: 'פתח תנ״ך', exact: true }).click();
+    const picker = page.getByRole('combobox', { name: 'שירות, מזמורים וקטעים' });
+    await picker.fill('119');
+    await picker.press('Enter');
+    await expect(page.getByRole('heading', { name: 'מזמור 119 · תהלים 119:1–176' })).toBeFocused();
+    await expect(page.locator('.tanakh-song-unit')).toHaveCount(22);
+    expect((await page.locator('.tanakh-song-unit').first().innerText()).split('\n')).toHaveLength(8);
+    await page.getByRole('button', { name: 'נתח את הבחירה מתהלים' }).click();
+    expect((await page.locator('.app-textarea').inputValue()).split('\n')).toHaveLength(22);
+    await picker.fill('115');
+    await picker.press('Enter');
+    await expect(page.locator('.tanakh-song-heading')).toContainText('114:1–115:18');
+    await expect(page.locator('.tanakh-song-unit')).toHaveCount(1);
 });
 
 test('a hit inside Haazinu links to the full song', async ({ page }) => {

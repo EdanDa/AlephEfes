@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { normalizeTanakhSearchInput, normalizeTypedTanakhSearchInput } from '../core/searchInput.js';
 import { buildSpellingIndex, findSpellingMatches, matchesSectionFilter } from '../core/tanakhSearch.js';
@@ -28,6 +28,8 @@ export default function TanakhSearch({ onOpen }) {
     const [attempt, setAttempt] = useState(0);
     const [page, setPage] = useState(0);
     const [filter, setFilter] = useState('all');
+    const [collapsed, setCollapsed] = useState(false);
+    const inputRef = useRef(null);
     const spelling = query.trim();
     const namedSongs = findSongs(spelling);
     const searching = Boolean(spelling);
@@ -61,12 +63,37 @@ export default function TanakhSearch({ onOpen }) {
         setQuery(cleaned);
         setPage(0);
         setFilter('all');
+        setCollapsed(false);
     };
+    function clearSearch() {
+        setQuery('');
+        setPage(0);
+        setFilter('all');
+        setCollapsed(false);
+        inputRef.current.focus();
+    }
+    function handleKey(event) {
+        if (event.key === 'Escape' && searching) {
+            event.preventDefault();
+            event.stopPropagation();
+            setCollapsed(true);
+            inputRef.current.focus();
+        } else if (event.target === inputRef.current && event.key === 'ArrowDown' && collapsed) {
+            event.preventDefault();
+            setCollapsed(false);
+        }
+    }
 
     return (
-        <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label">
-            <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
-            <input id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
+        <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label" onKeyDown={handleKey}>
+            <div className="tanakh-search-heading">
+                <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
+                {query && <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>}
+                {searching && <button type="button" aria-expanded={!collapsed} aria-controls="tanakh-matches" onClick={() => setCollapsed(!collapsed)}>
+                    {collapsed ? t('הצג תוצאות') : t('הסתר תוצאות')}
+                </button>}
+            </div>
+            <input ref={inputRef} id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
                 placeholder={t('חפש מילה או צירוף')} value={query}
                 onChange={({ currentTarget: input }) => updateInput(input, input.value, input.selectionStart, normalizeTypedTanakhSearchInput)}
                 onPaste={event => {
@@ -75,10 +102,10 @@ export default function TanakhSearch({ onOpen }) {
                     const prefix = input.value.slice(0, input.selectionStart) + event.clipboardData.getData('text/plain');
                     updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length, normalizeTanakhSearchInput);
                 }} />
-            {searching && <>
-                {namedSongs.length > 0 && <div className="tanakh-named-songs" role="group" aria-label={t('שירות מקראיות')}>
+            {searching && <div id="tanakh-matches" hidden={collapsed}>
+                {namedSongs.length > 0 && <div className="tanakh-named-songs" role="group" aria-label={t('שירות וקטעים')}>
                     {namedSongs.map(song => <button key={song.id} type="button" onClick={() => onOpen(song)}>
-                        <SongLabel song={song} /> · {t('פתח את השירה')}
+                        <SongLabel song={song} /> · {t(song.kind === 'passage' ? 'פתח את הקטע המלא' : 'פתח את השירה')}
                     </button>)}
                 </div>}
                 {allMatches.length > 0 && <label className="tanakh-match-filter">
@@ -111,7 +138,7 @@ export default function TanakhSearch({ onOpen }) {
                     </div>}
                 </>}
                 {data && words.length === 1 && <RelatedSpellings key={spelling} data={data} query={spelling} onOpen={onOpen} />}
-            </>}
+            </div>}
         </div>
     );
 }

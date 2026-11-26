@@ -51,13 +51,20 @@ test('each named song covers exactly the advertised verse positions across all i
             for (const [start, count, id] of record.verseSpans) {
                 const v = locations.verseLocators[id];
                 const span = [ordinal, start, count];
-                if (v.chapter === song.chapter && v.verse >= song.firstVerse && v.verse <= song.lastVerse) expected.push(span);
+                const endChapter = song.endChapter || song.chapter;
+                if ((v.subBook || null) === (song.subBook || null) && v.chapter >= song.chapter && v.chapter <= endChapter &&
+                    (v.chapter !== song.chapter || v.verse >= song.firstVerse) && (v.chapter !== endChapter || v.verse <= song.lastVerse)) expected.push(span);
                 if (ordinal >= song.ordinal && ordinal <= song.endOrdinal) inSong.push(span);
             }
         }
-        assert.ok(expected.length);
-        assert.deepEqual(inSong, expected, song.title);
-        assert.ok(findSongs(song.title).includes(song));
+        assert.ok(expected.length, song.id);
+        assert.deepEqual(inSong, expected, song.id);
+        if (song.title) assert.ok(findSongs(song.title).includes(song));
     }
     assert.equal(findSongs('שירת משה').length, 2);
+    for (const [slug, chapters] of [['psalms', 150], ['lamentations', 5]]) {
+        const covered = songs.filter(song => song.bookSlug === slug).flatMap(song =>
+            Array.from({ length: song.endChapter - song.chapter + 1 }, (_, i) => song.chapter + i));
+        assert.deepEqual(covered, Array.from({ length: chapters }, (_, i) => i + 1));
+    }
 });

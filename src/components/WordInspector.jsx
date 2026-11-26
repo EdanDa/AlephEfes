@@ -6,13 +6,14 @@ import { findCorpusOccurrences, loadPassageUnits, loadResearchBook, sectionResea
 
 const centerLabel = (positions) => positions.length === 2 ? t`בין ${positions[0]} ל־${positions[1]}` : positions[0] || t('אין');
 
-export function UnitPassage({ unit, position, word, showWords, showLetters, showCenters }) {
+export function UnitPassage({ unit, position, endPosition, positions, word, showWords, showLetters, showCenters, scrollOnOpen = false }) {
     const selected = useRef(null);
+    const highlighted = useMemo(() => new Set(positions), [positions]);
     const previous = useRef(null);
-    useEffect(() => { if (previous.current) selected.current?.scrollIntoView({ block: 'nearest' }); previous.current = { id: unit.id, position }; }, [unit.id, position]);
+    useEffect(() => { if (previous.current || scrollOnOpen) selected.current?.scrollIntoView({ block: 'nearest' }); previous.current = { id: unit.id, position }; }, [unit.id, position, scrollOnOpen]);
     return <div dir="rtl" lang="he" className="research-passage" aria-label={t("טקסט היחידה ומיקומים")}>
         {unit.tokens.map((token) => <React.Fragment key={token.position}>
-            <span ref={token.position === position ? selected : undefined} data-word-position={token.position} className={`research-token ${token.word === word ? 'research-match' : ''} ${token.position === position ? 'research-current' : ''} ${showCenters && unit.wordCenter.length === 1 && unit.wordCenter[0] === token.position ? 'research-center' : ''}`}>
+            <span ref={token.position === position ? selected : undefined} data-word-position={token.position} className={`research-token ${token.word === word ? 'research-match' : ''} ${token.position === position || token.position === endPosition || highlighted.has(token.position) ? 'research-current' : ''} ${showCenters && unit.wordCenter.length === 1 && unit.wordCenter[0] === token.position ? 'research-center' : ''}`}>
                 {showWords && <small className="research-word-number" dir="ltr">{token.position}</small>}
                 {showLetters || showCenters ? <span className="research-letters">{[...token.word].map((letter, index) => {
                     const number = token.letterStart + index;

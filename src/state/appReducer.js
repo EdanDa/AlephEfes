@@ -91,7 +91,7 @@ function appReducer(state, action) {
             return state.isInputDirty === action.payload ? state : { ...state, isInputDirty: action.payload };
         case 'LOAD_CORPUS_SELECTION': {
             const next = appReducer(state, { type: 'SET_TEXT', payload: action.payload.text });
-            return { ...next, corpusSelection: action.payload.selection, isInputDirty: false };
+            return { ...next, corpusSelection: action.payload.selection, isInputDirty: false, view: 'lines', detailsView: 'lines' };
         }
         case 'CLEAR_CORPUS_SELECTION':
             return state.corpusSelection ? { ...state, corpusSelection: null } : state;

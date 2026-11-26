@@ -48,7 +48,7 @@ export function saveSession(state, storage) {
 function restorePreferences(record) {
     const p = record.preferences || {};
     const result = {};
-    if (['clusters', 'lines', 'hot-words'].includes(p.view)) result.view = p.view;
+    if (['clusters', 'lines', 'hot-words', 'research'].includes(p.view)) result.view = p.view;
     if (p.view === 'graph') result.view = 'hot-words';
     if (p.view === 'network') result.view = 'clusters';
     if (['sm', 'md', 'lg'].includes(p.textSize)) result.textSize = p.textSize;

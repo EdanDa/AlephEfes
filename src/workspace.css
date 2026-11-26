@@ -14,7 +14,7 @@
 .app-results-card { overflow: visible; }
 /* Let controls beneath the transparent full-width wrapper receive clicks. */
 .app-view-nav { top: 12px !important; pointer-events: none; }
-.app-view-nav .app-view-tabs { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(calc(100% - 6rem), 25rem); pointer-events: auto; }
+.app-view-nav .app-view-tabs { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(calc(100% - 6rem), 32rem); pointer-events: auto; }
 .app-view-tabs .app-nav-top { position: absolute; right: calc(100% + .25rem); top: 50%; transform: translateY(-50%); background: inherit; border: inherit; }
 @media (max-width: 640px), (max-width: 1023px) and (pointer: coarse) {
   .app-view-nav { top: auto !important; }
@@ -219,6 +219,59 @@ html[dir="rtl"] body { direction: rtl; }
   line-height: 2.25rem;
 }
 .tanakh-search { margin-bottom: 1rem; }
+.tanakh-reading-picker { max-width: 34rem; margin-block-end: 1rem; }
+.formula-editor > .catalog-picker { width: min(100%, 42rem); }
+.catalog-picker { position: relative; min-width: 0; --menu-bg: #fff; --menu-line: #bcc9d9; --menu-active: #edf3fd; --menu-muted: #465d77; --menu-accent: #265cb2; }
+.dark .catalog-picker { --menu-bg: #1d293b; --menu-line: #45576f; --menu-active: #2a3d57; --menu-muted: #b2c4da; --menu-accent: #96bfff; }
+.catalog-picker > label { display: block; margin-bottom: .35rem; font-size: .875rem; font-weight: 650; }
+.catalog-control { display: flex; align-items: center; border: 1px solid var(--menu-line); border-radius: .65rem; background: var(--menu-bg); overflow: hidden; }
+.catalog-control:focus-within { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
+.catalog-picker .catalog-control input { padding: .6rem .8rem; min-width: 0; width: 100%; min-height: 44px; background: transparent; color: inherit; border: none; outline: none; border-radius: 0; text-overflow: ellipsis; }
+.catalog-picker .catalog-control button { display: grid; place-items: center; color: var(--menu-muted); background: transparent; flex: 0 0 2.75rem; min-height: 44px; border: none; }
+.catalog-control button span { width: .55rem; height: .55rem; border-inline-end: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); direction: ltr; }
+.catalog-control button[aria-expanded="true"] span { transform: rotate(225deg); }
+.catalog-menu { position: absolute; z-index: 48; inset-inline: 0; top: calc(100% + .4rem); max-height: min(21rem, 48vh, var(--menu-space, 100vh)); overflow-y: auto; overscroll-behavior: contain; padding: .35rem; background: var(--menu-bg); border: 1px solid var(--menu-line); border-radius: .75rem; box-shadow: 0 10px 28px #0f172a30; }
+.catalog-menu[data-above="true"] { top: auto; bottom: calc(100% + .35rem); }
+.catalog-menu[hidden] { display: none; }
+.catalog-group { font-size: .75rem; font-weight: 700; color: var(--menu-muted); padding: .65rem .65rem .25rem; }
+.catalog-menu [role="option"] { cursor: pointer; position: relative; border-radius: .4rem; min-height: 44px; padding: .5rem .65rem; padding-inline-end: 2rem; line-height: 1.4; }
+.catalog-menu [role="option"]:hover, .catalog-menu [data-active="true"] { background: var(--menu-active); }
+.catalog-menu [aria-selected="true"]::after { content: '✓'; position: absolute; inset-inline-end: .6rem; top: .55rem; color: var(--menu-accent); }
+.catalog-menu small { display: block; color: var(--menu-muted); margin-top: .18rem; overflow-wrap: anywhere; }
+.catalog-menu small[dir="ltr"] { text-align: left; font-family: ui-monospace, monospace; font-size: .75rem; }
+[dir="rtl"] .catalog-menu small[dir="ltr"] { text-align: right; }
+.catalog-menu p { padding: .65rem; color: var(--menu-muted); }
+.tanakh-song-unit { white-space: pre-line; }
+.research-panel { direction: var(--ui-direction); color: inherit; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: .8rem; padding: clamp(1rem, 3vw, 2rem); }
+.dark .research-panel { background: #1f2937; border-color: #475569; }
+.research-panel h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1rem; }
+.research-panel h3 { font-size: 1.15rem; font-weight: 700; }
+.research-panel > p { margin-block: .5rem; }
+.research-panel button, .research-panel select, .research-panel textarea { font: inherit; color: inherit; border: 1px solid #94a3b8; border-radius: .45rem; background: transparent; padding: .45rem .65rem; min-height: 44px; max-width: 100%; }
+.research-panel option, .research-panel optgroup { color: CanvasText; background: Canvas; }
+.research-panel button:disabled { opacity: .5; }
+.formula-editor { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; padding-block-end: 1rem; border-block-end: 1px solid #94a3b866; }
+.formula-editor textarea { font-family: ui-monospace, monospace; resize: vertical; width: 100%; text-align: left; }
+.formula-editor p { font-size: .9rem; }
+.formula-tools { display: flex; gap: .5rem; flex-wrap: wrap; }
+.formula-tools select { flex: 1 1 12rem; }
+.formula-library summary { cursor: pointer; font-weight: 600; }
+.formula-library label, .formula-library button { margin-block-start: .55rem; }
+.operator-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: .85rem 1rem; margin-bottom: 1.5rem; }
+.operator-form label { display: grid; gap: .3rem; font-weight: 600; }
+.operator-form select, .operator-form input { width: 100%; min-width: 0; font-weight: normal; }
+.operator-form input { min-height: 44px; padding: .45rem .75rem; border: 1px solid #94a3b8; border-radius: 8px; background: transparent; color: inherit; }
+.operator-form button[type="submit"] { background: #1d4ed8; border-color: #1d4ed8; color: white; font-weight: 600; }
+.operator-results { padding: 0; list-style: none; }
+.operator-results li + li { border-block-start: 1px solid #94a3b866; }
+.operator-results li button { display: grid; grid-template-columns: 1fr auto; gap: .25rem .75rem; width: 100%; text-align: start; border: 0; }
+.operator-results li button span:last-child { grid-column: 1 / -1; }
+.operator-results li button:hover { background: #94a3b822; }
+@media (max-width: 540px) {
+  .app-view-nav .app-view-tabs { width: calc(100% - 3rem); margin-left: 3rem; }
+  .operator-form { grid-template-columns: minmax(0, 1fr); }
+  .operator-form select { text-overflow: ellipsis; }
+}
 .tanakh-named-songs, .tanakh-variants { margin-block: .5rem; }
 .tanakh-named-songs button, .tanakh-variants > button, .tanakh-actions > button:first-child:not(:only-child) { text-decoration: underline; padding: .4rem; }
 .tanakh-song-picker, .tanakh-variants label { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-block: .6rem; }
@@ -231,6 +284,11 @@ html[dir="rtl"] body { direction: rtl; }
 .app-shell .workspace-search-field:placeholder-shown { direction: var(--ui-direction); text-align: start; }
 .groups-search-hint { display: block; margin-top: .25rem; font-size: .8rem; }
 .tanakh-search label { display: block; margin-bottom: .25rem; font-weight: 600; }
+.tanakh-search-heading { direction: rtl; display: flex; flex-wrap: wrap; align-items: center; min-height: 2.75rem; column-gap: .5rem; margin-bottom: .25rem; }
+.tanakh-search-heading label { margin: 0; }
+.tanakh-search-heading button { min-height: 2.75rem; padding-inline: .4rem; color: #1d4ed8; font-size: .875rem; text-decoration: underline; text-underline-offset: .2em; }
+.dark .tanakh-search-heading button { color: #93c5fd; }
+.tanakh-search input::-webkit-search-cancel-button { display: none; }
 .tanakh-search input { width: 100%; min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid #94a3b8; border-radius: .5rem; background: transparent; color: inherit; }
 .tanakh-search [role="status"] { margin-block: .5rem; font-size: .875rem; }
 .tanakh-search-results { max-height: 17rem; overflow-y: auto; list-style: none; margin: 0; padding: 0; border-block: 1px solid #94a3b866; }
@@ -244,7 +302,7 @@ html[dir="rtl"] body { direction: rtl; }
 .tanakh-match-filter select { max-width: 100%; padding: .3rem; border: 1px solid #94a3b8; border-radius: .35rem; background-color: Canvas; color: CanvasText; }
 .tanakh-search mark, .tanakh-preview mark { background: #fde68a; color: #352600; border-radius: .15rem; }
 .tanakh-search-pages { display: flex; justify-content: space-between; }
-.tanakh-search-pages button, .tanakh-search > button { min-height: 2.75rem; text-decoration: underline; }
+.tanakh-search-pages button, #tanakh-matches > button { min-height: 2.75rem; text-decoration: underline; }
 .tanakh-search-pages button:disabled { opacity: .45; }
 .tanakh-actions > button { min-inline-size: min(100%, 13rem); }
 .tanakh-meta-actions > span { min-width: 7rem; text-align: center; }

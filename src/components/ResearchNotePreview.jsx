@@ -4,7 +4,7 @@ import { parseResearchMarkdown } from '../core/researchMarkdown.js';
 
 function NoteText({ text }) {
     // Isolate Latin identifiers and numbers from surrounding RTL punctuation.
-    return text.split(/([A-Za-z0-9][A-Za-z0-9=_.:/+()-]*(?: [A-Za-z0-9][A-Za-z0-9=_.:/+()-]*)*)/g).map((part, index) => /^[A-Za-z0-9]/.test(part) ? <bdi dir="ltr" key={index}>{part}</bdi> : part);
+    return text.split(/(\d{1,3}(?:,\d{3})+|[A-Za-z0-9][A-Za-z0-9=_.:/+()-]*(?: [A-Za-z0-9][A-Za-z0-9=_.:/+()-]*)*)/g).map((part, index) => /^[A-Za-z0-9]/.test(part) ? <bdi dir="ltr" key={index}>{part}</bdi> : part);
 }
 export default function ResearchNotePreview({ content }) {
     const blocks = useMemo(() => parseResearchMarkdown(content), [content]);

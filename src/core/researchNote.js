@@ -1,6 +1,7 @@
 import { t } from '../i18n/locale.js';
 import { getWordValues, isValueVisible } from './analysisCore.js';
 import { boundaryText, locatorText, researchUnitLabel } from './researchModel.js';
+import { candidateCount, describeHit, queryDescription, resultCounts, shuffleSummary } from './researchOperators.js';
 
 const inline = (value) => String(value ?? '').replace(/[\r\n]+/g, ' ').replaceAll('|', '\\|');
 const center = (positions) => positions.length === 2 ? t`בין ${positions[0]} ל־${positions[1]}` : positions[0] || t('אין');
@@ -12,23 +13,33 @@ export function researchNoteRows(unit, { word, value, filters }) {
     });
 }
 
-export function buildResearchNote({ unit, label, filters, selectedDR = null, searchTerm = '', word = null, value = null, passage, selectedPosition = null, corpusSearch = null }) {
+export function buildResearchNote({ unit, label, filters, selectedDR = null, searchTerm = '', word = null, value = null, passage, selectedPosition = null, corpusSearch = null, operatorEvidence = null }) {
     if (!unit) return '';
     const rows = researchNoteRows(unit, { word, value, filters });
     const source = unit.source;
     const lines = [
         t`# הערת מחקר — ${inline(label ?? researchUnitLabel(unit))}`,
         '',
+        ...(source ? [t`- מראי מקום: ${locatorText(source.locators.start)} – ${locatorText(source.locators.end)} (לציון מקום, אינם גבולות ניתוח).`] : []),
         t`- היקף הממצאים: ${source ? t('יחידת MAM אחת') : t('שורה אחת של טקסט אישי')}.`,
-        t`- מזהה: ${unit.id}.`,
         t`- מצב חישוב: ${unit.mode === 'aleph-zero' ? t('א=0 (aleph-zero)') : t('א=1 (aleph-one)')}.`,
+        '',
+        ...(operatorEvidence ? [
+            t('## תוצאת החיפוש שנבחרה'), '',
+            queryDescription(operatorEvidence.result.query),
+            resultCounts(operatorEvidence.result),
+            candidateCount(operatorEvidence.result),
+            ...(operatorEvidence.result.expected != null ? [shuffleSummary(operatorEvidence.result.expected)] : []),
+            describeHit(operatorEvidence.hit), '',
+        ] : []),
+        t('## פרטי הבדיקה'), '',
+        t`- מזהה: ${unit.id}.`,
         t`- מסנני תצוגה: ${['U', 'T', 'H'].map((layer) => `${layer}=${filters[layer] ? t('פעיל') : t('כבוי')}`).join(', ')}; ראשוניים בלבד=${filters.Prime ? t('כן') : t('לא')}; שורש דיגיטלי=${selectedDR ?? t('ללא סינון')}; חיפוש=${inline(searchTerm) || t('ללא')}.`,
         t`- מילה נבחרת: ${inline(word) || t('ללא')}; ערך נבחר: ${Number.isFinite(value) ? value : t('ללא')}.`,
     ];
     if (source) lines.push(
         t`- מקור: MAM-parsed, ${inline(t(source.bookName))}, פרשיה ${source.ordinal}; קובץ ${inline(source.sourceFile)}.`,
         t('- מדיניות הטקסט: כתיב בלבד (ketiv); קרי מושמט. יחידות הניתוח נקבעות לפי גבולות המסורה בקובצי MAM.'),
-        t`- מראי מקום: ${locatorText(source.locators.start)} – ${locatorText(source.locators.end)} (לציון מקום, אינם גבולות ניתוח).`,
         t`- גבול לפני: ${boundaryText(source.boundaryBefore, true)}.`,
         t`- גבול אחרי: ${boundaryText(source.boundaryAfter)}.`,
         `- Corpus ID: ${source.corpus.corpusId}; schema ${source.corpus.schemaVersion}; converter ${source.corpus.converterVersion}.`,
