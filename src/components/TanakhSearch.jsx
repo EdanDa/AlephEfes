@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { normalizeTanakhSearchInput, normalizeTypedTanakhSearchInput } from '../core/searchInput.js';
-import { findSpellingMatches, indexSectionWords } from '../core/tanakhSearch.js';
+import { buildSpellingIndex, findSpellingMatches, matchesSectionFilter } from '../core/tanakhSearch.js';
+import { boundaryTypeNames } from '../core/researchModel.js';
+import TanakhBoundary from './TanakhBoundary.jsx';
 import useLanguage, { BilingualLabel } from '../i18n/LanguageContext.jsx';
 import { t } from '../i18n/locale.js';
 
@@ -12,7 +14,36 @@ async function loadSearchData() {
     const index = await loadVerifiedCorpusFile(manifest.downloads.wordOccurrencesJson);
     if (index.contentHash !== manifest.contentHash) throw new Error('Corpus index version mismatch');
     const books = new Map(manifest.divisions.flatMap(division => division.books.map(book => [book.slug, book])));
-    return { index, sections: indexSectionWords(index), books };
+    return { index: buildSpellingIndex(index), books };
+}
+
+function SpellingResult({ data, hit, onOpen }) {
+    const { tokens, offsets, bookOffsets, sectionIds, boundariesAfter } = data.index;
+    const { start, end, section, endSection, position, endPosition } = hit;
+    const sectionId = sectionIds[section];
+    const split = sectionId.lastIndexOf('-');
+    const book = data.books.get(sectionId.slice(0, split));
+    const ordinal = Number(sectionId.slice(split + 1));
+    const endOrdinal = ordinal + endSection - section;
+    const contextStart = Math.max(start - 4, offsets[section], bookOffsets[hit.book]);
+    const contextEnd = Math.min(end + 4, offsets[endSection + 1], bookOffsets[hit.book + 1]);
+    const label = section === endSection ? t`${t(book.name)} · פרשיה ${ordinal}`
+        : t`${t(book.name)} · פרשיות ${ordinal}–${endOrdinal}`;
+    const parts = [];
+    for (let i = section; i <= endSection; i++) {
+        parts.push(<Fragment key={i}>
+            {i > section && <> <TanakhBoundary boundary={boundariesAfter[i - 1]} /> </>}
+            <mark>{tokens.slice(Math.max(start, offsets[i]), Math.min(end, offsets[i + 1])).join(' ')}</mark>
+        </Fragment>);
+    }
+    return <li><button type="button" onClick={() => onOpen({ bookSlug: book.slug, ordinal, endOrdinal, sectionId, position, endPosition })}>
+        <span>{label} · {section === endSection ? t`מילה ${position}` : t`ממילה ${position} עד מילה ${endPosition}`}</span>
+        <span className="tanakh-search-excerpt" dir="rtl" lang="he">
+            {contextStart > Math.max(offsets[section], bookOffsets[hit.book]) && '… '}
+            {tokens.slice(contextStart, start).join(' ')} {parts} {tokens.slice(end, contextEnd).join(' ')}
+            {contextEnd < Math.min(offsets[endSection + 1], bookOffsets[hit.book + 1]) && ' …'}
+        </span>
+    </button></li>;
 }
 
 export default function TanakhSearch({ onOpen }) {
@@ -22,6 +53,7 @@ export default function TanakhSearch({ onOpen }) {
     const [failed, setFailed] = useState(false);
     const [attempt, setAttempt] = useState(0);
     const [page, setPage] = useState(0);
+    const [filter, setFilter] = useState('all');
     const spelling = query.trim();
     const searching = Boolean(spelling);
 
@@ -36,8 +68,11 @@ export default function TanakhSearch({ onOpen }) {
     }, [searching, data, attempt]);
 
     const words = useMemo(() => spelling.split(' '), [spelling]);
-    const matches = useMemo(() => data && searching ? findSpellingMatches(data.index, data.sections, words) : [],
+    const allMatches = useMemo(() => data && searching ? findSpellingMatches(data.index, words) : [],
         [data, searching, words]);
+    const matches = useMemo(() => filter === 'all' ? allMatches : allMatches.filter(hit => matchesSectionFilter(data.index, hit, filter)),
+        [data, allMatches, filter]);
+    const counts = useMemo(() => [...new Set(allMatches.map(hit => hit.endSection - hit.section))].filter(Boolean).sort((a, b) => a - b), [allMatches]);
     const first = page * PAGE_SIZE;
     const end = Math.min(first + PAGE_SIZE, matches.length);
 
@@ -50,6 +85,7 @@ export default function TanakhSearch({ onOpen }) {
         }
         setQuery(cleaned);
         setPage(0);
+        setFilter('all');
     };
 
     return (
@@ -65,29 +101,29 @@ export default function TanakhSearch({ onOpen }) {
                     updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length, normalizeTanakhSearchInput);
                 }} />
             {searching && <>
+                {allMatches.length > 0 && <label className="tanakh-match-filter">
+                    {t('סינון לפי פרשיות')}
+                    <select value={filter} onChange={event => { setFilter(event.target.value); setPage(0); }}>
+                        <option value="all">{t('כל המופעים')}</option>
+                        <option value="within">{t('בתוך פרשיה אחת')}</option>
+                        <option value="whole">{t('פרשיה שלמה')}</option>
+                        <option value="across">{t('חוצה גבול פרשיה')}</option>
+                        {counts.length > 0 && <optgroup label={t('מספר הגבולות שנחצו')}>
+                            {counts.map(count => <option key={count} value={`count:${count}`}>{count}</option>)}
+                        </optgroup>}
+                        {counts.length > 0 && <optgroup label={t('סוג הגבול שנחצה')}>
+                            {Object.entries(boundaryTypeNames).map(([type, name]) => <option key={type} value={type}>{t(name)}</option>)}
+                        </optgroup>}
+                    </select>
+                </label>}
                 <p role="status">{failed ? t('טעינת מפתח החיפוש נכשלה.') : !data ? t('טוען את מפתח החיפוש…')
-                    : !matches.length ? t('לא נמצאו מופעים בכתיב הזה.')
+                    : !allMatches.length ? t('לא נמצאו מופעים בכתיב הזה.')
+                    : !matches.length ? t('אין מופעים התואמים לסינון.')
                     : t`מופעים ${first + 1}–${end} מתוך ${matches.length}`}</p>
                 {failed && <button type="button" onClick={() => setAttempt(n => n + 1)}>{t('נסה שוב')}</button>}
                 {matches.length > 0 && <>
                     <ul className="tanakh-search-results">
-                        {matches.slice(first, end).map(([section, position]) => {
-                            const sectionId = data.index.sectionIds[section];
-                            const split = sectionId.lastIndexOf('-');
-                            const book = data.books.get(sectionId.slice(0, split));
-                            const ordinal = Number(sectionId.slice(split + 1));
-                            const tokens = data.sections[section];
-                            const start = position - 1, stop = start + words.length;
-                            return <li key={sectionId + '/' + position}>
-                                <button type="button" onClick={() => onOpen({ bookSlug: book.slug, ordinal, sectionId, position, length: words.length })}>
-                                    <span>{t`${t(book.name)} · פרשיה ${ordinal}`} · {t`מילה ${position}`}</span>
-                                    <span className="tanakh-search-excerpt" dir="rtl" lang="he">
-                                        {start > 4 && '… '}{tokens.slice(Math.max(0, start - 4), start).join(' ')}{' '}
-                                        <mark>{spelling}</mark>{' '}{tokens.slice(stop, stop + 4).join(' ')}{stop + 4 < tokens.length && ' …'}
-                                    </span>
-                                </button>
-                            </li>;
-                        })}
+                        {matches.slice(first, end).map(hit => <SpellingResult key={hit.start} data={data} hit={hit} onOpen={onOpen} />)}
                     </ul>
                     {matches.length > PAGE_SIZE && <div className="tanakh-search-pages">
                         <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>{t('תוצאות קודמות')}</button>

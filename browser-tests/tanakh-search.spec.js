@@ -1,5 +1,58 @@
 import { test, expect } from '@playwright/test';
 
+test('a creation transition opens both sections and keeps the search available', async ({ page }) => {
+    await page.goto('/?lang=en');
+    const search = page.getByRole('search');
+    await search.getByRole('searchbox').fill('יום אחד ויאמר אלהים');
+    const result = search.getByRole('button', { name: /Genesis · Sections 1–2/ });
+    await expect(result.locator('mark')).toHaveText(['יום אחד', 'ויאמר אלהים']);
+    await expect(result.locator('.tanakh-match-boundary')).toContainText('Open section');
+    const filter = search.getByLabel('Section filter');
+    await filter.selectOption('within');
+    await expect(search.getByRole('status')).toHaveText('No matches for this filter.');
+    await filter.selectOption('across');
+    await result.click();
+    await expect(page.locator('#tanakh-range-start')).toHaveValue('1');
+    await expect(page.locator('#tanakh-range-end')).toHaveValue('2');
+    const highlighted = page.locator('.tanakh-preview mark');
+    await expect(highlighted).toHaveCount(2);
+    await expect(highlighted.first()).toBeFocused();
+    await expect(highlighted.first()).toBeInViewport();
+    expect((await highlighted.allTextContents()).map(text => text.normalize('NFKD').replace(/[^א-ת ]/gu, ''))).toEqual(['יום אחד', 'ויאמר אלהים']);
+    await expect(page.locator('.tanakh-preview .tanakh-match-boundary')).toContainText('פפ');
+    await page.locator('.app-language-switch').click();
+    await expect(page.locator('.tanakh-preview .tanakh-match-boundary')).toContainText('פתוחה');
+    await page.locator('.app-language-switch').click();
+    await page.getByRole('button', { name: 'Analyze 2 sections' }).click();
+    await expect(page.locator('.app-textarea')).toHaveValue(/יום אחד\nויאמר אלהים/);
+    await page.getByRole('button', { name: 'Close Tanakh' }).click();
+    await expect(filter).toHaveValue('across');
+    await expect(result).toBeVisible();
+});
+
+test('Hebrew search shows both poetic dividers and highlights the three source lines', async ({ page }) => {
+    await page.goto('/?lang=he');
+    const search = page.getByRole('search');
+    const lines = ['מי כמכה באלם יהוה', 'מי כמכה נאדר בקדש', 'נורא תהלת עשה פלא'];
+    await search.getByRole('searchbox').fill(lines.join(' '));
+    const filter = search.getByLabel('סינון לפי פרשיות');
+    await filter.selectOption('count:2');
+    await filter.selectOption('shirah-setumah-like');
+    const result = search.getByRole('button', { name: /שמות · פרשיות 64–66/ });
+    await expect(result.locator('mark')).toHaveText(lines);
+    await expect(result.locator('.tanakh-match-boundary')).toHaveText(['גבול שירה דמוי סתומה · מ:ששש', 'גבול שירה דמוי סתומה · מ:ששש']);
+    await result.click();
+    await expect(page.locator('.tanakh-preview mark')).toHaveCount(3);
+    await expect(page.locator('.tanakh-preview .tanakh-match-boundary')).toHaveCount(2);
+    await expect(page.locator('#tanakh-range-end')).toHaveValue('66');
+    await page.locator('#tanakh-range-end').selectOption('67');
+    await expect(page.locator('.tanakh-preview mark')).toHaveCount(0);
+    await search.getByRole('searchbox').fill(lines[0]);
+    await filter.selectOption('whole');
+    await search.getByRole('button', { name: /שמות · פרשיה 64/ }).click();
+    await expect(page.locator('#tanakh-section')).toHaveValue('64');
+});
+
 for (const width of [390, 1280]) {
     test(`opening a closed viewer brings a deep match into view at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 780 });

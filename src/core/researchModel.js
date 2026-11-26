@@ -44,8 +44,14 @@ export function locatorText(locator) {
     return `${t(book)} ${locator.chapter},${locator.verse}`;
 }
 
+export const boundaryTypeNames = {
+    petuhah: 'פתוחה',
+    setumah: 'סתומה',
+    'shirah-setumah-like': 'גבול שירה דמוי סתומה',
+    'masoretic-book-part-spacing': 'ריווח חלק ספר',
+};
+
 export function boundaryText(boundary, initial = false) {
     if (!boundary) return initial ? t('תחילת הספר') : t('סוף הספר');
-    const types = { petuhah: t('פתוחה'), setumah: t('סתומה'), 'shirah-setumah': t('גבול שירה'), 'masoretic-book-part-spacing': t('ריווח חלק ספר') };
-    return `${types[boundary.normalizedType] || boundary.normalizedType} · ${boundary.upstreamMarker || ''} · ${locatorText(boundary.location)} · ${['inside-verse', 'within-verse'].includes(boundary.position) ? t('בתוך פסוק') : boundary.position === 'before-verse' ? t('לפני פסוק') : boundary.position || ''}`;
+    return `${t(boundaryTypeNames[boundary.normalizedType] || boundary.normalizedType)} · ${boundary.upstreamMarker || ''} · ${locatorText(boundary.location)} · ${['inside-verse', 'within-verse'].includes(boundary.position) ? t('בתוך פסוק') : boundary.position === 'before-verse' ? t('לפני פסוק') : boundary.position || ''}`;
 }

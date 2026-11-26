@@ -1,10 +1,11 @@
 import { t } from '../i18n/locale.js';
 import useLanguage, { BilingualLabel } from '../i18n/LanguageContext.jsx';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import { corpusUrl, loadCorpusManifest, loadVerifiedCorpusFile } from '../core/corpusData.js';
 import { createTanakhSelection, tanakhActionLabel, tanakhSelectionLabel } from '../core/tanakhSelection.js';
 import { sourceMatchRange } from '../core/tanakhSearch.js';
+import TanakhBoundary from './TanakhBoundary.jsx';
 
 const SELECTION_SCOPES = Object.freeze([
     { id: 'book', label: 'כל הספר' },
@@ -46,8 +47,8 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
     const [manifestAttempt, setManifestAttempt] = useState(0);
     const [bookAttempt, setBookAttempt] = useState(0);
     const pendingSelectionRef = useRef(initialHit ? {
-        bookSlug: initialHit.bookSlug, scope: 'section',
-        startSectionOrdinal: initialHit.ordinal, endSectionOrdinal: initialHit.ordinal,
+        bookSlug: initialHit.bookSlug, scope: initialHit.ordinal === initialHit.endOrdinal ? 'section' : 'range',
+        startSectionOrdinal: initialHit.ordinal, endSectionOrdinal: initialHit.endOrdinal,
     } : currentSelection);
     const [searchHit, setSearchHit] = useState(initialHit);
     const matchRef = useRef(null);
@@ -120,21 +121,32 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
         [bookData, rangeEnd, rangeStart, selectionScope],
     );
 
-    const matchRange = useMemo(() => {
-        if (!searchHit || activeSelection?.scope !== 'section' || activeSelection.sections[0].id !== searchHit.sectionId) return null;
-        return sourceMatchRange(activeSelection.sourceText, searchHit.position, searchHit.length);
+    const matchParts = useMemo(() => {
+        if (!searchHit || activeSelection?.sections[0].id !== searchHit.sectionId || activeSelection.endOrdinal !== searchHit.endOrdinal) return null;
+        return activeSelection.sections.map((section, index) => {
+            const first = index === 0 ? searchHit.position : 1;
+            const last = section.ordinal === searchHit.endOrdinal ? searchHit.endPosition : section.wordCount;
+            const [start, end] = sourceMatchRange(section.sourceText, first, last - first + 1);
+            return <Fragment key={section.id}>
+                {index > 0 && <>{'\n'}<TanakhBoundary boundary={activeSelection.sections[index - 1].boundaryAfter} />{'\n'}</>}
+                {section.sourceText.slice(0, start)}
+                <mark tabIndex={index === 0 ? -1 : undefined} ref={index === 0 ? matchRef : undefined}>{section.sourceText.slice(start, end)}</mark>
+                {section.sourceText.slice(end)}
+            </Fragment>;
+        });
     }, [activeSelection, searchHit]);
 
     useEffect(() => {
-        if (!matchRange) return;
+        if (!matchParts) return;
         const frame = requestAnimationFrame(() => {
             const match = matchRef.current;
             if (!match) return;
             match.focus({ preventScroll: true });
-            match.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+            const block = match.offsetHeight >= match.closest('.tanakh-preview').clientHeight ? 'start' : 'center';
+            match.scrollIntoView({ block, inline: 'nearest', behavior: 'instant' });
         });
         return () => cancelAnimationFrame(frame);
-    }, [matchRange]);
+    }, [matchParts]);
 
     const chooseBook = (book) => {
         pendingSelectionRef.current = null;
@@ -282,7 +294,7 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
                                     <label className="block text-sm font-bold" htmlFor="tanakh-range-end">{t("סיום")}<select
                                             id="tanakh-range-end"
                                             value={rangeEnd}
-                                            onChange={(event) => setRangeEnd(Number(event.target.value))}
+                                            onChange={(event) => { setSearchHit(null); setRangeEnd(Number(event.target.value)); }}
                                             className={`mt-2 w-full rounded-lg border px-2 py-2 font-normal ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-slate-300'}`}
                                         >
                                             {bookData.sections.slice(rangeStart - 1).map((section) => <option key={section.id} value={section.ordinal}>{section.ordinal} · {locatorRangeLabel(section.locators)}</option>)}
@@ -319,11 +331,7 @@ const TanakhNavigator = memo(({ currentSelection, initialHit, isDarkMode, onSele
 
                         <div>
                             <div className={`tanakh-preview rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-900/35' : 'border-slate-200 bg-white'}`} dir="rtl" lang="he">
-                                {matchRange ? <>
-                                    {activeSelection.sourceText.slice(0, matchRange[0])}
-                                    <mark tabIndex={-1} ref={matchRef}>{activeSelection.sourceText.slice(...matchRange)}</mark>
-                                    {activeSelection.sourceText.slice(matchRange[1])}
-                                </> : activeSelection.sourceText}
+                                {matchParts || activeSelection.sourceText}
                             </div>
                             <div className="tanakh-actions mt-4 flex justify-end">
                                 <button

@@ -15,6 +15,8 @@ export function createCorpusIndexes(corpus, sectionVerseMappings) {
     if (sectionVerseMappings.length !== sectionIds.length) throw new Error('Token locator sections are incomplete');
     const verseLocators = [];
     const verseIndices = new Map();
+    const bookStarts = [];
+    let previousLocator;
     const sections = sectionVerseMappings.map((section, index) => {
         if (section.sectionId !== sectionIds[index]) throw new Error(`Token locator section order differs at ${index}`);
         let nextWordPosition = 1;
@@ -23,6 +25,10 @@ export function createCorpusIndexes(corpus, sectionVerseMappings) {
                 throw new Error(`Token locator coverage is discontinuous in ${section.sectionId}`);
             }
             nextWordPosition += span.wordCount;
+            if (span.locator.book24 !== previousLocator?.book24 || span.locator.subBook !== previousLocator?.subBook) {
+                bookStarts.push([index, span.startWordPosition]);
+            }
+            previousLocator = span.locator;
             const key = JSON.stringify(span.locator);
             if (!verseIndices.has(key)) {
                 verseIndices.set(key, verseLocators.length);
@@ -42,6 +48,11 @@ export function createCorpusIndexes(corpus, sectionVerseMappings) {
             occurrenceFields: ['sectionIndex', 'wordPosition'],
             positionConventions: { sectionIndex: 'zero-based index into sectionIds and analysisShared.sections', wordPosition: 'one-based position within the MAM section' },
             sectionIds,
+            bookStarts,
+            boundariesAfter: corpus.books.flatMap(book => book.sections.map(({ boundaryAfter }) => boundaryAfter && ({
+                normalizedType: boundaryAfter.normalizedType,
+                upstreamMarker: boundaryAfter.upstreamMarker,
+            }))),
             occurrencesByWord,
         },
         tokenLocations: {

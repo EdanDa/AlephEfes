@@ -230,6 +230,9 @@ html[dir="rtl"] body { direction: rtl; }
 .tanakh-search-results button:hover, .tanakh-search-results button:focus-visible { background: #94a3b822; }
 .tanakh-search-results button > span:first-child { font-size: .875rem; font-weight: 600; }
 .tanakh-search-excerpt { text-align: right; }
+.tanakh-match-boundary { display: inline-block; font: 600 .8rem/1.4 system-ui, sans-serif; padding-inline: .4em; border-inline: 1px solid currentColor; vertical-align: middle; }
+.tanakh-search .tanakh-match-filter { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-block: .5rem; font-size: .875rem; }
+.tanakh-match-filter select { max-width: 100%; padding: .3rem; border: 1px solid #94a3b8; border-radius: .35rem; background-color: Canvas; color: CanvasText; }
 .tanakh-search mark, .tanakh-preview mark { background: #fde68a; color: #352600; border-radius: .15rem; }
 .tanakh-search-pages { display: flex; justify-content: space-between; }
 .tanakh-search-pages button, .tanakh-search > button { min-height: 2.75rem; text-decoration: underline; }
