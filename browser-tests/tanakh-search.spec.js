@@ -52,9 +52,16 @@ for (const [width, lang] of [[390, 'he'], [1440, 'en']]) {
         const hide = region.getByRole('button', { name: lang === 'he' ? 'הסתר תוצאות' : 'Hide results' });
         const clear = region.getByRole('button', { name: lang === 'he' ? 'נקה חיפוש' : 'Clear search' });
         const label = await region.locator('#tanakh-search-label').boundingBox();
-        for (const button of [clear, hide]) {
-            const bounds = await button.boundingBox();
-            expect(Math.abs(bounds.x + bounds.width - label.x)).toBeLessThan(150);
+        const clearBox = await clear.boundingBox();
+        const hideBox = await hide.boundingBox();
+        expect(Math.abs(clearBox.y - hideBox.y)).toBeLessThan(2);
+        expect(Math.abs(clearBox.x - hideBox.x - hideBox.width)).toBeLessThan(9);
+        const rightEdge = clearBox.x + clearBox.width;
+        if (clearBox.y >= label.y + label.height) {
+            expect(Math.abs(rightEdge - label.x - label.width)).toBeLessThan(2);
+            expect(clearBox.y - label.y - label.height).toBeLessThan(9);
+        } else {
+            expect(Math.abs(label.x - rightEdge)).toBeLessThan(9);
         }
         await hide.click();
         await expect(region.getByRole('status')).toHaveCount(0);

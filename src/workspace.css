@@ -286,6 +286,7 @@ html[dir="rtl"] body { direction: rtl; }
 .tanakh-search label { display: block; margin-bottom: .25rem; font-weight: 600; }
 .tanakh-search-heading { direction: rtl; display: flex; flex-wrap: wrap; align-items: center; min-height: 2.75rem; column-gap: .5rem; margin-bottom: .25rem; }
 .tanakh-search-heading label { margin: 0; }
+.tanakh-search-actions { display: flex; align-items: center; gap: .375rem; max-width: 100%; }
 .tanakh-search-heading button { min-height: 2.75rem; padding-inline: .4rem; color: #1d4ed8; font-size: .875rem; text-decoration: underline; text-underline-offset: .2em; }
 .dark .tanakh-search-heading button { color: #93c5fd; }
 .tanakh-search input::-webkit-search-cancel-button { display: none; }

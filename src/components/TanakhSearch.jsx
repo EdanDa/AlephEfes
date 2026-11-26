@@ -88,10 +88,12 @@ export default function TanakhSearch({ onOpen }) {
         <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label" onKeyDown={handleKey}>
             <div className="tanakh-search-heading">
                 <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
-                {query && <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>}
-                {searching && <button type="button" aria-expanded={!collapsed} aria-controls="tanakh-matches" onClick={() => setCollapsed(!collapsed)}>
-                    {collapsed ? t('הצג תוצאות') : t('הסתר תוצאות')}
-                </button>}
+                {query && <div className="tanakh-search-actions">
+                    <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>
+                    {searching && <button type="button" aria-expanded={!collapsed} aria-controls="tanakh-matches" onClick={() => setCollapsed(!collapsed)}>
+                        {collapsed ? t('הצג תוצאות') : t('הסתר תוצאות')}
+                    </button>}
+                </div>}
             </div>
             <input ref={inputRef} id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
                 placeholder={t('חפש מילה או צירוף')} value={query}
