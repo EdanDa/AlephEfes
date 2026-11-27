@@ -7,10 +7,11 @@ import ResearchNote from './ResearchNote';
 
 const ResearchContext = createContext(null);
 export const useResearch = () => useContext(ResearchContext);
-export function InspectWord({ word, lineIndex, wordPosition, compact = false }) {
+export function InspectWord({ word, lineIndex, wordPosition, compact = false, children }) {
     const { inspect } = useResearch();
     const { isAnalysisStale } = useAppState();
-    return <button type="button" className={`research-inspect ${compact ? 'research-inspect-compact' : ''}`} disabled={isAnalysisStale} title={t`בדוק מילה ${word}`} aria-label={t`בדוק מילה ${word}`} onClick={(event) => { event.stopPropagation(); inspect(word, { lineIndex, wordPosition }); }}>{compact ? '⋯' : t('בדוק מילה')}</button>;
+    const style = children ? 'research-inspect-word' : compact ? 'research-inspect-compact' : '';
+    return <button type="button" className={`research-inspect ${style}`} disabled={isAnalysisStale} title={t`בדוק מילה ${word}`} aria-label={t`בדוק מילה ${word}`} onClick={(event) => { event.stopPropagation(); inspect(word, { lineIndex, wordPosition }); }}>{children ?? (compact ? '⋯' : t('בדוק מילה'))}</button>;
 }
 export default function ResearchWorkspace({ children }) {
     useLanguage();

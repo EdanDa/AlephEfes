@@ -20,7 +20,7 @@ async function loadSearchData() {
     return { index: buildSpellingIndex(index), books, contentHash: manifest.contentHash };
 }
 
-export default function TanakhSearch({ onOpen }) {
+export default function TanakhSearch({ onOpen, children }) {
     const language = useLanguage();
     const [query, setQuery] = useState('');
     const [data, setData] = useState(null);
@@ -87,13 +87,16 @@ export default function TanakhSearch({ onOpen }) {
     return (
         <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label" onKeyDown={handleKey}>
             <div className="tanakh-search-heading">
-                <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
-                {query && <div className="tanakh-search-actions">
-                    <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>
-                    {searching && <button type="button" aria-expanded={!collapsed} aria-controls="tanakh-matches" onClick={() => setCollapsed(!collapsed)}>
-                        {collapsed ? t('הצג תוצאות') : t('הסתר תוצאות')}
-                    </button>}
-                </div>}
+                <div className="tanakh-search-tools">
+                    <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
+                    {query && <div className="tanakh-search-actions">
+                        <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>
+                        {searching && <button type="button" aria-expanded={!collapsed} aria-controls="tanakh-matches" onClick={() => setCollapsed(!collapsed)}>
+                            {collapsed ? t('הצג תוצאות') : t('הסתר תוצאות')}
+                        </button>}
+                    </div>}
+                </div>
+                {children}
             </div>
             <input ref={inputRef} id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
                 placeholder={t('חפש מילה או צירוף')} value={query}

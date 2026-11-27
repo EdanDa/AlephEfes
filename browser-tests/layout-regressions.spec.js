@@ -28,7 +28,7 @@ for (const theme of ['light', 'dark']) for (const width of [320, 390, 1440]) tes
     await page.getByRole('button', { name: 'מילים', exact: true }).click();
     const rows = page.locator('.research-detail-table tbody tr');
     await rows.first().scrollIntoViewIfNeeded();
-    expect((await rows.nth(1).boundingBox()).height).toBeLessThan(80);
+    expect((await rows.nth(1).boundingBox()).height).toBeLessThan(width < 704 ? 112 : 80);
     await page.screenshot({ path: testInfo.outputPath('compact-detail-rows.png') });
     await page.getByRole('button', { name: 'בדוק מילה אשתו', exact: true }).click();
     const inspector = page.getByRole('dialog', { name: 'בדיקת מילה · אשתו', exact: true });
@@ -53,3 +53,39 @@ for (const theme of ['light', 'dark']) for (const width of [320, 390, 1440]) tes
     expect(await note.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath('formatted-note-table.png') });
 });
+
+const ezekiel = JSON.parse(fs.readFileSync('public/corpus/books/ezekiel.json', 'utf8')).sections[29];
+for (const [width, lang, theme] of [[375, 'he', 'dark'], [320, 'en', 'light']]) {
+    test(`read the entire Ezekiel word calculation at ${width}px`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.addInitScript(({ text, theme }) => {
+            localStorage.setItem('alephThemeMode', theme);
+            localStorage.setItem('alephEfes:session', JSON.stringify({
+                version: 2, text, mode: 'aleph-zero', preferences: { view: 'lines', wordNumberingStart: 0 },
+            }));
+        }, { text: ezekiel.calculationText, theme });
+        await page.goto('/?lang=' + lang);
+        const line = page.locator('.app-line-card').first();
+        const toggle = line.locator('.app-line-disclosure');
+        if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+        const table = line.getByRole('table');
+        const row = table.locator('tbody tr').first();
+        await expect(row.locator('.app-letter-sum')).toHaveText('5 + 9 + 0 + 12 + 19');
+        await expect(row.locator('.detail-metric bdi:visible')).toHaveText(['45', '144', '144', '9']);
+        await expect(table.locator('tbody tr')).toHaveCount(138);
+        for (const fontSize of ['16px', '24px']) {
+            await page.evaluate(size => document.documentElement.style.fontSize = size, fontSize);
+            expect(await table.evaluate(element => {
+                const container = element.parentElement;
+                return container.scrollWidth <= container.clientWidth + 1 && [...element.querySelectorAll('td')].every(cell =>
+                    cell.scrollWidth <= cell.clientWidth + 1);
+            })).toBe(true);
+            if (fontSize === '16px') {
+                await line.locator('.app-line-totals').evaluate(node => node.scrollIntoView({ block: 'start', behavior: 'instant' }));
+                await page.screenshot({ path: testInfo.outputPath('ezekiel-phone.png'), scale: 'css' });
+            }
+        }
+        await row.getByRole('button', { name: /ויאמר/ }).click();
+        await expect(page.getByRole('dialog')).toContainText('ויאמר');
+    });
+}

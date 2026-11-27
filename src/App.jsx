@@ -9,6 +9,7 @@ import PrimeColorPicker from './components/PrimeColorPicker';
 import TanakhSearch from './components/TanakhSearch';
 import SongLabel from './components/SongLabel';
 import { songs } from './core/tanakhSongs';
+import WordDetailTable from './components/WordDetailTable';
 import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
 import './light-theme.css';
@@ -153,8 +154,9 @@ const GlobalStyles = () => (
                 touch-action: manipulation;
             }
             .app-shell {
+                --mobile-gutter: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right));
                 overflow-x: clip;
-                padding: 0.75rem 0.625rem 1.5rem;
+                padding: 0.75rem var(--mobile-gutter) 1.5rem;
             }
             .app-shell.app-shell-has-nav {
                 padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
@@ -188,12 +190,8 @@ const GlobalStyles = () => (
                 inset-inline: 0;
                 bottom: 0;
                 margin: 0;
-                padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom));
+                padding: 0 var(--mobile-gutter) calc(0.5rem + env(safe-area-inset-bottom));
                 top: auto;
-            }
-            .app-view-tabs {
-                border-radius: 1.25rem;
-                display: grid;
             }
             .app-nav-top {
                 align-items: center;
@@ -207,12 +205,13 @@ const GlobalStyles = () => (
             }
             .app-view-tab {
                 flex-direction: column;
-                font-size: 0.7rem;
-                gap: 0.15rem;
+                font-size: 0.75rem;
+                gap: 0.25rem;
                 justify-content: center;
                 min-width: 0;
-                min-height: 3.2rem;
-                padding: 0.4rem 0.15rem;
+                min-height: 3rem;
+                padding: 0.375rem 0.15rem;
+                border-radius: 0.8rem;
             }
             .app-view-tab svg {
                 height: 1rem;
@@ -346,18 +345,6 @@ const GlobalStyles = () => (
                 gap: 0.5rem;
                 padding: 0.75rem;
             }
-            .app-line-totals-label {
-                grid-column: 1 / -1;
-            }
-            .app-line-word-count {
-                grid-column: 1 / -1;
-                margin-inline: 0;
-            }
-            .app-line-total {
-                margin-inline: 0;
-                min-width: 0;
-                white-space: nowrap;
-            }
             .app-scroll-top {
                 bottom: calc(5.25rem + env(safe-area-inset-bottom));
                 right: 0.75rem;
@@ -440,6 +427,7 @@ const GlobalStyles = () => (
 // -----------------------------------------------------------------------------
 const Icon = React.memo(({ name, className }) => {
     switch (name) {
+        case 'book': return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true"><path d="M12 6c-3-2-6-2.5-10-1v14c4-1.5 7-1 10 1 3-2 6-2.5 10-1V5c-4-1.5-7-1-10 1Zm0 0v14"/></svg>;
         case 'research': return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>;
         case 'sun': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>;
         case 'moon': return <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>;
@@ -546,20 +534,15 @@ const Legend = React.memo(() => {
     );
 });
 
-const ValueCell = memo(({ value, isPrimeFlag, previousValue, previousLayer, previousIsPrimeFlag, layer, isApplicable = true, primeColor, filters }) => {
-    useLanguage();
-    const isVisible = isValueVisible(layer, isPrimeFlag, filters);
-    const primeColorClasses = COLOR_PALETTE[primeColor];
-    // .selectable ensures numbers can be copied
-    const className = `px-4 py-3 text-center tabular-nums selectable cursor-default ${isPrimeFlag ? `${primeColorClasses.light} ${primeColorClasses.dark}` : 'text-slate-700 dark:text-gray-300'}`;
-    
-    if (!isApplicable) return <td className={className}>-</td>;
-    if (!isVisible) return <td className={className}></td>;
 
-    const previousVisible = previousLayer ? isValueVisible(previousLayer, previousIsPrimeFlag, filters) : false;
-    if (shouldUseDitto(value, previousValue, previousVisible)) return <td className={className}>〃</td>;
-    return <td className={className}>{value} {isPrimeFlag && <span className="mr-1" title={t("ראשוני")}>♢</span>}</td>;
-});
+function LineTotal({ label, value, repeat, prime, primeColor }) {
+    const color = COLOR_PALETTE[primeColor];
+    return <span className={`app-line-total mx-2 ${prime ? color.light + ' ' + color.dark : ''}`}>
+        <span className="line-total-name">{t(label)}</span><span className="line-total-equals">=</span>
+        {repeat && <span className="detail-ditto">〃</span>}
+        <bdi className="detail-number" dir="ltr">{value}{prime && ' ♢'}</bdi>
+    </span>;
+}
 
 const TotalNumberDisplay = memo(({ value, isPrimeFlag, primeColor, layer, filters }) => {
     const isVisible = isValueVisible(layer, isPrimeFlag, filters);
@@ -2022,28 +2005,30 @@ const App = () => {
                 <>
                     <div className={`app-card p-6 rounded-xl border mb-8 transition-all ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-50/95 border-slate-300 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.7)] hover:shadow-xl'}`}>
                         <div className="app-editor-heading">
-                            <div className="app-source-controls">
-                                <button
-                                    type="button"
-                                    onClick={() => setTanakhPanel(panel => panel ? null : { key: 0, hit: null })}
-                                    className={`rounded-full border px-5 py-2 font-semibold transition-colors ${isTanakhOpen ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : (isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100')}`}
-                                    aria-expanded={isTanakhOpen}
-                                >
-                                    <BilingualLabel message={isTanakhOpen ? 'סגור תנ״ך' : 'פתח תנ״ך'} />
-                                </button>
-                                {corpusSelection && (
-                                    <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                                        MAM · {selectedSong ? <SongLabel song={selectedSong} /> : <>{t(corpusSelection.bookName)} · {corpusSelection.scope === 'book'
-                                            ? t('הספר כולו')
-                                            : corpusSelection.sectionCount === 1
-                                                ? t`פרשיה ${corpusSelection.startSectionOrdinal}`
-                                                : t`פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}</>}
-                                    </span>
-                                )}
-                            </div>
+                            <TanakhSearch onOpen={openTanakhResult}>
+                                <div className="app-source-controls">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTanakhPanel(panel => panel ? null : { key: 0, hit: null })}
+                                        className={`rounded-full border px-5 py-2 font-semibold transition-colors ${isTanakhOpen ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' : (isDarkMode ? 'bg-gray-800 border-gray-700 hover:bg-gray-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100')}`}
+                                        aria-expanded={isTanakhOpen}
+                                    >
+                                        <Icon name="book" className="w-5 h-5 shrink-0" />
+                                        <BilingualLabel message={isTanakhOpen ? 'סגור תנ״ך' : 'פתח תנ״ך'} />
+                                    </button>
+                                    {corpusSelection && (
+                                        <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                            MAM · {selectedSong ? <SongLabel song={selectedSong} /> : <>{t(corpusSelection.bookName)} · {corpusSelection.scope === 'book'
+                                                ? t('הספר כולו')
+                                                : corpusSelection.sectionCount === 1
+                                                    ? t`פרשיה ${corpusSelection.startSectionOrdinal}`
+                                                    : t`פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}</>}
+                                        </span>
+                                    )}
+                                </div>
+                            </TanakhSearch>
                             <Legend />
                         </div>
-                        <TanakhSearch onOpen={openTanakhResult} />
                         {isTanakhOpen && (
                             <Suspense fallback={<div className={`rounded-xl border p-8 mb-8 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-300'}`}>{t("טוען תנ״ך…")}</div>}>
                                 <TanakhNavigator key={tanakhPanel.key} initialHit={tanakhPanel.hit} currentSelection={corpusSelection} isDarkMode={isDarkMode} onSelect={handleCorpusSelection} onOpen={openTanakhResult} />
@@ -2249,37 +2234,15 @@ const App = () => {
                                                     <p className={`app-line-letter-count text-center text-sm mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} title={t("כל מופעי אותיות החישוב בשורת המקור, לפני סינון; ללא ניקוד, טעמים, רווחים וסימני פיסוק.")}>{t("סה״כ אותיות: ")}{lineResult.letterCount}</p>
                                                     {showTotalsLine && <div className={`app-line-totals font-bold text-sm text-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-100' : 'bg-slate-200 text-gray-900'}`}><span className="app-line-totals-label">{t("סה\"כ שורה:")}</span>
                                                         {lineResult.words.length > 1 && <span className="app-line-word-count mx-2">({lineResult.words.length}{t(" מילים)")}</span>}
-                                                        {unitsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.U ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>{t("יחידות=")}{lineResult.totals.units}{lineResult.isPrimeTotals.U && '♢'}</span>}
-                                                        {tensVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.T && !tensUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>{t("עשרות=")}{tensUsesDitto ? '〃' : lineResult.totals.tens}{lineResult.isPrimeTotals.T && !tensUsesDitto && '♢'}</span>}
-                                                        {hundredsVisible && <span className={`app-line-total mx-2 ${lineResult.isPrimeTotals.H && !hundredsUsesDitto ? `${COLOR_PALETTE[primeColor].light} ${COLOR_PALETTE[primeColor].dark}` : ''}`}>{t("מאות=")}{hundredsUsesDitto ? '〃' : lineResult.totals.hundreds}{lineResult.isPrimeTotals.H && !hundredsUsesDitto && '♢'}</span>}
-                                                        <span className="app-line-total mx-2">{t("ש\"ד=")}{lineResult.totalsDR}</span>
+                                                        {unitsVisible && <LineTotal label="יחידות" value={lineResult.totals.units} prime={lineResult.isPrimeTotals.U} primeColor={primeColor} />}
+                                                        {tensVisible && <LineTotal label="עשרות" value={lineResult.totals.tens} repeat={tensUsesDitto} prime={lineResult.isPrimeTotals.T} primeColor={primeColor} />}
+                                                        {hundredsVisible && <LineTotal label="מאות" value={lineResult.totals.hundreds} repeat={hundredsUsesDitto} prime={lineResult.isPrimeTotals.H} primeColor={primeColor} />}
+                                                        <LineTotal label={'ש"ד'} value={lineResult.totalsDR} />
                                                     </div>}
                                                 </button>
                                                 {isExpanded && (
-                                                    <div className="overflow-x-auto mt-4">
-                                                        <table className="research-detail-table">
-                                                            <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
-                                                                <tr>
-                                                                    <th scope="col" className="app-word-column">{t("מילה")}</th>
-                                                                    <th scope="col" className="app-sum-column">{t("חישוב")}</th>
-                                                                    {filters.U && <th scope="col">{t("יחידות")}</th>}
-                                                                    {filters.T && <th scope="col">{t("עשרות")}</th>}
-                                                                    {filters.H && <th scope="col">{t("מאות")}</th>}
-                                                                    <th scope="col">{t("ש\"ד")}</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>{visibleWords.map((res, index) => (
-                                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
-                                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 rounded-r-lg text-right"><span className="research-detail-word">{lineResult.words.length > 1 && <span className="research-detail-position" dir="ltr" aria-label={t`מיקום מילה בשורה: ${visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}`}>{visibleWordPositionsByLine[lineIndex][index] - 1 + wordNumberingStart}</span>}<bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} lineIndex={lineIndex} wordPosition={visibleWordPositionsByLine[lineIndex][index]} compact /></span></td>
-                                                                    <td dir="ltr" className="app-letter-sum font-mono">{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
-                                                                    {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
-                                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
-                                                                    <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
-                                                                </tr>
-                                                            ))}</tbody>
-                                                        </table>
-                                                    </div>
+                                                    <WordDetailTable words={visibleWords} letterTable={letterTable} filters={filters} primeColor={primeColor}
+                                                        lineIndex={lineIndex} positions={visibleWordPositionsByLine[lineIndex]} numberingStart={lineResult.words.length > 1 ? wordNumberingStart : null} />
                                                 )}
                                             </div>
                                         );
@@ -2295,30 +2258,7 @@ const App = () => {
                                             <button aria-pressed={detailsView === 'words'} onClick={() => dispatch({ type: 'SET_DETAILS_VIEW', payload: 'words' })} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${detailsView === 'words' ? 'bg-white dark:bg-blue-500 text-blue-600 dark:text-white shadow' : ''}`}>{t("מילים")}</button>
                                         </div>
                                     </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="app-word-table research-detail-table">
-                                            <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-l from-slate-100 to-indigo-100'}>
-                                                <tr>
-                                                    <th scope="col" className="app-word-column">{t("מילה")}</th>
-                                                    <th scope="col" className="app-sum-column">{t("חישוב")}</th>
-                                                    {filters.U && <th scope="col">{t("יחידות")}</th>}
-                                                    {filters.T && <th scope="col">{t("עשרות")}</th>}
-                                                    {filters.H && <th scope="col">{t("מאות")}</th>}
-                                                    <th scope="col">{t("ש\"ד")}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>{visibleAllWords.map((res, index) => (
-                                                <tr key={index} className={`transition-colors duration-200 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-slate-50 hover:bg-indigo-50'}`}>
-                                                    <td className="px-4 py-3 font-bold text-lg text-blue-800 dark:text-blue-300 rounded-r-lg text-right"><span className="research-detail-word"><bdi dir="rtl" lang="he">{res.word}</bdi><InspectWord word={res.word} compact /></span></td>
-                                                    <td dir="ltr" className="app-letter-sum font-mono">{getLetterDetails(res.word, letterTable).map(l => l.value).join('+')}</td>
-                                                    {filters.U && <ValueCell value={res.units} isPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="U" filters={filters} />}
-                                                    {filters.T && <ValueCell value={res.tens} isPrimeFlag={res.isPrimeT} previousValue={res.units} previousLayer="U" previousIsPrimeFlag={res.isPrimeU} primeColor={primeColor} layer="T" filters={filters} />}
-                                                    {filters.H && <ValueCell value={res.hundreds} isPrimeFlag={res.isPrimeH} previousValue={res.tens} previousLayer="T" previousIsPrimeFlag={res.isPrimeT} primeColor={primeColor} layer="H" filters={filters} />}
-                                                    <td className="px-4 py-3 text-center font-semibold text-violet-900 dark:text-purple-300 text-lg rounded-l-lg">{res.dr}</td>
-                                                </tr>
-                                            ))}</tbody>
-                                        </table>
-                                    </div>
+                                    <WordDetailTable words={visibleAllWords} letterTable={letterTable} filters={filters} primeColor={primeColor} />
                                 </div>
                             )}
                         </>

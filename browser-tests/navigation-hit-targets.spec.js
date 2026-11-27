@@ -16,6 +16,38 @@ async function clickAtCenter(page, target) {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+for (const language of ['he', 'en']) {
+    test(`mobile tabs stay centered before and after scrolling in ${language}`, async ({ page }, testInfo) => {
+        await page.emulateMedia({ colorScheme: language === 'he' ? 'dark' : 'light' });
+        await page.goto('/?lang=' + language);
+        const dock = page.locator('.app-view-tabs');
+        const top = dock.locator('.app-nav-top');
+        for (const width of [375, 320, 390, 430, 844]) {
+            await page.setViewportSize({ width, height: width === 844 ? 390 : 780 });
+            await expect(page.locator('.app-view-nav')).toHaveCSS('position', 'fixed');
+            await expect(top).toBeHidden();
+            const box = await dock.boundingBox();
+            const viewport = await page.evaluate(() => document.documentElement.clientWidth);
+            expect(Math.abs(box.x - (viewport - box.x - box.width))).toBeLessThanOrEqual(1);
+            if (width === 375) {
+                const editor = await page.locator('.app-card').boundingBox();
+                expect(Math.abs(editor.x - box.x)).toBeLessThanOrEqual(1);
+                await page.screenshot({ path: testInfo.outputPath('phone-workspace.png') });
+            }
+            await page.locator('.app-textarea').fill('בראשית ברא אלהים\n'.repeat(30));
+            await expect(page.locator('.app-stats-toggle')).toBeVisible();
+            await page.evaluate(() => window.scrollTo(0, 600));
+            await expect(top).toBeVisible();
+            expect(await dock.boundingBox()).toEqual(box);
+            const arrow = await top.boundingBox();
+            expect(arrow.y + arrow.height).toBeLessThanOrEqual(box.y);
+            await top.tap();
+            await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+            await page.locator('.app-textarea').fill('');
+        }
+    });
+}
+
 for (const theme of ['light', 'dark']) for (const width of [1280, 1440, 1920]) {
     test(`sticky navigation leaves side controls clickable: ${theme} ${width}`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });

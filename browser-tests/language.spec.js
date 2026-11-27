@@ -151,7 +151,7 @@ for (const [width, height] of [[320, 740], [390, 844], [820, 850], [1280, 800]])
         const word = await table.locator('thead th').first().boundingBox();
         const sum = await table.locator('thead th').nth(1).boundingBox();
         expect(word.x).toBeGreaterThan(sum.x);
-        await expect(table.locator('tbody tr').first().locator('td').nth(1)).toHaveText('1+19+0+20+9+21');
+        await expect(table.locator('tbody tr').first().locator('td').nth(1)).toHaveText('1 + 19 + 0 + 20 + 9 + 21');
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
         await row.scrollIntoViewIfNeeded();
         await page.screenshot({ path: testInfo.outputPath('line-reading-en.png') });

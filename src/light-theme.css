@@ -19,7 +19,9 @@
 .app-shell[data-theme="light"] .app-title { background: none; color: #263b58; }
 .app-shell[data-theme="light"] .app-subtitle { color: var(--muted); }
 .app-shell[data-theme="light"] .app-repository-link { background: transparent; color: var(--muted); }
-.app-shell[data-theme="light"] .app-legend-items { background: var(--paper); border: 1px solid var(--line); }
+@media (min-width: 701px) {
+    .app-shell[data-theme="light"] .app-legend-items { background: var(--paper); border: 1px solid var(--line); }
+}
 .app-shell[data-theme="light"] :is(.app-theme-toggle, .app-value-table-action > button) { background: var(--paper); border: 1px solid var(--line); }
 .app-shell[data-theme="light"] :is(input:not([type="checkbox"]), textarea, select) { background: var(--paper); border-color: #cbd3dd; color: var(--ink); }
 .app-shell[data-theme="light"] :is(input, textarea)::placeholder { color: #6b7788; }
