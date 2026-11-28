@@ -1420,7 +1420,7 @@ const App = () => {
     const valueTableButtonRef = useRef(null);
     const viewContentTopRef = useRef(null);
     const linesToggleRef = useRef(null);
-    const revealCorpusLines = useRef(false);
+    const corpusAnalysisOrigin = useRef(null);
     
     const letterTable = useMemo(() => buildLetterTable(mode), [mode]);
 
@@ -1905,7 +1905,7 @@ const App = () => {
     }, [dispatch, selectedDR, stats]);
 
     const handleViewChange = useCallback((newView) => {
-        revealCorpusLines.current = false;
+        corpusAnalysisOrigin.current = null;
         if (newView === 'research') setResearchVisited(true);
         dispatch({ type: 'SET_VIEW', payload: newView });
         requestAnimationFrame(() => {
@@ -1918,7 +1918,7 @@ const App = () => {
         dispatch({ type: 'SET_TEXT', payload: forceHebrewInput(nextText) });
     }, [dispatch]);
     const handleCorpusSelection = useCallback((selectedText, selection, book) => {
-        revealCorpusLines.current = true;
+        corpusAnalysisOrigin.current = document.activeElement;
         dispatch({
             type: 'LOAD_CORPUS_SELECTION',
             payload: {
@@ -1937,8 +1937,11 @@ const App = () => {
     }, [dispatch]);
 
     useEffect(() => {
-        if (!revealCorpusLines.current || !corpusSelection || isAnalysisStale || !linesToggleRef.current) return;
-        revealCorpusLines.current = false;
+        const origin = corpusAnalysisOrigin.current;
+        if (!origin || !corpusSelection || isAnalysisStale || !linesToggleRef.current) return;
+        corpusAnalysisOrigin.current = null;
+        // The reader may have moved on to another control while the analysis was running.
+        if (origin !== document.activeElement && document.activeElement !== document.body) return;
         linesToggleRef.current.focus({ preventScroll: true });
         linesToggleRef.current.scrollIntoView({ block: 'center' });
     }, [corpusSelection, coreResults, isAnalysisStale]);

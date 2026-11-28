@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test';
 
 test('a named song opens with a numeric reference and enters analysis only on request', async ({ page }) => {
+    await page.addInitScript(() => {
+        const NativeWorker = window.Worker;
+        window.Worker = class extends NativeWorker {
+            postMessage(message) {
+                if (message.text?.includes('\n')) {
+                    window.finishSongAnalysis = () => super.postMessage(message);
+                } else super.postMessage(message);
+            }
+        };
+    });
     await page.goto('/?lang=he');
     const editor = page.locator('.app-textarea');
     await editor.fill('אב');
@@ -14,7 +24,12 @@ test('a named song opens with a numeric reference and enters analysis only on re
     expect((await editor.inputValue()).split('\n')).toHaveLength(44);
     await expect(page.locator('.app-source-controls')).toContainText('שירת הים · שמות 15:1–19');
     await page.locator('.app-language-switch').click();
-    await page.getByRole('combobox', { name: 'Songs, psalms and passages' }).fill('deborah');
+    const picker = page.getByRole('combobox', { name: 'Songs, psalms and passages' });
+    await picker.fill('deborah');
+    await page.waitForFunction(() => typeof window.finishSongAnalysis === 'function');
+    await page.evaluate(() => window.finishSongAnalysis());
+    await expect(page.locator('.app-analysis-results')).toHaveAttribute('aria-busy', 'false');
+    await expect(picker).toBeFocused();
     await page.getByRole('option', { name: 'Song of Deborah' }).click();
     await expect(page.getByRole('heading', { name: 'Song of Deborah · Judges 5:1–31' })).toBeFocused();
     await expect(page.locator('.tanakh-song-unit')).toHaveCount(87);
