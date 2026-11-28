@@ -145,7 +145,7 @@ function appReducer(state, action) {
         case 'TOGGLE_VALUE_TABLE':
             return { ...state, isValueTableOpen: !state.isValueTableOpen };
         case 'TOGGLE_VALUE_TABLE_PIN':
-            return { ...state, isValueTablePinned: !state.isValueTablePinned, isValueTableOpen: true };
+            return { ...state, isValueTablePinned: !state.isValueTablePinned, isValueTableOpen: !state.isValueTablePinned };
         case 'SET_VALUE_TABLE_OPEN':
             return { ...state, isValueTableOpen: action.payload };
         case 'CLOSE_VALUE_TABLE':

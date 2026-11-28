@@ -49,6 +49,46 @@ for (const language of ['he', 'en']) {
     });
 }
 
+for (const action of ['tap', 'keyboard']) {
+    test(`the # button opens and closes the values legend by ${action}`, async ({ page }) => {
+        await page.goto('/?lang=he');
+        const editor = page.locator('.app-textarea');
+        await editor.fill('בראשית');
+        const toggle = page.locator('.app-value-table-action button');
+        const activate = () => action === 'tap' ? toggle.tap() : toggle.press('Enter');
+        for (const open of [true, false, true, false]) {
+            await activate();
+            await expect(toggle).toHaveAttribute('aria-expanded', String(open));
+            await expect(page.locator('.app-value-tables')).toHaveCount(open ? 1 : 0);
+        }
+        await expect(editor).toHaveValue('בראשית');
+    });
+}
+
+test.describe('values legend with a mouse', () => {
+    test.use({ isMobile: false, hasTouch: false, viewport: { width: 1280, height: 900 } });
+
+    test('hover previews, first click pins, and second click dismisses until re-entry', async ({ page }) => {
+        await page.goto('/?lang=en');
+        const toggle = page.locator('.app-value-table-action button');
+        const title = page.locator('.app-title');
+        await toggle.hover();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        await title.hover();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await toggle.click();
+        await title.hover();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await toggle.hover({ position: { x: 14, y: 22 } });
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await title.hover();
+        await toggle.hover();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    });
+});
+
 test('the value table return button works by keyboard without the CDN', async ({ page }) => {
     await page.route('https://cdn.tailwindcss.com**', route => route.abort());
     await page.emulateMedia({ reducedMotion: 'reduce' });

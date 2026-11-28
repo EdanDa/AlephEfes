@@ -1971,7 +1971,7 @@ const App = () => {
                             <span dir="ltr">Aleph Efes</span>
                         </a>
                         <div className="app-top-tools">
-                            <div className="app-value-table-action relative" onPointerMove={handleTableIconHover} onPointerLeave={handleTableIconLeave}>
+                            <div className="app-value-table-action relative" onPointerEnter={handleTableIconHover} onPointerLeave={handleTableIconLeave}>
                                 <button aria-expanded={isValueTableOpen} ref={valueTableButtonRef} onClick={handleTableIconClick} className={`p-2 rounded-full text-xl transition-colors noselect ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-300'}`} aria-label={t("הצג טבלת ערכי אותיות")}>
                                     <Icon name="hash" className="w-5 h-5 text-purple-600"/>
                                 </button>
