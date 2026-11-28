@@ -1,5 +1,5 @@
 import chapterRanges from './poetryChapterRanges.json' with { type: 'json' };
-import { t } from '../i18n/locale.js';
+import { getLanguage, t, translateLabel } from '../i18n/locale.js';
 
 const namedPassages = [
     { id: 'sea', title: 'שירת הים', aliases: ['אז ישיר', 'שירת משה'], book: 'שמות', bookSlug: 'exodus',
@@ -31,10 +31,11 @@ function chapterPassages(bookSlug, book, kind) {
     }));
 }
 export const songs = [...namedPassages, ...chapterPassages('psalms', 'תהלים', 'psalm'), ...chapterPassages('lamentations', 'איכה', 'lament')];
-export function passageTitle(song) {
-    if (song.kind === 'psalm') return song.chapter === song.endChapter ? t`מזמור ${song.chapter}` : t`מזמורים ${song.chapter}–${song.endChapter}`;
-    if (song.kind === 'lament') return t`קינה ${song.chapter}`;
-    return t(song.title);
+export function passageTitle(song, locale = getLanguage()) {
+    if (song.kind === 'psalm') return song.chapter === song.endChapter ? translateLabel('מזמור {0}', locale, song.chapter)
+        : translateLabel('מזמורים {0}–{1}', locale, song.chapter, song.endChapter);
+    if (song.kind === 'lament') return translateLabel('קינה {0}', locale, song.chapter);
+    return translateLabel(song.title, locale);
 }
 export function passageAction(song, analyze) {
     if (song.kind === 'psalm') return analyze ? t('נתח את הבחירה מתהלים') : t('פתח את המזמור השלם');

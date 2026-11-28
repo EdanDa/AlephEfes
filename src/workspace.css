@@ -144,7 +144,7 @@ html[dir="rtl"] body { direction: rtl; }
 }
 .app-source-controls { display: flex; align-items: center; justify-content: end; gap: .5rem; min-width: 0; margin-inline-start: auto; flex-wrap: wrap; }
 .app-source-controls button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding-inline: .85rem; font-size: .875rem; }
-.app-source-controls > span { width: 13.5rem; max-width: 100%; text-align: center; }
+.app-source-controls > span { width: 13.5rem; max-width: 100%; align-items: center; text-align: center; }
 .app-legend-items { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .25rem; }
 .app-legend-items button { justify-content: center; min-width: 0; }
 .app-input-toolbar { display: grid; grid-template-columns: 1fr auto auto; align-items: end; gap: .65rem; margin-bottom: .6rem; }

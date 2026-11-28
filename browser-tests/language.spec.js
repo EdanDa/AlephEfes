@@ -104,6 +104,31 @@ for (const width of [320, 390, 940, 990, 1280]) {
     });
 }
 
+test('the source badge reserves the taller translation across phone wrapping widths', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => localStorage.setItem('alephEfes:session', JSON.stringify({
+        version: 2, mode: 'aleph-zero', text: 'אב',
+        corpusSelection: { bookSlug: 'genesis', bookName: 'בראשית', scope: 'section', startSectionOrdinal: 32, endSectionOrdinal: 32, sectionCount: 1 },
+    })));
+    await page.goto('/?lang=he');
+    const badge = page.locator('.app-source-controls > span');
+    const heights = () => badge.evaluate(el => {
+        const sizes = [];
+        for (let width = 120; width <= 200; width += 4) {
+            el.style.flex = '0 0 ' + width + 'px';
+            sizes.push(el.getBoundingClientRect().height);
+        }
+        el.style.removeProperty('flex');
+        return sizes;
+    });
+    await expect(badge).toHaveText('MAM · בראשית · פרשיה 32');
+    const hebrew = await heights();
+    expect(new Set(hebrew).size).toBeGreaterThan(1);
+    await page.locator('.app-language-switch').click();
+    await expect(badge).toHaveText('MAM · Genesis · Section 32');
+    expect(await heights()).toEqual(hebrew);
+});
+
 for (const [width, height] of [[320, 740], [390, 844], [820, 850], [1280, 800]]) {
     test(`the language switch keeps the reading workspace in place at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height });

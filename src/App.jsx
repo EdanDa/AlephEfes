@@ -1,4 +1,4 @@
-import { direction, switchLanguage, switchLanguageUrl, t } from './i18n/locale.js';
+import { direction, switchLanguage, switchLanguageUrl, t, translateLabel } from './i18n/locale.js';
 import useLanguage, { BilingualLabel, LanguageProvider } from './i18n/LanguageContext.jsx';
 import React, { Suspense, lazy, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue, useTransition, useLayoutEffect, memo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
@@ -7,8 +7,7 @@ import VirtualizedGroups from './components/VirtualizedGroups';
 import ExportMenu from './components/ExportMenu';
 import PrimeColorPicker from './components/PrimeColorPicker';
 import TanakhSearch from './components/TanakhSearch';
-import SongLabel from './components/SongLabel';
-import { songs } from './core/tanakhSongs';
+import { passageTitle, songNumbers, songs } from './core/tanakhSongs';
 import WordDetailTable from './components/WordDetailTable';
 import ResearchWorkspace, { InspectWord, useResearch } from './components/ResearchWorkspace';
 import './workspace.css';
@@ -534,6 +533,24 @@ const Legend = React.memo(() => {
     );
 });
 
+
+function SourceBadge({ selection, song, isDarkMode }) {
+    const language = useLanguage();
+    const reference = song ? songNumbers(song) : '';
+    function caption(locale) {
+        const book = translateLabel(song ? song.book : selection.bookName, locale);
+        if (song) return `MAM · ${passageTitle(song, locale)} · ${book} `;
+        const { startSectionOrdinal: start, endSectionOrdinal: end } = selection;
+        const scope = selection.scope === 'book' ? translateLabel('הספר כולו', locale)
+            : selection.sectionCount === 1 ? translateLabel('פרשיה {0}', locale, start)
+            : translateLabel('פרשיות {0}–{1}', locale, start, end);
+        return `MAM · ${book} · ${scope}`;
+    }
+    return <span className={`bilingual-label rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}
+        data-alternate={caption(language === 'he' ? 'en' : 'he') + reference}>
+        <span>{caption(language)}{song && <bdi dir="ltr">{reference}</bdi>}</span>
+    </span>;
+}
 
 function LineTotal({ label, value, repeat, prime, primeColor }) {
     const color = COLOR_PALETTE[primeColor];
@@ -2025,15 +2042,7 @@ const App = () => {
                                         <Icon name="book" className="w-5 h-5 shrink-0" />
                                         <BilingualLabel message={isTanakhOpen ? 'סגור תנ״ך' : 'פתח תנ״ך'} />
                                     </button>
-                                    {corpusSelection && (
-                                        <span className={`rounded-full px-3 py-1.5 text-xs ${isDarkMode ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                                            MAM · {selectedSong ? <SongLabel song={selectedSong} /> : <>{t(corpusSelection.bookName)} · {corpusSelection.scope === 'book'
-                                                ? t('הספר כולו')
-                                                : corpusSelection.sectionCount === 1
-                                                    ? t`פרשיה ${corpusSelection.startSectionOrdinal}`
-                                                    : t`פרשיות ${corpusSelection.startSectionOrdinal}–${corpusSelection.endSectionOrdinal}`}</>}
-                                        </span>
-                                    )}
+                                    {corpusSelection && <SourceBadge selection={corpusSelection} song={selectedSong} isDarkMode={isDarkMode} />}
                                 </div>
                             </TanakhSearch>
                             <Legend />
