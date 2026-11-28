@@ -65,7 +65,7 @@ for (const width of [320, 1280]) {
     });
 }
 
-for (const width of [320, 390, 990, 1280]) {
+for (const width of [320, 390, 940, 990, 1280]) {
     test(`translated result controls keep their positions in every view at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await page.addInitScript(text => localStorage.setItem('alephEfes:session', JSON.stringify({
@@ -80,7 +80,7 @@ for (const width of [320, 390, 990, 1280]) {
                 await page.locator('.app-language-switch').scrollIntoViewIfNeeded();
             }
             const controls = page.locator([
-                '.app-header-copy', '.app-source-controls button', '.app-legend button', '.app-input-toolbar button',
+                '.app-header-copy', '.app-source-controls > *', '.app-legend button', '.app-input-toolbar button',
                 '.app-text-size-control select', '.app-textarea', '.app-stats-toggle', '.app-view-tab',
                 '.app-results-header summary button', '.app-segmented-control button', '.research-numbering-options button',
                 '.research-detail-controls > button', '.app-frequency-table-header button', '.app-word-frequency-row:first-child button', '.app-results-card input',

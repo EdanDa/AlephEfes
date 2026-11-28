@@ -537,10 +537,11 @@ const Legend = React.memo(() => {
 
 function LineTotal({ label, value, repeat, prime, primeColor }) {
     const color = COLOR_PALETTE[primeColor];
-    return <span className={`app-line-total mx-2 ${prime ? color.light + ' ' + color.dark : ''}`}>
+    const primeClass = prime ? color.light + ' ' + color.dark : '';
+    return <span className={`app-line-total mx-2 ${repeat ? '' : primeClass}`}>
         <span className="line-total-name">{t(label)}</span><span className="line-total-equals">=</span>
         {repeat && <span className="detail-ditto">〃</span>}
-        <bdi className="detail-number" dir="ltr">{value}{prime && ' ♢'}</bdi>
+        <bdi className={`detail-number ${repeat ? primeClass : ''}`} dir="ltr">{value}{prime && ' ♢'}</bdi>
     </span>;
 }
 
@@ -1415,6 +1416,7 @@ const App = () => {
 
     const clusterRefs = useRef({});
     const valueTableRef = useRef(null);
+    const titleRef = useRef(null);
     const valueTableButtonRef = useRef(null);
     const viewContentTopRef = useRef(null);
     const linesToggleRef = useRef(null);
@@ -1876,7 +1878,11 @@ const App = () => {
     };
     const handleTableIconLeave = () => !isValueTablePinned && dispatch({ type: 'SET_VALUE_TABLE_OPEN', payload: false });
     const handleTableIconClick = () => dispatch({ type: 'TOGGLE_VALUE_TABLE_PIN' });
-    const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollToTop = () => {
+        // Both return controls disappear during the scroll. Leave focus at the destination.
+        titleRef.current?.focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    };
     const handleModeChange = (newMode) => dispatch({ type: 'SET_MODE', payload: newMode });
     const handleTextSizeChange = (e) => dispatch({ type: 'SET_TEXT_SIZE', payload: e.target.value });
     const handleClearText = useCallback(() => {
@@ -1943,7 +1949,7 @@ const App = () => {
             <div className="max-w-7xl mx-auto">
                 <header className="app-header">
                     <div className="app-header-copy">
-                        <h1 className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"><bdo dir="ltr">{mode === 'aleph-zero' ? 'א=0' : 'א=1'}</bdo></h1>
+                        <h1 ref={titleRef} tabIndex={-1} className="app-title text-5xl font-bold bg-gradient-to-l from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"><bdo dir="ltr">{mode === 'aleph-zero' ? 'א=0' : 'א=1'}</bdo></h1>
                         <p className={`app-subtitle text-base sm:text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}><BilingualLabel message="כלי לניתוח אלפביתי־מספרי ומבני של טקסט עברי" /></p>
                     </div>
                     <a href={switchLanguageUrl()} onClick={switchLanguage} lang={language === 'he' ? 'en' : 'he'} hrefLang={language === 'he' ? 'en' : 'he'}
@@ -2081,7 +2087,7 @@ const App = () => {
                     )}
                     <StatsPanel />
 
-                    <div className="app-view-nav sticky top-3 z-40 flex justify-center my-8">
+                    <div className="app-view-nav flex justify-center my-8">
                             <div className={`app-view-tabs flex items-center p-1 rounded-full noselect border backdrop-blur-sm ${isDarkMode ? 'bg-gray-700/95 border-gray-600 shadow-lg shadow-black/30' : 'bg-gray-200/95 border-slate-300 shadow-md shadow-slate-300/70'}`}>
                                 <button aria-label={t("שכיחות")} aria-pressed={view === 'hot-words'} onClick={() => handleViewChange('hot-words')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'hot-words' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="bar-chart" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="שכיחות" /></span></button>
                                 <button aria-label={t("פירוט")} aria-pressed={view === 'lines'} onClick={() => handleViewChange('lines')} className={`app-view-tab px-4 py-2 text-sm font-semibold rounded-full transition-colors flex items-center gap-2 ${view === 'lines' ? (isDarkMode ? 'bg-blue-500 text-white shadow' : 'bg-white text-blue-600 shadow') : ''}`}><Icon name="grid" className="w-4 h-4" /><span className="app-view-tab-label"><BilingualLabel message="פירוט" /></span></button>
@@ -2376,7 +2382,7 @@ const App = () => {
                 </>
                 )}
                 {showScrollTop && isValueTableOpen && (
-                    <div className="app-scroll-top fixed top-1/2 right-5 -translate-y-1/2 z-50 group">
+                    <div className="app-scroll-top group">
                         <button onClick={scrollToTop} aria-label={t("גלול לראש העמוד")} className="bg-gray-800/55 dark:bg-white/20 text-white p-3 rounded-full hover:bg-gray-800/75 dark:hover:bg-white/30 transition-opacity shadow-lg">
                             <Icon name="arrow-up" className="w-7 h-7" />
                         </button>

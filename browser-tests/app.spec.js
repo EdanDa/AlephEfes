@@ -275,9 +275,25 @@ test('legacy saved text migrates without overwriting it on reload', async ({ pag
 });
 
 test('keyboard buttons remain readable when the Tailwind CDN is unavailable', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 540 });
     await page.route('https://cdn.tailwindcss.com**', (route) => route.abort());
     await page.addInitScript(() => localStorage.setItem('alephThemeMode', 'dark'));
     await open(page, 'אב גד ברא');
+    const frequency = page.getByRole('button', { name: 'שכיחות', exact: true });
+    const heading = page.locator('.app-distribution-card .app-dr-heading');
+    const tabBox = await frequency.boundingBox();
+    const x = tabBox.x + tabBox.width / 2, y = tabBox.y + tabBox.height / 2;
+    await heading.evaluate((node, y) => {
+        const rect = node.getBoundingClientRect();
+        window.scrollTo({ top: scrollY + rect.top + rect.height / 2 - y, behavior: 'instant' });
+    }, y);
+    // Exercise the overlap in the CI trace regardless of the runner's font metrics.
+    const under = await heading.boundingBox();
+    expect(x).toBeGreaterThan(under.x);
+    expect(x).toBeLessThan(under.x + under.width);
+    expect(y).toBeGreaterThan(under.y);
+    expect(y).toBeLessThan(under.y + under.height);
+    expect(await frequency.evaluate((tab, { x, y }) => tab.contains(document.elementFromPoint(x, y)), { x, y })).toBe(true);
     await view(page, 'שכיחות');
     const row = page.locator('.app-frequency-table-row').first();
     const styles = await row.evaluate((button) => ({

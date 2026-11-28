@@ -85,9 +85,9 @@ export default function TanakhSearch({ onOpen, children }) {
     }
 
     return (
-        <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label" onKeyDown={handleKey}>
+        <div className="tanakh-search" role="search" aria-labelledby="tanakh-search-label">
             <div className="tanakh-search-heading">
-                <div className="tanakh-search-tools">
+                <div className="tanakh-search-tools" onKeyDown={handleKey}>
                     <label id="tanakh-search-label" htmlFor="tanakh-search"><BilingualLabel message="חיפוש בתנ״ך" /></label>
                     {query && <div className="tanakh-search-actions">
                         <button type="button" onClick={clearSearch}>{t('נקה חיפוש')}</button>
@@ -98,7 +98,7 @@ export default function TanakhSearch({ onOpen, children }) {
                 </div>
                 {children}
             </div>
-            <input ref={inputRef} id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false}
+            <input ref={inputRef} id="tanakh-search" className="workspace-search-field" type="search" dir="rtl" lang={query ? 'he' : language} autoComplete="off" spellCheck={false} onKeyDown={handleKey}
                 placeholder={t('חפש מילה או צירוף')} value={query}
                 onChange={({ currentTarget: input }) => updateInput(input, input.value, input.selectionStart, normalizeTypedTanakhSearchInput)}
                 onPaste={event => {
@@ -107,7 +107,7 @@ export default function TanakhSearch({ onOpen, children }) {
                     const prefix = input.value.slice(0, input.selectionStart) + event.clipboardData.getData('text/plain');
                     updateInput(input, prefix + input.value.slice(input.selectionEnd), prefix.length, normalizeTanakhSearchInput);
                 }} />
-            {searching && <div id="tanakh-matches" hidden={collapsed}>
+            {searching && <div id="tanakh-matches" hidden={collapsed} onKeyDown={handleKey}>
                 {namedSongs.length > 0 && <div className="tanakh-named-songs" role="group" aria-label={t('שירות וקטעים')}>
                     {namedSongs.map(song => <button key={song.id} type="button" onClick={() => onOpen(song)}>
                         <SongLabel song={song} /> · {t(song.kind === 'passage' ? 'פתח את הקטע המלא' : 'פתח את השירה')}

@@ -55,6 +55,24 @@ for (const theme of ['light', 'dark']) for (const width of [320, 390, 1440]) tes
 });
 
 const ezekiel = JSON.parse(fs.readFileSync('public/corpus/books/ezekiel.json', 'utf8')).sections[29];
+test('repeated prime totals show numbers on phones and neutral ditto marks on desktop', async ({ page }) => {
+    await page.goto('/?lang=en');
+    await page.locator('.app-textarea').fill('א ג');
+    await page.getByRole('button', { name: 'Details', exact: true }).click();
+    const totals = page.locator('.app-line-totals').first();
+    const values = totals.locator('.detail-number:visible');
+    await expect(values).toHaveText(['2 ♢', '2 ♢', '2 ♢', '2']);
+    const prime = await values.first().evaluate(el => getComputedStyle(el).color);
+    await expect(values.nth(1)).toHaveCSS('color', prime);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(values).toHaveText(['2 ♢', '2']);
+    const ditto = totals.locator('.detail-ditto:visible');
+    await expect(ditto).toHaveText(['〃', '〃']);
+    const neutral = await totals.evaluate(el => getComputedStyle(el).color);
+    await expect(ditto.first()).toHaveCSS('color', neutral);
+    await expect(ditto.last()).toHaveCSS('color', neutral);
+});
+
 for (const [width, lang, theme] of [[375, 'he', 'dark'], [320, 'en', 'light']]) {
     test(`read the entire Ezekiel word calculation at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 800 });

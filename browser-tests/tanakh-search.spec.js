@@ -68,6 +68,10 @@ for (const [width, lang] of [[390, 'he'], [1440, 'en']]) {
         await expect(input).toHaveValue('את');
         await region.getByRole('button', { name: lang === 'he' ? 'הצג תוצאות' : 'Show results' }).click();
         await expect(region.getByRole('status')).toContainText('9–16');
+        const source = page.locator('.app-source-controls button');
+        await source.press('Escape');
+        await expect(source).toBeFocused();
+        await expect(region.getByRole('status')).toContainText('9–16');
         await next.first().press('Escape');
         await expect(input).toBeFocused();
         await expect(region.getByRole('status')).toHaveCount(0);

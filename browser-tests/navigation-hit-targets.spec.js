@@ -43,13 +43,34 @@ for (const language of ['he', 'en']) {
             expect(arrow.y + arrow.height).toBeLessThanOrEqual(box.y);
             await top.tap();
             await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+            await expect(page.locator('.app-title')).toBeFocused();
             await page.locator('.app-textarea').fill('');
         }
     });
 }
 
-for (const theme of ['light', 'dark']) for (const width of [1280, 1440, 1920]) {
-    test(`sticky navigation leaves side controls clickable: ${theme} ${width}`, async ({ page }, testInfo) => {
+test('the value table return button works by keyboard without the CDN', async ({ page }) => {
+    await page.route('https://cdn.tailwindcss.com**', route => route.abort());
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 375, height: 480 });
+    await page.goto('/?lang=en');
+    await page.locator('.app-value-table-action button').press('Enter');
+    await expect(page.locator('.app-value-tables')).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 600));
+    const button = page.locator('.app-scroll-top button');
+    await expect(button).toBeInViewport();
+    await button.press('Enter');
+    await expect(page.locator('.app-title')).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.app-language-switch')).toBeFocused();
+});
+
+const desktopCases = ['light', 'dark'].flatMap(theme => [1280, 1440, 1920].map(width => ({ theme, width })));
+desktopCases.push({ theme: 'dark', width: 1280, blockCdn: true });
+for (const { theme, width, blockCdn } of desktopCases) {
+    test(`sticky navigation leaves side controls clickable: ${theme} ${width}${blockCdn ? ' without the CDN' : ''}`, async ({ page }, testInfo) => {
+        if (blockCdn) await page.route('https://cdn.tailwindcss.com**', route => route.abort());
         await page.setViewportSize({ width, height: 900 });
         await page.addInitScript((theme) => {
             localStorage.setItem('alephThemeMode', theme);
